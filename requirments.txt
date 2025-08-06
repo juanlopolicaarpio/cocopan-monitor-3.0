@@ -1,0 +1,28 @@
+# Core Dependencies
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+python-dotenv>=1.0.0
+
+# Web Scraping
+playwright>=1.40.0
+
+# Dashboard
+streamlit>=1.28.0
+plotly>=5.17.0
+pandas>=2.1.0
+
+# Database
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0
+
+# Scheduling & Background Tasks
+APScheduler>=3.10.0
+pytz>=2023.3
+
+# Logging & Monitoring
+psutil>=5.9.0
+
+# Development & Testing (optional)
+pytest>=7.4.0
+black>=23.9.0
+flake8>=6.1.0
