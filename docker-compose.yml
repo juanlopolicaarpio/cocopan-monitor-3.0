@@ -1,7 +1,5 @@
 version: '3.8'
-
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: cocopan_postgres
@@ -9,22 +7,14 @@ services:
       POSTGRES_DB: cocopan_monitor
       POSTGRES_USER: cocopan
       POSTGRES_PASSWORD: cocopan123
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - cocopan_network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cocopan -d cocopan_monitor"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # CocoPan Monitor Service (Background scheduler)
   monitor:
     build: .
     container_name: cocopan_monitor
@@ -33,79 +23,31 @@ services:
       - DATABASE_URL=postgresql://cocopan:cocopan123@postgres:5432/cocopan_monitor
       - TIMEZONE=Asia/Manila
       - LOG_LEVEL=INFO
-      - MONITOR_START_HOUR=6
-      - MONITOR_END_HOUR=21
-      - CHECK_INTERVAL_MINUTES=60
     volumes:
       - ./branch_urls.json:/app/branch_urls.json:ro
-      - ./cocopan_monitor.log:/app/cocopan_monitor.log
-    networks:
-      - cocopan_network
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import psutil; exit(0 if any('monitor_service.py' in p.cmdline()[1:] for p in psutil.process_iter() if len(p.cmdline()) > 1) else 1)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Streamlit Dashboard
-  dashboard:
-    build: .
-    container_name: cocopan_dashboard
-    command: streamlit run enhanced_dashboard.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false
-    environment:
-      - DATABASE_URL=postgresql://cocopan:cocopan123@postgres:5432/cocopan_monitor
-      - TIMEZONE=Asia/Manila
-      - DASHBOARD_AUTO_REFRESH=300
-    ports:
-      - "8501:8501"
-    networks:
-      - cocopan_network
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Optional: pgAdmin for database management
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: cocopan_pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@cocopan.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
-    ports:
-      - "5050:80"
     networks:
       - cocopan_network
     depends_on:
       - postgres
     restart: unless-stopped
-    profiles:
-      - admin  # Only run when using --profile admin
+
+  dashboard:
+    build: .
+    container_name: cocopan_dashboard
+    command: streamlit run enhanced_dashboard.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
+    environment:
+      - DATABASE_URL=postgresql://cocopan:cocopan123@postgres:5432/cocopan_monitor
+      - TIMEZONE=Asia/Manila
+    ports:
+      - "8501:8501"
+    networks:
+      - cocopan_network
+    depends_on:
+      - postgres
+    restart: unless-stopped
 
 volumes:
   postgres_data:
-    driver: local
 
 networks:
   cocopan_network:
-    driver: bridge
-
-# Production overrides (uncomment for production)
-# x-production: &production
-#   deploy:
-#     resources:
-#       limits:
-#         cpus: '0.5'
-#         memory: 512M
-#       reservations:
-#         cpus: '0.25'
-#         memory: 256M
