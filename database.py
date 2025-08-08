@@ -1,57 +1,38 @@
-#!/usr/bin/env python3
-"""
-CocoPan Monitor - Database Operations
-Handles PostgreSQL/SQLite database operations with connection pooling
-"""
 import os
 import time
 import logging
-from datetime import datetime
 from contextlib import contextmanager
 from typing import List, Tuple, Optional, Dict, Any
-
 import psycopg2
 import sqlite3
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 import pandas as pd
-
 from config import config
 
-# Setup logging
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:
-    """Database manager with connection pooling and error handling"""
-    
     def __init__(self):
         self.connection_pool = None
         self.db_type = "sqlite" if config.USE_SQLITE else "postgresql"
         self._initialize_database()
     
     def _initialize_database(self):
-        """Initialize database connection and create tables"""
         if self.db_type == "postgresql":
             self._init_postgresql()
         else:
             self._init_sqlite()
-        
         self._create_tables()
         logger.info(f"✅ Database initialized ({self.db_type})")
     
     def _init_postgresql(self):
-        """Initialize PostgreSQL connection pool"""
         try:
-            # Parse database URL
             db_url = config.DATABASE_URL
             if db_url.startswith('postgresql://'):
-                # Create connection pool
                 self.connection_pool = psycopg2.pool.ThreadedConnectionPool(
-                    minconn=1,
-                    maxconn=20,
-                    dsn=db_url,
-                    cursor_factory=RealDictCursor
+                    minconn=1, maxconn=20, dsn=db_url, cursor_factory=RealDictCursor
                 )
                 logger.info("✅ PostgreSQL connection pool created")
             else:
@@ -63,9 +44,7 @@ class DatabaseManager:
             self._init_sqlite()
     
     def _init_sqlite(self):
-        """Initialize SQLite (fallback or development)"""
         self.sqlite_path = config.SQLITE_PATH
-        # Test SQLite connection
         try:
             conn = sqlite3.connect(self.sqlite_path)
             conn.close()
@@ -76,7 +55,6 @@ class DatabaseManager:
     
     @contextmanager
     def get_connection(self):
-        """Get database connection from pool or create SQLite connection"""
         if self.db_type == "postgresql":
             conn = None
             try:
@@ -91,11 +69,10 @@ class DatabaseManager:
                 if conn:
                     self.connection_pool.putconn(conn)
         else:
-            # SQLite
             conn = None
             try:
                 conn = sqlite3.connect(self.sqlite_path, timeout=30)
-                conn.row_factory = sqlite3.Row  # For dict-like access
+                conn.row_factory = sqlite3.Row
                 yield conn
             except Exception as e:
                 if conn:
@@ -107,11 +84,9 @@ class DatabaseManager:
                     conn.close()
     
     def _create_tables(self):
-        """Create database tables if they don't exist"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            # Stores table
             if self.db_type == "postgresql":
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS stores (
@@ -123,7 +98,6 @@ class DatabaseManager:
                     )
                 ''')
                 
-                # Status checks table
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS status_checks (
                         id SERIAL PRIMARY KEY,
@@ -135,7 +109,6 @@ class DatabaseManager:
                     )
                 ''')
                 
-                # Summary reports table
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS summary_reports (
                         id SERIAL PRIMARY KEY,
@@ -146,19 +119,7 @@ class DatabaseManager:
                         report_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
-                
-                # Create indexes for performance
-                cursor.execute('''
-                    CREATE INDEX IF NOT EXISTS idx_status_checks_store_id 
-                    ON status_checks(store_id)
-                ''')
-                cursor.execute('''
-                    CREATE INDEX IF NOT EXISTS idx_status_checks_checked_at 
-                    ON status_checks(checked_at)
-                ''')
-                
             else:
-                # SQLite (keep existing schema)
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS stores (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -195,27 +156,33 @@ class DatabaseManager:
             conn.commit()
     
     def get_or_create_store(self, name: str, url: str) -> int:
-        """Get store ID or create new store record"""
         platform = "foodpanda" if "foodpanda.ph" in url else "grabfood"
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            # Try to find existing store
-            cursor.execute("SELECT id FROM stores WHERE url = %s", (url,))
-            result = cursor.fetchone()
-            
-            if result:
-                return result[0] if self.db_type == "postgresql" else result["id"]
-            
-            # Create new store
             if self.db_type == "postgresql":
+                # Check existing store
+                cursor.execute("SELECT id FROM stores WHERE url = %s", (url,))
+                result = cursor.fetchone()
+                
+                if result:
+                    return result[0]
+                
+                # Create new store
                 cursor.execute(
                     "INSERT INTO stores (name, url, platform) VALUES (%s, %s, %s) RETURNING id",
                     (name, url, platform)
                 )
                 store_id = cursor.fetchone()[0]
             else:
+                # SQLite version
+                cursor.execute("SELECT id FROM stores WHERE url = ?", (url,))
+                result = cursor.fetchone()
+                
+                if result:
+                    return result["id"]
+                
                 cursor.execute(
                     "INSERT INTO stores (name, url, platform) VALUES (?, ?, ?)",
                     (name, url, platform)
@@ -228,42 +195,28 @@ class DatabaseManager:
     def save_status_check(self, store_id: int, is_online: bool, 
                          response_time_ms: Optional[int] = None, 
                          error_message: Optional[str] = None) -> bool:
-        """Save status check with retry logic"""
-        max_retries = config.MAX_RETRIES
-        
-        for attempt in range(max_retries):
-            try:
-                with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    
-                    if self.db_type == "postgresql":
-                        cursor.execute('''
-                            INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message)
-                            VALUES (%s, %s, %s, %s)
-                        ''', (store_id, is_online, response_time_ms, error_message))
-                    else:
-                        cursor.execute('''
-                            INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message)
-                            VALUES (?, ?, ?, ?)
-                        ''', (store_id, is_online, response_time_ms, error_message))
-                    
-                    conn.commit()
-                    return True
-                    
-            except Exception as e:
-                logger.warning(f"Status check save attempt {attempt + 1} failed: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(config.RETRY_DELAY)
-                    continue
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                if self.db_type == "postgresql":
+                    cursor.execute('''
+                        INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message)
+                        VALUES (%s, %s, %s, %s)
+                    ''', (store_id, is_online, response_time_ms, error_message))
                 else:
-                    logger.error(f"Failed to save status check after {max_retries} attempts")
-                    return False
-        
-        return False
+                    cursor.execute('''
+                        INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message)
+                        VALUES (?, ?, ?, ?)
+                    ''', (store_id, is_online, response_time_ms, error_message))
+                
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Failed to save status check: {e}")
+            return False
     
-    def save_summary_report(self, total_stores: int, online_stores: int, 
-                           offline_stores: int) -> bool:
-        """Save summary report"""
+    def save_summary_report(self, total_stores: int, online_stores: int, offline_stores: int) -> bool:
         online_percentage = (online_stores / total_stores * 100) if total_stores > 0 else 0
         
         try:
@@ -282,15 +235,12 @@ class DatabaseManager:
                     ''', (total_stores, online_stores, offline_stores, online_percentage))
                 
                 conn.commit()
-                logger.info(f"📊 Summary saved: {online_stores}/{total_stores} online ({online_percentage:.1f}%)")
                 return True
-                
         except Exception as e:
             logger.error(f"Failed to save summary report: {e}")
             return False
     
     def get_latest_status(self) -> pd.DataFrame:
-        """Get latest status for each store"""
         with self.get_connection() as conn:
             query = '''
                 SELECT 
@@ -312,14 +262,13 @@ class DatabaseManager:
             return pd.read_sql_query(query, conn)
     
     def get_hourly_data(self) -> pd.DataFrame:
-        """Get hourly summaries for today"""
         with self.get_connection() as conn:
             if self.db_type == "postgresql":
                 query = '''
                     SELECT 
-                        EXTRACT(HOUR FROM report_time AT TIME ZONE 'Asia/Manila') as hour,
-                        ROUND(AVG(online_percentage), 0) as online_pct,
-                        ROUND(AVG(100 - online_percentage), 0) as offline_pct,
+                        EXTRACT(HOUR FROM report_time AT TIME ZONE 'Asia/Manila')::integer as hour,
+                        FLOOR(AVG(online_percentage))::integer as online_pct,
+                        FLOOR(AVG(100 - online_percentage))::integer as offline_pct,
                         COUNT(*) as data_points
                     FROM summary_reports
                     WHERE DATE(report_time AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
@@ -341,7 +290,6 @@ class DatabaseManager:
             return pd.read_sql_query(query, conn)
     
     def get_store_logs(self, limit: int = 50) -> pd.DataFrame:
-        """Get recent store logs"""
         with self.get_connection() as conn:
             if self.db_type == "postgresql":
                 query = '''
@@ -375,7 +323,6 @@ class DatabaseManager:
                 return pd.read_sql_query(query, conn, params=(limit,))
     
     def get_daily_uptime(self) -> pd.DataFrame:
-        """Get daily uptime per store"""
         with self.get_connection() as conn:
             if self.db_type == "postgresql":
                 query = '''
@@ -384,10 +331,7 @@ class DatabaseManager:
                         s.platform,
                         COUNT(sc.id) as total_checks,
                         SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) as online_checks,
-                        ROUND(
-                            (SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id)), 
-                            0
-                        ) as uptime_percentage
+                        FLOOR(SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id))::integer as uptime_percentage
                     FROM stores s
                     INNER JOIN status_checks sc ON s.id = sc.store_id
                     WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
@@ -414,24 +358,19 @@ class DatabaseManager:
             return pd.read_sql_query(query, conn)
     
     def get_database_stats(self) -> Dict[str, Any]:
-        """Get database statistics"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Store count
                 cursor.execute('SELECT COUNT(*) FROM stores')
                 store_count = cursor.fetchone()[0]
                 
-                # Platform breakdown
                 cursor.execute('SELECT platform, COUNT(*) FROM stores GROUP BY platform')
                 platforms = dict(cursor.fetchall())
                 
-                # Total checks
                 cursor.execute('SELECT COUNT(*) FROM status_checks')
                 total_checks = cursor.fetchone()[0]
                 
-                # Latest summary
                 cursor.execute('SELECT * FROM summary_reports ORDER BY report_time DESC LIMIT 1')
                 latest_summary = cursor.fetchone()
                 
@@ -442,16 +381,12 @@ class DatabaseManager:
                     'latest_summary': dict(latest_summary) if latest_summary else None,
                     'db_type': self.db_type
                 }
-                
         except Exception as e:
             logger.error(f"Failed to get database stats: {e}")
             return {}
     
     def close(self):
-        """Close database connections"""
         if self.connection_pool:
             self.connection_pool.closeall()
-            logger.info("🔒 Database connections closed")
 
-# Global database manager instance
 db = DatabaseManager()
