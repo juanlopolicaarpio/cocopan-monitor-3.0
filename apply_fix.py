@@ -1,5 +1,38 @@
 #!/usr/bin/env python3
 """
+CocoPan Monitor Fix Script
+Applies fixes for database errors and container restart issues
+"""
+import os
+import shutil
+import subprocess
+import time
+from datetime import datetime
+def create_backup():
+    """Create backup of current files"""
+    backup_dir = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    files_to_backup = [
+        'database.py',
+        'monitor_service.py', 
+        'docker-compose.yml'
+    ]
+    
+    for file in files_to_backup:
+        if os.path.exists(file):
+            shutil.copy2(file, backup_dir)
+            print(f"✅ Backed up {file}")
+    
+    print(f"📦 Backup created in: {backup_dir}")
+    return backup_dir
+
+def apply_database_fix():
+    """Apply the fixed database module"""
+    print("🔧 Applying database fixes...")
+    
+    fixed_database_content = '''#!/usr/bin/env python3
+"""
 Fixed CocoPan Database Module
 Resolves boolean handling and exception issues
 """
@@ -105,7 +138,7 @@ class DatabaseManager:
             cursor = conn.cursor()
             
             if self.db_type == "postgresql":
-                cursor.execute('''
+                cursor.execute(\'\'\'
                     CREATE TABLE IF NOT EXISTS stores (
                         id SERIAL PRIMARY KEY,
                         name VARCHAR(255) NOT NULL,
@@ -113,9 +146,9 @@ class DatabaseManager:
                         platform VARCHAR(50) NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                \'\'\')
                 
-                cursor.execute('''
+                cursor.execute(\'\'\'
                     CREATE TABLE IF NOT EXISTS status_checks (
                         id SERIAL PRIMARY KEY,
                         store_id INTEGER REFERENCES stores(id),
@@ -124,9 +157,9 @@ class DatabaseManager:
                         response_time_ms INTEGER,
                         error_message TEXT
                     )
-                ''')
+                \'\'\')
                 
-                cursor.execute('''
+                cursor.execute(\'\'\'
                     CREATE TABLE IF NOT EXISTS summary_reports (
                         id SERIAL PRIMARY KEY,
                         total_stores INTEGER NOT NULL,
@@ -135,9 +168,9 @@ class DatabaseManager:
                         online_percentage REAL NOT NULL,
                         report_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                \'\'\')
             else:
-                cursor.execute('''
+                cursor.execute(\'\'\'
                     CREATE TABLE IF NOT EXISTS stores (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL,
@@ -145,9 +178,9 @@ class DatabaseManager:
                         platform TEXT NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                \'\'\')
                 
-                cursor.execute('''
+                cursor.execute(\'\'\'
                     CREATE TABLE IF NOT EXISTS status_checks (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         store_id INTEGER,
@@ -157,9 +190,9 @@ class DatabaseManager:
                         error_message TEXT,
                         FOREIGN KEY (store_id) REFERENCES stores (id)
                     )
-                ''')
+                \'\'\')
                 
-                cursor.execute('''
+                cursor.execute(\'\'\'
                     CREATE TABLE IF NOT EXISTS summary_reports (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         total_stores INTEGER NOT NULL,
@@ -168,7 +201,7 @@ class DatabaseManager:
                         online_percentage REAL NOT NULL,
                         report_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                ''')
+                \'\'\')
             
             conn.commit()
     
@@ -235,22 +268,22 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 
                 if self.db_type == "postgresql":
-                    cursor.execute('''
+                    cursor.execute(\'\'\'
                         INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message)
                         VALUES (%s, %s, %s, %s)
-                    ''', (store_id, is_online_value, response_time_ms, error_message))
+                    \'\'\', (store_id, is_online_value, response_time_ms, error_message))
                 else:
-                    cursor.execute('''
+                    cursor.execute(\'\'\'
                         INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message)
                         VALUES (?, ?, ?, ?)
-                    ''', (store_id, is_online_value, response_time_ms, error_message))
+                    \'\'\', (store_id, is_online_value, response_time_ms, error_message))
                 
                 conn.commit()
                 return True
                 
         except Exception as e:
             logger.error(f"Failed to save status check for store_id {store_id}: {str(e)}")
-            logger.error(f"  Parameters: is_online={is_online}, response_time={response_time_ms}, error='{error_message}'")
+            logger.error(f"  Parameters: is_online={is_online}, response_time={response_time_ms}, error=\'{error_message}\'")
             return False
     
     def save_summary_report(self, total_stores: int, online_stores: int, offline_stores: int) -> bool:
@@ -268,15 +301,15 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 
                 if self.db_type == "postgresql":
-                    cursor.execute('''
+                    cursor.execute(\'\'\'
                         INSERT INTO summary_reports (total_stores, online_stores, offline_stores, online_percentage)
                         VALUES (%s, %s, %s, %s)
-                    ''', (total_stores, online_stores, offline_stores, online_percentage))
+                    \'\'\', (total_stores, online_stores, offline_stores, online_percentage))
                 else:
-                    cursor.execute('''
+                    cursor.execute(\'\'\'
                         INSERT INTO summary_reports (total_stores, online_stores, offline_stores, online_percentage)
                         VALUES (?, ?, ?, ?)
-                    ''', (total_stores, online_stores, offline_stores, online_percentage))
+                    \'\'\', (total_stores, online_stores, offline_stores, online_percentage))
                 
                 conn.commit()
                 return True
@@ -290,7 +323,7 @@ class DatabaseManager:
         """Get latest status with error handling"""
         try:
             with self.get_connection() as conn:
-                query = '''
+                query = \'\'\'
                     SELECT 
                         s.name,
                         s.url,
@@ -306,7 +339,7 @@ class DatabaseManager:
                         GROUP BY store_id
                     ) latest ON sc.store_id = latest.store_id AND sc.checked_at = latest.latest_check
                     ORDER BY s.name
-                '''
+                \'\'\'
                 return pd.read_sql_query(query, conn)
         except Exception as e:
             logger.error(f"Failed to get latest status: {str(e)}")
@@ -317,29 +350,29 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
-                    query = '''
+                    query = \'\'\'
                         SELECT 
-                            EXTRACT(HOUR FROM report_time AT TIME ZONE 'Asia/Manila')::integer as hour,
+                            EXTRACT(HOUR FROM report_time AT TIME ZONE \'Asia/Manila\')::integer as hour,
                             ROUND(AVG(online_percentage)::numeric, 0)::integer as online_pct,
                             ROUND(AVG(100 - online_percentage)::numeric, 0)::integer as offline_pct,
                             COUNT(*) as data_points
                         FROM summary_reports
-                        WHERE DATE(report_time AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
-                        GROUP BY EXTRACT(HOUR FROM report_time AT TIME ZONE 'Asia/Manila')
+                        WHERE DATE(report_time AT TIME ZONE \'Asia/Manila\') = CURRENT_DATE
+                        GROUP BY EXTRACT(HOUR FROM report_time AT TIME ZONE \'Asia/Manila\')
                         ORDER BY hour
-                    '''
+                    \'\'\'
                 else:
-                    query = '''
+                    query = \'\'\'
                         SELECT 
-                            strftime('%H', report_time) as hour,
+                            strftime(\'%H\', report_time) as hour,
                             ROUND(AVG(online_percentage), 0) as online_pct,
                             ROUND(AVG(100 - online_percentage), 0) as offline_pct,
                             COUNT(*) as data_points
                         FROM summary_reports
-                        WHERE DATE(report_time, '+8 hours') = DATE('now', '+8 hours')
-                        GROUP BY strftime('%H', report_time)
+                        WHERE DATE(report_time, \'+8 hours\') = DATE(\'now\', \'+8 hours\')
+                        GROUP BY strftime(\'%H\', report_time)
                         ORDER BY hour
-                    '''
+                    \'\'\'
                 return pd.read_sql_query(query, conn)
         except Exception as e:
             logger.error(f"Failed to get hourly data: {str(e)}")
@@ -350,7 +383,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
-                    query = '''
+                    query = \'\'\'
                         SELECT 
                             s.name,
                             s.platform,
@@ -359,13 +392,13 @@ class DatabaseManager:
                             sc.response_time_ms
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
+                        WHERE DATE(sc.checked_at AT TIME ZONE \'Asia/Manila\') = CURRENT_DATE
                         ORDER BY sc.checked_at DESC
                         LIMIT %s
-                    '''
+                    \'\'\'
                     return pd.read_sql_query(query, conn, params=(limit,))
                 else:
-                    query = '''
+                    query = \'\'\'
                         SELECT 
                             s.name,
                             s.platform,
@@ -374,10 +407,10 @@ class DatabaseManager:
                             sc.response_time_ms
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at, '+8 hours') = DATE('now', '+8 hours')
+                        WHERE DATE(sc.checked_at, \'+8 hours\') = DATE(\'now\', \'+8 hours\')
                         ORDER BY sc.checked_at DESC
                         LIMIT ?
-                    '''
+                    \'\'\'
                     return pd.read_sql_query(query, conn, params=(limit,))
         except Exception as e:
             logger.error(f"Failed to get store logs: {str(e)}")
@@ -388,7 +421,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
-                    query = '''
+                    query = \'\'\'
                         SELECT 
                             s.name,
                             s.platform,
@@ -400,12 +433,12 @@ class DatabaseManager:
                             )::integer as uptime_percentage
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
+                        WHERE DATE(sc.checked_at AT TIME ZONE \'Asia/Manila\') = CURRENT_DATE
                         GROUP BY s.id, s.name, s.platform
                         ORDER BY uptime_percentage DESC
-                    '''
+                    \'\'\'
                 else:
-                    query = '''
+                    query = \'\'\'
                         SELECT 
                             s.name,
                             s.platform,
@@ -417,10 +450,10 @@ class DatabaseManager:
                             ) as uptime_percentage
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at, '+8 hours') = DATE('now', '+8 hours')
+                        WHERE DATE(sc.checked_at, \'+8 hours\') = DATE(\'now\', \'+8 hours\')
                         GROUP BY s.id, s.name, s.platform
                         ORDER BY uptime_percentage DESC
-                    '''
+                    \'\'\'
                 return pd.read_sql_query(query, conn)
         except Exception as e:
             logger.error(f"Failed to get daily uptime: {str(e)}")
@@ -432,33 +465,33 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                cursor.execute('SELECT COUNT(*) FROM stores')
+                cursor.execute(\'SELECT COUNT(*) FROM stores\')
                 store_count = cursor.fetchone()[0]
                 
-                cursor.execute('SELECT platform, COUNT(*) FROM stores GROUP BY platform')
+                cursor.execute(\'SELECT platform, COUNT(*) FROM stores GROUP BY platform\')
                 platforms = dict(cursor.fetchall())
                 
-                cursor.execute('SELECT COUNT(*) FROM status_checks')
+                cursor.execute(\'SELECT COUNT(*) FROM status_checks\')
                 total_checks = cursor.fetchone()[0]
                 
-                cursor.execute('SELECT * FROM summary_reports ORDER BY report_time DESC LIMIT 1')
+                cursor.execute(\'SELECT * FROM summary_reports ORDER BY report_time DESC LIMIT 1\')
                 latest_summary = cursor.fetchone()
                 
                 return {
-                    'store_count': store_count,
-                    'platforms': platforms,
-                    'total_checks': total_checks,
-                    'latest_summary': dict(latest_summary) if latest_summary else None,
-                    'db_type': self.db_type
+                    \'store_count\': store_count,
+                    \'platforms\': platforms,
+                    \'total_checks\': total_checks,
+                    \'latest_summary\': dict(latest_summary) if latest_summary else None,
+                    \'db_type\': self.db_type
                 }
         except Exception as e:
             logger.error(f"Failed to get database stats: {str(e)}")
             return {
-                'store_count': 0,
-                'platforms': {},
-                'total_checks': 0,
-                'latest_summary': None,
-                'db_type': self.db_type
+                \'store_count\': 0,
+                \'platforms\': {},
+                \'total_checks\': 0,
+                \'latest_summary\': None,
+                \'db_type\': self.db_type
             }
     
     def close(self):
@@ -470,3 +503,127 @@ class DatabaseManager:
 
 # Global database instance
 db = DatabaseManager()
+'''
+
+    with open('database.py', 'w') as f:
+        f.write(fixed_database_content)
+    
+    print("✅ Applied database fixes")
+
+def stop_containers():
+    """Stop running containers"""
+    print("🛑 Stopping containers...")
+    try:
+        subprocess.run(['docker', 'compose', 'down'], check=False)
+        time.sleep(5)
+        print("✅ Containers stopped")
+    except Exception as e:
+        print(f"⚠️ Error stopping containers: {e}")
+
+def rebuild_and_start():
+    """Rebuild and start containers"""
+    print("🏗️ Rebuilding and starting containers...")
+    try:
+        # Rebuild containers with the fixed code
+        subprocess.run(['docker', 'compose', 'build', '--no-cache'], check=True)
+        print("✅ Containers rebuilt")
+        
+        # Start services
+        subprocess.run(['docker', 'compose', 'up', '-d'], check=True)
+        print("✅ Services started")
+        
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error rebuilding/starting: {e}")
+        return False
+
+def check_service_status():
+    """Check if services are running correctly"""
+    print("🔍 Checking service status...")
+    
+    # Wait for services to start
+    time.sleep(30)
+    
+    try:
+        # Check container status
+        result = subprocess.run(['docker', 'compose', 'ps'], 
+                              capture_output=True, text=True, check=True)
+        print("📊 Container Status:")
+        print(result.stdout)
+        
+        # Check logs for any immediate errors
+        print("\\n📋 Recent Monitor Logs:")
+        log_result = subprocess.run(['docker', 'compose', 'logs', '--tail=10', 'monitor'], 
+                                  capture_output=True, text=True, check=False)
+        print(log_result.stdout)
+        
+    except Exception as e:
+        print(f"⚠️ Error checking status: {e}")
+
+def main():
+    """Main fix application"""
+    print("🔧 CocoPan Monitor Fix Script")
+    print("=" * 50)
+    print("This script will fix the database error issues causing container restarts")
+    print()
+    
+    # Check if we're in the right directory
+    if not os.path.exists('docker-compose.yml'):
+        print("❌ docker-compose.yml not found!")
+        print("💡 Please run this script from the CocoPan project directory")
+        return False
+    
+    print("📋 Fix Steps:")
+    print("1. Create backup of current files")
+    print("2. Apply database fixes")
+    print("3. Stop and rebuild containers")
+    print("4. Start services with fixes")
+    print()
+    
+    # Confirm before proceeding
+    response = input("Continue with fixes? (y/N): ").lower()
+    if response != 'y':
+        print("❌ Fix cancelled by user")
+        return False
+    
+    try:
+        # Step 1: Create backup
+        backup_dir = create_backup()
+        
+        # Step 2: Apply fixes
+        apply_database_fix()
+        
+        # Step 3: Stop containers
+        stop_containers()
+        
+        # Step 4: Rebuild and start
+        success = rebuild_and_start()
+        
+        if success:
+            print("\\n🎉 Fixes applied successfully!")
+            print("\\n📊 Next Steps:")
+            print("1. Monitor logs: docker compose logs -f monitor")
+            print("2. Check dashboard: http://localhost:8501")
+            print("3. Watch for database errors (should be resolved)")
+            print()
+            print("🔍 Checking service status...")
+            check_service_status()
+            
+            print(f"\\n💾 Backup available in: {backup_dir}")
+            print("   (You can restore from backup if needed)")
+            
+        else:
+            print("\\n❌ Error applying fixes")
+            print(f"💾 Original files backed up in: {backup_dir}")
+            print("💡 You can restore from backup and try again")
+            
+    except Exception as e:
+        print(f"\\n❌ Critical error: {e}")
+        print("💾 Check backup directory for original files")
+        return False
+    
+    return success
+
+if __name__ == "__main__":
+    success = main()
+    exit(0 if success else 1)
