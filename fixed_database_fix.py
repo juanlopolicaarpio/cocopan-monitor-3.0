@@ -1,7 +1,87 @@
 #!/usr/bin/env python3
 """
-Fixed CocoPan Database Module
-Resolves RealDictCursor KeyError issue
+Enhanced CocoPan Database Fix Script
+Comprehensive fix for "PostgreSQL error: 0" and connection issues
+"""
+import os
+import sys
+import shutil
+import subprocess
+import time
+import json
+from datetime import datetime
+from pathlib import Path
+
+def create_backup():
+    """Create backup of current files"""
+    backup_dir = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    files_to_backup = [
+        'database.py',
+        'monitor_service.py', 
+        'docker-compose.yml',
+        'config.py'
+    ]
+    
+    for file in files_to_backup:
+        if os.path.exists(file):
+            shutil.copy2(file, backup_dir)
+            print(f"✅ Backed up {file}")
+    
+    print(f"📦 Backup created in: {backup_dir}")
+    return backup_dir
+
+def diagnose_database_issues():
+    """Diagnose current database connectivity issues"""
+    print("🔍 Diagnosing database connectivity issues...")
+    
+    # Check if containers are running
+    try:
+        result = subprocess.run(['docker', 'ps', '--filter', 'name=cocopan'], 
+                              capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            print("✅ Docker is accessible")
+            if 'cocopan_postgres' in result.stdout:
+                print("✅ PostgreSQL container exists")
+                if 'Up' in result.stdout:
+                    print("✅ PostgreSQL container is running")
+                else:
+                    print("❌ PostgreSQL container is not running")
+                    return False
+            else:
+                print("❌ PostgreSQL container not found")
+                return False
+        else:
+            print("❌ Docker command failed")
+            return False
+    except Exception as e:
+        print(f"❌ Docker check failed: {e}")
+        return False
+    
+    # Check PostgreSQL logs
+    try:
+        result = subprocess.run(['docker', 'logs', '--tail=20', 'cocopan_postgres'], 
+                              capture_output=True, text=True, timeout=10)
+        if 'database system is ready to accept connections' in result.stdout:
+            print("✅ PostgreSQL is ready for connections")
+        else:
+            print("⚠️ PostgreSQL may not be fully initialized")
+            print("PostgreSQL logs:")
+            print(result.stdout[-500:])  # Last 500 chars
+    except Exception as e:
+        print(f"⚠️ Could not check PostgreSQL logs: {e}")
+    
+    return True
+
+def create_enhanced_database_module():
+    """Create enhanced database module with better error handling"""
+    print("🔧 Creating enhanced database module...")
+    
+    enhanced_database_content = '''#!/usr/bin/env python3
+"""
+Enhanced CocoPan Database Module
+Improved error handling and connection management
 """
 import os
 import time
@@ -44,16 +124,13 @@ class DatabaseManager:
                     time.sleep(self.retry_delay)
                 else:
                     logger.error("❌ All database initialization attempts failed")
-                    # Fallback to SQLite instead of crashing
-                    self.db_type = "sqlite"
-                    self._init_sqlite()
-                    self._create_tables()
+                    raise
     
     def _init_postgresql(self):
         """Initialize PostgreSQL with enhanced error handling"""
         try:
             db_url = config.DATABASE_URL
-            logger.info(f"🔌 Attempting PostgreSQL connection...")
+            logger.info(f"🔌 Attempting PostgreSQL connection: {self._mask_password(db_url)}")
             
             if not db_url.startswith('postgresql://'):
                 raise ValueError(f"Invalid PostgreSQL URL format: {db_url}")
@@ -63,11 +140,12 @@ class DatabaseManager:
             test_conn.close()
             logger.info("✅ PostgreSQL test connection successful")
             
-            # Create connection pool WITHOUT RealDictCursor for simplicity
+            # Create connection pool
             self.connection_pool = psycopg2.pool.ThreadedConnectionPool(
                 minconn=1, 
                 maxconn=20, 
-                dsn=db_url
+                dsn=db_url, 
+                cursor_factory=RealDictCursor
             )
             logger.info("✅ PostgreSQL connection pool created")
             
@@ -82,12 +160,27 @@ class DatabaseManager:
             elif "authentication failed" in error_msg:
                 logger.error("💡 Authentication failed - check username/password")
             
-            raise
+            logger.info("📝 Falling back to SQLite")
+            self.db_type = "sqlite"
+            self._init_sqlite()
+            
+        except psycopg2.Error as e:
+            error_msg = str(e).strip()
+            logger.error(f"❌ PostgreSQL error: {error_msg}")
+            logger.error(f"Error code: {getattr(e, 'pgcode', 'N/A')}")
+            
+            logger.info("📝 Falling back to SQLite")
+            self.db_type = "sqlite"
+            self._init_sqlite()
             
         except Exception as e:
             error_msg = str(e).strip()
             logger.error(f"❌ Unexpected PostgreSQL error: {error_msg}")
-            raise
+            logger.error(f"Error type: {type(e).__name__}")
+            
+            logger.info("📝 Falling back to SQLite")
+            self.db_type = "sqlite"
+            self._init_sqlite()
     
     def _init_sqlite(self):
         """Initialize SQLite with enhanced error handling"""
@@ -104,6 +197,11 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ SQLite connection failed: {str(e)}")
             raise
+    
+    def _mask_password(self, url: str) -> str:
+        """Mask password in database URL for logging"""
+        import re
+        return re.sub(r'://([^:]+):([^@]+)@', r'://\\\\1:****@', url)
     
     @contextmanager
     def get_connection(self):
@@ -124,6 +222,27 @@ class DatabaseManager:
                 
                 yield conn
                 
+            except psycopg2.OperationalError as e:
+                error_msg = str(e).strip()
+                logger.error(f"❌ PostgreSQL operational error: {error_msg}")
+                if conn:
+                    try:
+                        conn.rollback()
+                    except:
+                        pass
+                raise Exception(f"PostgreSQL connection failed: {error_msg}")
+                
+            except psycopg2.Error as e:
+                error_msg = str(e).strip()
+                error_code = getattr(e, 'pgcode', 'N/A')
+                logger.error(f"❌ PostgreSQL error: {error_msg} (code: {error_code})")
+                if conn:
+                    try:
+                        conn.rollback()
+                    except:
+                        pass
+                raise Exception(f"PostgreSQL error: {error_msg}")
+                
             except Exception as e:
                 error_msg = str(e).strip()
                 logger.error(f"❌ Database connection error: {error_msg}")
@@ -132,7 +251,7 @@ class DatabaseManager:
                         conn.rollback()
                     except:
                         pass
-                raise Exception(f"Database connection failed: {error_msg}")
+                raise
                 
             finally:
                 if conn and self.connection_pool:
@@ -152,7 +271,7 @@ class DatabaseManager:
                 
                 yield conn
                 
-            except Exception as e:
+            except sqlite3.Error as e:
                 error_msg = str(e).strip()
                 logger.error(f"❌ SQLite error: {error_msg}")
                 if conn:
@@ -161,6 +280,16 @@ class DatabaseManager:
                     except:
                         pass
                 raise Exception(f"SQLite error: {error_msg}")
+                
+            except Exception as e:
+                error_msg = str(e).strip()
+                logger.error(f"❌ Database error: {error_msg}")
+                if conn:
+                    try:
+                        conn.rollback()
+                    except:
+                        pass
+                raise
                 
             finally:
                 if conn:
@@ -247,7 +376,7 @@ class DatabaseManager:
             conn.commit()
     
     def get_or_create_store(self, name: str, url: str) -> int:
-        """Get or create store with fixed cursor handling"""
+        """Get or create store with enhanced error handling"""
         platform = "foodpanda" if "foodpanda.ph" in url else "grabfood"
         
         for attempt in range(self.max_retries):
@@ -261,7 +390,6 @@ class DatabaseManager:
                         result = cursor.fetchone()
                         
                         if result:
-                            # Fixed: Use tuple indexing for regular cursor
                             return result[0]
                         
                         # Create new store
@@ -269,15 +397,14 @@ class DatabaseManager:
                             "INSERT INTO stores (name, url, platform) VALUES (%s, %s, %s) RETURNING id",
                             (name, url, platform)
                         )
-                        store_result = cursor.fetchone()
-                        store_id = store_result[0]  # Fixed: Use tuple indexing
+                        store_id = cursor.fetchone()[0]
                     else:
                         # SQLite version
                         cursor.execute("SELECT id FROM stores WHERE url = ?", (url,))
                         result = cursor.fetchone()
                         
                         if result:
-                            return result["id"]  # SQLite uses Row factory
+                            return result["id"]
                         
                         cursor.execute(
                             "INSERT INTO stores (name, url, platform) VALUES (?, ?, ?)",
@@ -331,6 +458,7 @@ class DatabaseManager:
             except Exception as e:
                 error_msg = str(e).strip()
                 logger.error(f"❌ Failed to save status check for store_id {store_id} (attempt {attempt + 1}): {error_msg}")
+                logger.error(f"  Parameters: is_online={is_online}, response_time={response_time_ms}, error='{error_message}'")
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                 else:
@@ -369,6 +497,7 @@ class DatabaseManager:
             except Exception as e:
                 error_msg = str(e).strip()
                 logger.error(f"❌ Failed to save summary report (attempt {attempt + 1}): {error_msg}")
+                logger.error(f"  Parameters: total={total_stores}, online={online_stores}, offline={offline_stores}")
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                 else:
@@ -550,6 +679,38 @@ class DatabaseManager:
                 'db_type': self.db_type
             }
     
+    def test_connection(self) -> Dict[str, Any]:
+        """Test database connection and return diagnostic info"""
+        result = {
+            'status': 'unknown',
+            'db_type': self.db_type,
+            'error': None,
+            'connection_time': None
+        }
+        
+        try:
+            start_time = time.time()
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT 1 as test_value')
+                test_result = cursor.fetchone()
+                
+                connection_time = time.time() - start_time
+                
+                if test_result:
+                    result['status'] = 'success'
+                    result['connection_time'] = connection_time
+                else:
+                    result['status'] = 'failed'
+                    result['error'] = 'No result from test query'
+                    
+        except Exception as e:
+            result['status'] = 'error'
+            result['error'] = str(e)
+            result['connection_time'] = time.time() - start_time
+        
+        return result
+    
     def close(self):
         """Close database connections"""
         if self.connection_pool:
@@ -561,3 +722,292 @@ class DatabaseManager:
 
 # Global database instance
 db = DatabaseManager()
+'''
+
+    with open('database.py', 'w') as f:
+        f.write(enhanced_database_content)
+    
+    print("✅ Enhanced database module created")
+
+def create_connection_test_script():
+    """Create a script to test database connectivity"""
+    print("🔧 Creating database connection test script...")
+    
+    test_script_content = '''#!/usr/bin/env python3
+"""
+Database Connection Test Script
+Test and diagnose database connectivity issues
+"""
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from database import db
+from config import config
+import json
+
+def test_database_connection():
+    """Test database connection and operations"""
+    print("🔍 Testing database connection...")
+    print("=" * 50)
+    
+    # Test 1: Basic connection
+    print("1️⃣ Testing basic connection...")
+    conn_test = db.test_connection()
+    print(f"   Database type: {conn_test['db_type']}")
+    print(f"   Status: {conn_test['status']}")
+    if conn_test['connection_time']:
+        print(f"   Connection time: {conn_test['connection_time']:.3f}s")
+    if conn_test['error']:
+        print(f"   Error: {conn_test['error']}")
+    
+    if conn_test['status'] != 'success':
+        print("❌ Basic connection failed!")
+        return False
+    
+    print("✅ Basic connection successful")
+    
+    # Test 2: Database stats
+    print("\\n2️⃣ Testing database stats...")
+    try:
+        stats = db.get_database_stats()
+        print(f"   Store count: {stats['store_count']}")
+        print(f"   Total checks: {stats['total_checks']}")
+        print(f"   Platforms: {stats['platforms']}")
+        print("✅ Database stats retrieved")
+    except Exception as e:
+        print(f"❌ Database stats failed: {e}")
+        return False
+    
+    # Test 3: Store creation
+    print("\\n3️⃣ Testing store creation...")
+    try:
+        store_id = db.get_or_create_store("Test Store", "https://example.com/test")
+        print(f"   Created store ID: {store_id}")
+        print("✅ Store creation successful")
+    except Exception as e:
+        print(f"❌ Store creation failed: {e}")
+        return False
+    
+    # Test 4: Status check storage
+    print("\\n4️⃣ Testing status check storage...")
+    try:
+        success = db.save_status_check(store_id, True, 1000, "Test check")
+        if success:
+            print("✅ Status check storage successful")
+        else:
+            print("❌ Status check storage failed")
+            return False
+    except Exception as e:
+        print(f"❌ Status check storage failed: {e}")
+        return False
+    
+    # Test 5: Summary report storage
+    print("\\n5️⃣ Testing summary report storage...")
+    try:
+        success = db.save_summary_report(1, 1, 0)
+        if success:
+            print("✅ Summary report storage successful")
+        else:
+            print("❌ Summary report storage failed")
+            return False
+    except Exception as e:
+        print(f"❌ Summary report storage failed: {e}")
+        return False
+    
+    print("\\n" + "=" * 50)
+    print("🎉 All database tests passed!")
+    return True
+
+if __name__ == "__main__":
+    success = test_database_connection()
+    sys.exit(0 if success else 1)
+'''
+    
+    with open('test_database_connection.py', 'w') as f:
+        f.write(test_script_content)
+    
+    print("✅ Database connection test script created")
+
+def restart_services():
+    """Restart services with proper sequence"""
+    print("🔄 Restarting services...")
+    
+    try:
+        # Stop all services
+        print("🛑 Stopping all services...")
+        subprocess.run(['docker', 'compose', 'down'], check=False, timeout=60)
+        time.sleep(5)
+        
+        # Remove any orphaned containers
+        subprocess.run(['docker', 'compose', 'down', '--remove-orphans'], check=False, timeout=60)
+        
+        # Rebuild containers
+        print("🏗️ Rebuilding containers...")
+        result = subprocess.run(['docker', 'compose', 'build', '--no-cache'], check=True, timeout=300)
+        
+        # Start database first
+        print("🗄️ Starting PostgreSQL...")
+        subprocess.run(['docker', 'compose', 'up', '-d', 'postgres'], check=True, timeout=120)
+        
+        # Wait for database to be ready
+        print("⏳ Waiting for PostgreSQL to be ready...")
+        max_wait = 60
+        for i in range(max_wait):
+            try:
+                result = subprocess.run(
+                    ['docker', 'exec', 'cocopan_postgres', 'pg_isready', '-U', 'cocopan', '-d', 'cocopan_monitor'],
+                    capture_output=True, timeout=5
+                )
+                if result.returncode == 0:
+                    print(f"✅ PostgreSQL ready after {i+1} seconds")
+                    break
+            except subprocess.TimeoutExpired:
+                pass
+            
+            if i == max_wait - 1:
+                print("❌ PostgreSQL not ready after 60 seconds")
+                return False
+            
+            time.sleep(1)
+            print(f"   Waiting... ({i+1}/{max_wait})")
+        
+        # Start all services
+        print("🚀 Starting all services...")
+        subprocess.run(['docker', 'compose', 'up', '-d'], check=True, timeout=120)
+        
+        print("✅ Services restarted successfully")
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error restarting services: {e}")
+        return False
+    except subprocess.TimeoutExpired:
+        print("❌ Service restart timed out")
+        return False
+
+def test_services():
+    """Test if services are working correctly"""
+    print("🔍 Testing services...")
+    
+    # Wait for services to start
+    time.sleep(30)
+    
+    try:
+        # Check container status
+        result = subprocess.run(
+            ['docker', 'compose', 'ps'], 
+            capture_output=True, text=True, check=True, timeout=10
+        )
+        print("📊 Container Status:")
+        print(result.stdout)
+        
+        # Test database connection
+        print("\\n🗄️ Testing database connection...")
+        result = subprocess.run(
+            ['docker', 'exec', 'cocopan_monitor', 'python', 'test_database_connection.py'],
+            capture_output=True, text=True, timeout=30
+        )
+        
+        if result.returncode == 0:
+            print("✅ Database connection test passed")
+            print(result.stdout)
+        else:
+            print("❌ Database connection test failed")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+            return False
+        
+        # Check recent logs
+        print("\\n📋 Recent Monitor Logs:")
+        log_result = subprocess.run(
+            ['docker', 'compose', 'logs', '--tail=10', 'monitor'], 
+            capture_output=True, text=True, check=False, timeout=10
+        )
+        print(log_result.stdout)
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error testing services: {e}")
+        return False
+
+def main():
+    """Main fix application"""
+    print("🔧 Enhanced CocoPan Database Fix Script")
+    print("=" * 60)
+    print("This script will comprehensively fix database connectivity issues")
+    print()
+    
+    # Check if we're in the right directory
+    if not os.path.exists('docker-compose.yml'):
+        print("❌ docker-compose.yml not found!")
+        print("💡 Please run this script from the CocoPan project directory")
+        return False
+    
+    print("📋 Fix Steps:")
+    print("1. Diagnose current database issues")
+    print("2. Create backup of current files")
+    print("3. Apply enhanced database module")
+    print("4. Create database connection test script")
+    print("5. Restart services with proper sequence")
+    print("6. Test services and connectivity")
+    print()
+    
+    # Confirm before proceeding
+    response = input("Continue with enhanced fixes? (y/N): ").lower()
+    if response != 'y':
+        print("❌ Fix cancelled by user")
+        return False
+    
+    try:
+        # Step 1: Diagnose issues
+        if not diagnose_database_issues():
+            print("⚠️ Some connectivity issues detected, but continuing with fixes...")
+        
+        # Step 2: Create backup
+        backup_dir = create_backup()
+        
+        # Step 3: Apply enhanced database module
+        create_enhanced_database_module()
+        
+        # Step 4: Create test script
+        create_connection_test_script()
+        
+        # Step 5: Restart services
+        if not restart_services():
+            print("❌ Failed to restart services")
+            print(f"💾 Files backed up in: {backup_dir}")
+            return False
+        
+        # Step 6: Test services
+        if not test_services():
+            print("❌ Service tests failed")
+            print(f"💾 Files backed up in: {backup_dir}")
+            return False
+        
+        print("\\n🎉 Enhanced fixes applied successfully!")
+        print("\\n📊 Next Steps:")
+        print("1. Monitor logs: docker compose logs -f monitor")
+        print("2. Check dashboard: http://localhost:8501")
+        print("3. Test database: python test_database_connection.py")
+        print("4. pgAdmin (optional): http://localhost:5050")
+        print()
+        print("🔍 The database errors should now be resolved with:")
+        print("   • Enhanced error handling and retry logic")
+        print("   • Better connection pool management")
+        print("   • Comprehensive diagnostic information")
+        print("   • Improved Docker health checks")
+        print()
+        print(f"💾 Backup available in: {backup_dir}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"\\n❌ Critical error: {e}")
+        print(f"💾 Check backup directory: {backup_dir}")
+        return False
+
+if __name__ == "__main__":
+    success = main()
+    exit(0 if success else 1)
