@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Fixed CocoPan Database Module
-Resolves RealDictCursor KeyError issue
+Proper cursor result handling without RealDictCursor
 """
 import os
 import time
@@ -11,7 +11,6 @@ from typing import List, Tuple, Optional, Dict, Any
 import psycopg2
 import sqlite3
 from psycopg2 import pool
-from psycopg2.extras import RealDictCursor
 import pandas as pd
 from config import config
 
@@ -50,7 +49,7 @@ class DatabaseManager:
                     self._create_tables()
     
     def _init_postgresql(self):
-        """Initialize PostgreSQL with enhanced error handling"""
+        """Initialize PostgreSQL without RealDictCursor"""
         try:
             db_url = config.DATABASE_URL
             logger.info(f"🔌 Attempting PostgreSQL connection...")
@@ -63,7 +62,7 @@ class DatabaseManager:
             test_conn.close()
             logger.info("✅ PostgreSQL test connection successful")
             
-            # Create connection pool WITHOUT RealDictCursor for simplicity
+            # Create connection pool WITHOUT RealDictCursor
             self.connection_pool = psycopg2.pool.ThreadedConnectionPool(
                 minconn=1, 
                 maxconn=20, 
@@ -74,14 +73,6 @@ class DatabaseManager:
         except psycopg2.OperationalError as e:
             error_msg = str(e).strip()
             logger.error(f"❌ PostgreSQL operational error: {error_msg}")
-            
-            if "could not connect to server" in error_msg:
-                logger.error("💡 PostgreSQL server appears to be down or unreachable")
-            elif "database" in error_msg and "does not exist" in error_msg:
-                logger.error("💡 Database does not exist")
-            elif "authentication failed" in error_msg:
-                logger.error("💡 Authentication failed - check username/password")
-            
             raise
             
         except Exception as e:
@@ -90,7 +81,7 @@ class DatabaseManager:
             raise
     
     def _init_sqlite(self):
-        """Initialize SQLite with enhanced error handling"""
+        """Initialize SQLite"""
         self.sqlite_path = config.SQLITE_PATH
         try:
             # Ensure directory exists
@@ -107,7 +98,7 @@ class DatabaseManager:
     
     @contextmanager
     def get_connection(self):
-        """Get database connection with enhanced error handling"""
+        """Get database connection with proper error handling"""
         if self.db_type == "postgresql":
             conn = None
             try:
@@ -247,7 +238,7 @@ class DatabaseManager:
             conn.commit()
     
     def get_or_create_store(self, name: str, url: str) -> int:
-        """Get or create store with fixed cursor handling"""
+        """Get or create store with proper tuple indexing"""
         platform = "foodpanda" if "foodpanda.ph" in url else "grabfood"
         
         for attempt in range(self.max_retries):
@@ -261,8 +252,7 @@ class DatabaseManager:
                         result = cursor.fetchone()
                         
                         if result:
-                            # Fixed: Use tuple indexing for regular cursor
-                            return result[0]
+                            return result[0]  # Tuple indexing for regular cursor
                         
                         # Create new store
                         cursor.execute(
@@ -270,7 +260,7 @@ class DatabaseManager:
                             (name, url, platform)
                         )
                         store_result = cursor.fetchone()
-                        store_id = store_result[0]  # Fixed: Use tuple indexing
+                        store_id = store_result[0]  # Tuple indexing
                     else:
                         # SQLite version
                         cursor.execute("SELECT id FROM stores WHERE url = ?", (url,))
@@ -299,7 +289,7 @@ class DatabaseManager:
     def save_status_check(self, store_id: int, is_online: bool, 
                          response_time_ms: Optional[int] = None, 
                          error_message: Optional[str] = None) -> bool:
-        """Save status check with enhanced error handling"""
+        """Save status check with proper data types"""
         for attempt in range(self.max_retries):
             try:
                 # Ensure proper data types
@@ -338,7 +328,7 @@ class DatabaseManager:
                     return False
     
     def save_summary_report(self, total_stores: int, online_stores: int, offline_stores: int) -> bool:
-        """Save summary report with enhanced error handling"""
+        """Save summary report with proper data types"""
         for attempt in range(self.max_retries):
             try:
                 online_percentage = (online_stores / total_stores * 100) if total_stores > 0 else 0
@@ -376,7 +366,7 @@ class DatabaseManager:
                     return False
     
     def get_latest_status(self) -> pd.DataFrame:
-        """Get latest status with error handling"""
+        """Get latest status using proper connection for pandas"""
         try:
             with self.get_connection() as conn:
                 query = """
@@ -402,7 +392,7 @@ class DatabaseManager:
             return pd.DataFrame()
     
     def get_hourly_data(self) -> pd.DataFrame:
-        """Get hourly data with error handling"""
+        """Get hourly data using proper connection for pandas"""
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
@@ -435,7 +425,7 @@ class DatabaseManager:
             return pd.DataFrame()
     
     def get_store_logs(self, limit: int = 50) -> pd.DataFrame:
-        """Get store logs with error handling"""
+        """Get store logs using proper connection for pandas"""
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
@@ -473,7 +463,7 @@ class DatabaseManager:
             return pd.DataFrame()
     
     def get_daily_uptime(self) -> pd.DataFrame:
-        """Get daily uptime with error handling"""
+        """Get daily uptime using proper connection for pandas"""
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
@@ -516,7 +506,7 @@ class DatabaseManager:
             return pd.DataFrame()
     
     def get_database_stats(self) -> Dict[str, Any]:
-        """Get database stats with error handling"""
+        """Get database stats with FIXED tuple handling"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
@@ -530,14 +520,41 @@ class DatabaseManager:
                 cursor.execute('SELECT COUNT(*) FROM status_checks')
                 total_checks = cursor.fetchone()[0]
                 
-                cursor.execute('SELECT * FROM summary_reports ORDER BY report_time DESC LIMIT 1')
+                if self.db_type == "postgresql":
+                    cursor.execute("""
+                        SELECT total_stores, online_stores, offline_stores, 
+                               online_percentage, report_time
+                        FROM summary_reports 
+                        ORDER BY report_time DESC 
+                        LIMIT 1
+                    """)
+                else:
+                    cursor.execute('SELECT * FROM summary_reports ORDER BY report_time DESC LIMIT 1')
+                
                 latest_summary = cursor.fetchone()
+                
+                # FIXED: Proper handling of latest_summary tuple
+                if latest_summary:
+                    if self.db_type == "postgresql":
+                        # We know the column order for PostgreSQL
+                        latest_summary_dict = {
+                            'total_stores': latest_summary[0],
+                            'online_stores': latest_summary[1], 
+                            'offline_stores': latest_summary[2],
+                            'online_percentage': latest_summary[3],
+                            'report_time': latest_summary[4]
+                        }
+                    else:
+                        # SQLite Row can be converted to dict
+                        latest_summary_dict = dict(latest_summary)
+                else:
+                    latest_summary_dict = None
                 
                 return {
                     'store_count': store_count,
                     'platforms': platforms,
                     'total_checks': total_checks,
-                    'latest_summary': dict(latest_summary) if latest_summary else None,
+                    'latest_summary': latest_summary_dict,
                     'db_type': self.db_type
                 }
         except Exception as e:
