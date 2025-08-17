@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Fixed CocoPan Monitor Service
-Improved error handling and resilience
+Improved error handling, timezone consistency, and resource management
 """
 import os
 import json
@@ -37,8 +37,11 @@ logger = logging.getLogger(__name__)
 class StoreMonitor:
     def __init__(self):
         self.store_urls = self._load_store_urls()
-        self.headers = {'User-Agent': 'Mozilla/5.0 (compatible; CocoPan-Monitor)'}
+        self.headers = {'User-Agent': config.USER_AGENT}
+        # Use consistent timezone
+        self.timezone = config.get_timezone()
         logger.info(f"🏪 StoreMonitor initialized with {len(self.store_urls)} stores")
+        logger.info(f"🌏 Timezone: {self.timezone} (Current: {config.get_current_time().strftime('%Y-%m-%d %H:%M:%S %Z')})")
     
     def _load_store_urls(self):
         try:
@@ -73,40 +76,56 @@ class StoreMonitor:
             return False, response_time, error_msg
     
     def _check_foodpanda_store(self, url: str, start_time: float):
-        """Check Foodpanda store with Playwright"""
+        """Check Foodpanda store with Playwright - Fixed resource management"""
+        browser = None
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
                 page = browser.new_page()
                 
-                # Set timeout and navigate
-                page.set_default_timeout(60000)
-                page.goto(url, timeout=60000, wait_until='domcontentloaded')
-                page.wait_for_timeout(3000)
-                
-                # Check for closed indicators
-                closed_indicators = [
-                    "text=Temporarily unavailable",
-                    "text=Closed for now", 
-                    "text=Out of delivery area",
-                    "text=Restaurant is closed",
-                    ".closed-banner",
-                    "[data-testid='closed-banner']"
-                ]
-                
-                for indicator in closed_indicators:
-                    if page.query_selector(indicator):
-                        browser.close()
-                        response_time = int((time.time() - start_time) * 1000)
-                        return False, response_time, "Store shows as closed"
-                
-                browser.close()
-                response_time = int((time.time() - start_time) * 1000)
-                return True, response_time, None
+                try:
+                    # Set timeout and navigate
+                    page.set_default_timeout(config.PLAYWRIGHT_TIMEOUT)
+                    page.goto(url, timeout=config.PLAYWRIGHT_TIMEOUT, wait_until='domcontentloaded')
+                    page.wait_for_timeout(3000)
+                    
+                    # Check for closed indicators
+                    closed_indicators = [
+                        "text=Temporarily unavailable",
+                        "text=Closed for now", 
+                        "text=Out of delivery area",
+                        "text=Restaurant is closed",
+                        ".closed-banner",
+                        "[data-testid='closed-banner']",
+                        "text=Currently closed",
+                        ".restaurant-closed"
+                    ]
+                    
+                    for indicator in closed_indicators:
+                        if page.query_selector(indicator):
+                            response_time = int((time.time() - start_time) * 1000)
+                            return False, response_time, "Store shows as closed"
+                    
+                    response_time = int((time.time() - start_time) * 1000)
+                    return True, response_time, None
+                    
+                finally:
+                    # Always close page
+                    try:
+                        page.close()
+                    except:
+                        pass
                 
         except Exception as e:
             response_time = int((time.time() - start_time) * 1000)
             return False, response_time, f"Playwright error: {str(e)}"
+        finally:
+            # Ensure browser is always closed
+            if browser:
+                try:
+                    browser.close()
+                except:
+                    pass
     
     def _check_grabfood_store(self, url: str, start_time: float):
         """Check GrabFood store with requests"""
@@ -115,10 +134,22 @@ class StoreMonitor:
             resp.raise_for_status()
             
             soup = BeautifulSoup(resp.text, 'html.parser')
-            banner = soup.select_one('.status-banner')
-            if banner and 'closed' in banner.get_text(strip=True).lower():
-                response_time = int((time.time() - start_time) * 1000)
-                return False, response_time, "Status banner shows closed"
+            
+            # Check multiple indicators for closed status
+            closed_indicators = [
+                '.status-banner',
+                '.closed-banner', 
+                '.restaurant-closed',
+                '[data-testid="closed-banner"]'
+            ]
+            
+            for selector in closed_indicators:
+                banner = soup.select_one(selector)
+                if banner:
+                    banner_text = banner.get_text(strip=True).lower()
+                    if any(word in banner_text for word in ['closed', 'unavailable', 'offline']):
+                        response_time = int((time.time() - start_time) * 1000)
+                        return False, response_time, f"Status banner shows: {banner_text}"
             
             response_time = int((time.time() - start_time) * 1000)
             return True, response_time, None
@@ -128,28 +159,41 @@ class StoreMonitor:
             return False, response_time, f"Request error: {str(e)}"
     
     def _get_store_name(self, url: str) -> str:
-        """Extract store name from URL with fallback"""
+        """Extract store name from URL with improved fallback"""
         try:
             r = requests.get(url, headers=self.headers, timeout=config.REQUEST_TIMEOUT)
             r.raise_for_status()
-            h1_tag = BeautifulSoup(r.text, 'html.parser').select_one('h1')
-            name = h1_tag.get_text(strip=True) if h1_tag else None
+            soup = BeautifulSoup(r.text, 'html.parser')
             
-            if not name or name.lower() == '403 error':
-                name = None
-        except Exception:
+            # Try multiple selectors for store name
+            name_selectors = ['h1', '.restaurant-name', '[data-testid="restaurant-name"]', 'title']
+            name = None
+            
+            for selector in name_selectors:
+                element = soup.select_one(selector)
+                if element:
+                    potential_name = element.get_text(strip=True)
+                    if potential_name and len(potential_name) > 3 and 'error' not in potential_name.lower():
+                        name = potential_name
+                        break
+                        
+        except Exception as e:
+            logger.debug(f"Failed to extract name from {url}: {e}")
             name = None
             
         if not name:
-            slug = url.rstrip('/').split('/')[-1] 
-            name = slug.replace('-', ' ').title()
+            # Generate name from URL
+            slug = url.rstrip('/').split('/')[-1]
+            if 'cocopan' in slug.lower():
+                name = slug.replace('-', ' ').title()
+            else:
+                name = f"Cocopan Store ({slug[:20]}...)"
         
         return name
     
     def check_all_stores(self):
-        """Check all stores with improved error handling and resilience"""
-        manila_tz = pytz.timezone(config.TIMEZONE)
-        current_time = datetime.now(manila_tz)
+        """Check all stores with improved error handling and timezone consistency"""
+        current_time = config.get_current_time()
         
         logger.info(f"🔍 Starting store check cycle at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         logger.info(f"📋 Checking {len(self.store_urls)} stores...")
@@ -242,9 +286,14 @@ def signal_handler(signum, frame):
     sys.exit(0)
 
 def main():
-    """Main entry point with improved error handling"""
+    """Main entry point with improved error handling and timezone consistency"""
     logger.info("🥥 CocoPan Store Monitor Service")
     logger.info("=" * 50)
+    
+    # Validate timezone first
+    if not config.validate_timezone():
+        logger.error("❌ Timezone validation failed! Please check configuration.")
+        sys.exit(1)
     
     # Set up signal handlers
     signal.signal(signal.SIGTERM, signal_handler)
@@ -268,20 +317,22 @@ def main():
         if HAS_SCHEDULER:
             # Run with scheduler if available
             try:
-                scheduler = BlockingScheduler(timezone=pytz.timezone(config.TIMEZONE))
+                # Use consistent timezone object
+                ph_tz = config.get_timezone()
+                scheduler = BlockingScheduler(timezone=ph_tz)
                 
                 # Schedule monitoring jobs for each hour during business hours
                 for hour in range(config.MONITOR_START_HOUR, config.MONITOR_END_HOUR + 1):
                     scheduler.add_job(
                         func=monitor.check_all_stores,
-                        trigger=CronTrigger(hour=hour, minute=0, timezone=config.TIMEZONE),
+                        trigger=CronTrigger(hour=hour, minute=0, timezone=ph_tz),
                         id=f'store_check_{hour}',
                         name=f'Store Check at {hour:02d}:00',
                         max_instances=1,
                         coalesce=True
                     )
                 
-                logger.info(f"⏰ Scheduled monitoring every hour from {config.MONITOR_START_HOUR}:00 to {config.MONITOR_END_HOUR}:00")
+                logger.info(f"⏰ Scheduled monitoring every hour from {config.MONITOR_START_HOUR}:00 to {config.MONITOR_END_HOUR}:00 {config.TIMEZONE}")
                 
                 # Run initial check
                 logger.info("🔍 Running initial store check...")
@@ -324,9 +375,8 @@ def simple_monitoring_loop(monitor):
         while True:
             time.sleep(3600)  # Sleep for 1 hour
             
-            # Check if we're in monitoring hours
-            manila_tz = pytz.timezone(config.TIMEZONE)
-            current_hour = datetime.now(manila_tz).hour
+            # Check if we're in monitoring hours (use consistent timezone)
+            current_hour = config.get_current_time().hour
             
             if config.is_monitor_time(current_hour):
                 logger.info("🔍 Running scheduled store check...")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Fixed CocoPan Database Module
-Proper cursor result handling without RealDictCursor
+Dynamic timezone support and proper cursor result handling
 """
 import os
 import time
@@ -23,6 +23,7 @@ class DatabaseManager:
         self.db_type = "sqlite" if config.USE_SQLITE else "postgresql"
         self.max_retries = 3
         self.retry_delay = 5
+        self.timezone = config.TIMEZONE  # Use config timezone consistently
         self._initialize_database()
     
     def _initialize_database(self):
@@ -85,7 +86,7 @@ class DatabaseManager:
         self.sqlite_path = config.SQLITE_PATH
         try:
             # Ensure directory exists
-            os.makedirs(os.path.dirname(self.sqlite_path), exist_ok=True)
+            os.makedirs(os.path.dirname(os.path.abspath(self.sqlite_path)), exist_ok=True)
             
             # Test connection
             conn = sqlite3.connect(self.sqlite_path, timeout=30)
@@ -392,40 +393,47 @@ class DatabaseManager:
             return pd.DataFrame()
     
     def get_hourly_data(self) -> pd.DataFrame:
-        """Get hourly data using proper connection for pandas"""
+        """Get hourly data using dynamic timezone from config"""
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
-                    query = """
+                    query = f"""
                         SELECT 
-                            EXTRACT(HOUR FROM report_time AT TIME ZONE 'Asia/Manila')::integer as hour,
+                            EXTRACT(HOUR FROM report_time AT TIME ZONE %s)::integer as hour,
                             ROUND(AVG(online_percentage)::numeric, 0)::integer as online_pct,
                             ROUND(AVG(100 - online_percentage)::numeric, 0)::integer as offline_pct,
                             COUNT(*) as data_points
                         FROM summary_reports
-                        WHERE DATE(report_time AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
-                        GROUP BY EXTRACT(HOUR FROM report_time AT TIME ZONE 'Asia/Manila')
+                        WHERE DATE(report_time AT TIME ZONE %s) = CURRENT_DATE
+                        GROUP BY EXTRACT(HOUR FROM report_time AT TIME ZONE %s)
                         ORDER BY hour
                     """
+                    return pd.read_sql_query(query, conn, params=(self.timezone, self.timezone, self.timezone))
                 else:
-                    query = """
+                    # SQLite - calculate offset based on timezone
+                    if self.timezone == 'Asia/Manila':
+                        offset_hours = '+8 hours'
+                    else:
+                        offset_hours = '+8 hours'  # Default to Manila time
+                    
+                    query = f"""
                         SELECT 
-                            strftime('%H', report_time) as hour,
+                            strftime('%H', report_time, '{offset_hours}') as hour,
                             ROUND(AVG(online_percentage), 0) as online_pct,
                             ROUND(AVG(100 - online_percentage), 0) as offline_pct,
                             COUNT(*) as data_points
                         FROM summary_reports
-                        WHERE DATE(report_time, '+8 hours') = DATE('now', '+8 hours')
-                        GROUP BY strftime('%H', report_time)
+                        WHERE DATE(report_time, '{offset_hours}') = DATE('now', '{offset_hours}')
+                        GROUP BY strftime('%H', report_time, '{offset_hours}')
                         ORDER BY hour
                     """
-                return pd.read_sql_query(query, conn)
+                    return pd.read_sql_query(query, conn)
         except Exception as e:
             logger.error(f"❌ Failed to get hourly data: {str(e)}")
             return pd.DataFrame()
     
     def get_store_logs(self, limit: int = 50) -> pd.DataFrame:
-        """Get store logs using proper connection for pandas"""
+        """Get store logs using dynamic timezone from config"""
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
@@ -438,13 +446,19 @@ class DatabaseManager:
                             sc.response_time_ms
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
+                        WHERE DATE(sc.checked_at AT TIME ZONE %s) = CURRENT_DATE
                         ORDER BY sc.checked_at DESC
                         LIMIT %s
                     """
-                    return pd.read_sql_query(query, conn, params=(limit,))
+                    return pd.read_sql_query(query, conn, params=(self.timezone, limit))
                 else:
-                    query = """
+                    # SQLite with dynamic timezone offset
+                    if self.timezone == 'Asia/Manila':
+                        offset_hours = '+8 hours'
+                    else:
+                        offset_hours = '+8 hours'  # Default to Manila time
+                    
+                    query = f"""
                         SELECT 
                             s.name,
                             s.platform,
@@ -453,7 +467,7 @@ class DatabaseManager:
                             sc.response_time_ms
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at, '+8 hours') = DATE('now', '+8 hours')
+                        WHERE DATE(sc.checked_at, '{offset_hours}') = DATE('now', '{offset_hours}')
                         ORDER BY sc.checked_at DESC
                         LIMIT ?
                     """
@@ -463,7 +477,7 @@ class DatabaseManager:
             return pd.DataFrame()
     
     def get_daily_uptime(self) -> pd.DataFrame:
-        """Get daily uptime using proper connection for pandas"""
+        """Get daily uptime using dynamic timezone from config"""
         try:
             with self.get_connection() as conn:
                 if self.db_type == "postgresql":
@@ -479,12 +493,19 @@ class DatabaseManager:
                             )::integer as uptime_percentage
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
+                        WHERE DATE(sc.checked_at AT TIME ZONE %s) = CURRENT_DATE
                         GROUP BY s.id, s.name, s.platform
                         ORDER BY uptime_percentage DESC
                     """
+                    return pd.read_sql_query(query, conn, params=(self.timezone,))
                 else:
-                    query = """
+                    # SQLite with dynamic timezone offset
+                    if self.timezone == 'Asia/Manila':
+                        offset_hours = '+8 hours'
+                    else:
+                        offset_hours = '+8 hours'  # Default to Manila time
+                    
+                    query = f"""
                         SELECT 
                             s.name,
                             s.platform,
@@ -496,11 +517,11 @@ class DatabaseManager:
                             ) as uptime_percentage
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at, '+8 hours') = DATE('now', '+8 hours')
+                        WHERE DATE(sc.checked_at, '{offset_hours}') = DATE('now', '{offset_hours}')
                         GROUP BY s.id, s.name, s.platform
                         ORDER BY uptime_percentage DESC
                     """
-                return pd.read_sql_query(query, conn)
+                    return pd.read_sql_query(query, conn)
         except Exception as e:
             logger.error(f"❌ Failed to get daily uptime: {str(e)}")
             return pd.DataFrame()
@@ -555,7 +576,8 @@ class DatabaseManager:
                     'platforms': platforms,
                     'total_checks': total_checks,
                     'latest_summary': latest_summary_dict,
-                    'db_type': self.db_type
+                    'db_type': self.db_type,
+                    'timezone': self.timezone
                 }
         except Exception as e:
             logger.error(f"❌ Failed to get database stats: {str(e)}")
@@ -564,7 +586,8 @@ class DatabaseManager:
                 'platforms': {},
                 'total_checks': 0,
                 'latest_summary': None,
-                'db_type': self.db_type
+                'db_type': self.db_type,
+                'timezone': self.timezone
             }
     
     def close(self):
