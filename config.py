@@ -4,6 +4,8 @@ CocoPan Monitor - Configuration Management
 Handles all configuration with environment variables and defaults
 """
 import os
+from datetime import datetime
+import pytz
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -65,6 +67,43 @@ class Config:
         return cls.MONITOR_START_HOUR <= current_hour <= cls.MONITOR_END_HOUR
     
     @classmethod
+    def get_timezone(cls):
+        """Get timezone object"""
+        return pytz.timezone(cls.TIMEZONE)
+    
+    @classmethod
+    def get_current_time(cls):
+        """Get current time in configured timezone"""
+        return datetime.now(cls.get_timezone())
+    
+    @classmethod
+    def validate_timezone(cls):
+        """Validate timezone is correctly configured"""
+        try:
+            tz = cls.get_timezone()
+            now = cls.get_current_time()
+            
+            print(f"✅ Timezone validation:")
+            print(f"   Config: {cls.TIMEZONE}")
+            print(f"   Current time: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            print(f"   UTC offset: {now.strftime('%z')}")
+            
+            # Should show PHT or +0800, NOT PST
+            tz_name = now.strftime('%Z')
+            if 'PST' in tz_name or 'PDT' in tz_name:
+                print("❌ ERROR: Showing Pacific Time instead of Philippine Time!")
+                return False
+            
+            if cls.TIMEZONE == 'Asia/Manila' and '+08' not in now.strftime('%z'):
+                print("❌ ERROR: UTC offset should be +0800 for Manila!")
+                return False
+                
+            return True
+        except Exception as e:
+            print(f"❌ Timezone validation error: {e}")
+            return False
+    
+    @classmethod
     def validate_config(cls):
         """Validate configuration settings"""
         errors = []
@@ -83,6 +122,10 @@ class Config:
             
         if not os.path.exists(cls.STORE_URLS_FILE):
             errors.append(f"Store URLs file not found: {cls.STORE_URLS_FILE}")
+        
+        # Validate timezone
+        if not cls.validate_timezone():
+            errors.append("Timezone validation failed")
             
         return errors
 
