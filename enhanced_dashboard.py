@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 """
-CocoPan Store Status Dashboard - Complete Fixed Version
-Fixed time display formatting and rounding issues
+CocoPan Watchtower - Professional Operations Dashboard
 """
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
-import pytz
+from datetime import datetime
 import logging
 
 # Import our production modules
@@ -17,8 +14,8 @@ from database import db
 
 # Set page config
 st.set_page_config(
-    page_title="CocoPan Store Status Dashboard",
-    page_icon="🥥",
+    page_title="CocoPan Watchtower",
+    page_icon="🏢",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -27,177 +24,247 @@ st.set_page_config(
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
-# Professional CSS styling
+# PROFESSIONAL CORPORATE CSS
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
-    .main {
-        font-family: 'Inter', sans-serif;
-        background-color: #f8f9fa;
-    }
-    
-    .main > div {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-    
-    /* Header Styling */
-    .dashboard-header {
-        background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
-        padding: 2rem 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        color: white;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    
-    .dashboard-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-    }
-    
-    .dashboard-subtitle {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        font-weight: 400;
-    }
-    
-    /* Section Headers */
-    .section-header {
-        background: white;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        border-left: 4px solid #28a745;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-    
-    .section-title {
-        font-size: 1.4rem;
-        font-weight: 600;
-        color: #2c3e50;
-        margin: 0;
-    }
-    
-    .section-subtitle {
-        font-size: 0.9rem;
-        color: #6c757d;
-        margin: 0;
-        margin-top: 0.25rem;
-    }
-    
-    /* Cards */
-    .metric-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border: 1px solid #e9ecef;
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-    
-    .metric-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 0.5rem 0;
-    }
-    
-    .metric-label {
-        font-size: 1rem;
-        color: #6c757d;
-        font-weight: 500;
-    }
-    
-    .status-online { color: #28a745; }
-    .status-offline { color: #dc3545; }
-    .status-warning { color: #ffc107; }
-    
-    /* Chart Container */
-    .chart-container {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border: 1px solid #e9ecef;
-        margin-bottom: 1rem;
-    }
-    
-    /* Table Styling */
-    .dataframe {
-        font-family: 'Inter', sans-serif !important;
-        font-size: 0.9rem;
-    }
-    
-    /* Auto-refresh indicator */
-    .refresh-indicator {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #28a745;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        z-index: 999;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-    
-    /* System Status */
-    .system-status {
-        position: fixed;
-        top: 70px;
-        right: 20px;
-        background: #17a2b8;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        z-index: 999;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-    
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-        .dashboard-title {
-            font-size: 2rem;
-        }
-        
-        .metric-value {
-            font-size: 2rem;
-        }
-        
-        .section-title {
-            font-size: 1.2rem;
-        }
-        
-        .chart-container, .metric-card {
-            padding: 1rem;
-        }
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     
     /* Hide Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    .stDeployButton {display:none;}
+    .stDeployButton {display: none;}
+    header {visibility: hidden;}
+    
+    /* Professional layout */
+    .main {
+        font-family: 'Inter', sans-serif;
+        background: #F8FAFC;
+        color: #1E293B;
+        min-height: 100vh;
+    }
+    
+    .main > div {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    /* Professional header section */
+    .header-section {
+        background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Professional title */
+    h1 {
+        color: #FFFFFF !important;
+        font-size: 3rem !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        margin: 0 !important;
+        letter-spacing: -0.025em;
+    }
+    
+    h3 {
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-weight: 400 !important;
+        font-size: 1.1rem !important;
+        text-align: center !important;
+        margin: 0.5rem 0 0 0 !important;
+    }
+    
+    /* Section headers */
+    .section-header {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin: 1.5rem 0 1rem 0;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+    
+    .section-subtitle {
+        font-size: 0.875rem;
+        color: #64748B;
+        margin: 0.25rem 0 0 0;
+    }
+    
+    /* Professional metric cards */
+    [data-testid="metric-container"] {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 2rem 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+    
+    [data-testid="metric-container"]:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+    }
+    
+    [data-testid="metric-container"] [data-testid="metric-value"] {
+        color: #1E293B;
+        font-weight: 700;
+        font-size: 2.5rem;
+    }
+    
+    [data-testid="metric-container"] [data-testid="metric-label"] {
+        color: #64748B;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    [data-testid="metric-container"] [data-testid="metric-delta"] {
+        color: #059669;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+    
+    /* Professional alerts */
+    .stAlert {
+        background: #FFFFFF;
+        border: 1px solid #D1FAE5;
+        border-left: 4px solid #10B981;
+        border-radius: 8px;
+        color: #065F46;
+        font-weight: 500;
+        padding: 1rem 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .stAlert[data-baseweb="notification"][kind="warning"] {
+        background: #FFFBEB;
+        border-color: #FCD34D;
+        border-left-color: #F59E0B;
+        color: #92400E;
+    }
+    
+    .stAlert[data-baseweb="notification"][kind="error"] {
+        background: #FEF2F2;
+        border-color: #FECACA;
+        border-left-color: #EF4444;
+        color: #991B1B;
+    }
+    
+    /* Professional tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0;
+        background: #F1F5F9;
+        border-radius: 8px;
+        padding: 0.25rem;
+        border: 1px solid #E2E8F0;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        color: #64748B;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background: #E2E8F0;
+        color: #1E293B;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: #FFFFFF !important;
+        color: #1E293B !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Professional dataframe */
+    .stDataFrame {
+        background: #FFFFFF;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        overflow: hidden;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .stDataFrame table {
+        background: #FFFFFF;
+        color: #1E293B;
+    }
+    
+    .stDataFrame thead tr th {
+        background: #F8FAFC !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        border: none !important;
+        border-bottom: 1px solid #E2E8F0 !important;
+        padding: 1rem 0.75rem !important;
+    }
+    
+    .stDataFrame tbody tr td {
+        background: #FFFFFF !important;
+        color: #1E293B !important;
+        border: none !important;
+        border-bottom: 1px solid #F1F5F9 !important;
+        padding: 0.75rem !important;
+    }
+    
+    .stDataFrame tbody tr:hover td {
+        background: #F8FAFC !important;
+    }
+    
+    /* Chart container */
+    .chart-container {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Filter containers */
+    .filter-container {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        h1 { font-size: 2rem !important; }
+        .main > div { padding: 1rem; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
 def load_data():
-    """Load data with restored queries"""
+    """Load comprehensive operational data"""
     try:
         with db.get_connection() as conn:
-            # 1. Latest status
+            # Latest status
             latest_status_query = """
                 SELECT 
                     s.name,
-                    s.url,
                     s.platform,
                     sc.is_online,
                     sc.checked_at,
@@ -213,51 +280,17 @@ def load_data():
             """
             latest_status = pd.read_sql_query(latest_status_query, conn)
             
-            # 2. Hourly data (KEEP EXISTING QUERY)
-            hourly_query = """
-                SELECT 
-                    EXTRACT(HOUR FROM checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') as hour,
-                    COUNT(*) as total_checks,
-                    SUM(CASE WHEN is_online THEN 1 ELSE 0 END) as online_checks,
-                    ROUND(AVG(CASE WHEN is_online THEN 100.0 ELSE 0.0 END), 1) as online_pct,
-                    ROUND(AVG(CASE WHEN NOT is_online THEN 100.0 ELSE 0.0 END), 1) as offline_pct
-                FROM status_checks 
-                WHERE checked_at >= NOW() - INTERVAL '24 hours'
-                GROUP BY EXTRACT(HOUR FROM checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')
-                ORDER BY hour
-            """
-            hourly_data = pd.read_sql_query(hourly_query, conn)
-            
-            # 3. Store logs
-            logs_query = """
-                SELECT 
-                    s.name,
-                    s.platform,
-                    sc.is_online,
-                    sc.checked_at,
-                    sc.response_time_ms
-                FROM stores s
-                INNER JOIN status_checks sc ON s.id = sc.store_id
-                WHERE sc.checked_at >= NOW() - INTERVAL '24 hours'
-                ORDER BY sc.checked_at DESC
-                LIMIT 50
-            """
-            store_logs = pd.read_sql_query(logs_query, conn)
-            
-            # 4. Daily uptime
+            # Daily uptime data
             daily_uptime_query = """
                 SELECT 
                     s.name,
                     s.platform,
                     COUNT(sc.id) as total_checks,
                     SUM(CASE WHEN sc.is_online THEN 1 ELSE 0 END) as online_checks,
-                    SUM(CASE WHEN NOT sc.is_online THEN 1 ELSE 0 END) as offline_checks,
                     ROUND(
                         (SUM(CASE WHEN sc.is_online THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id)), 
                         1
-                    ) as uptime_percentage,
-                    MIN(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') as first_check_manila,
-                    MAX(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') as last_check_manila
+                    ) as uptime_percentage
                 FROM stores s
                 LEFT JOIN status_checks sc ON s.id = sc.store_id 
                     AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
@@ -267,368 +300,357 @@ def load_data():
             """
             daily_uptime = pd.read_sql_query(daily_uptime_query, conn)
             
-            return latest_status, hourly_data, store_logs, daily_uptime, None
+            # Downtime incidents
+            downtime_query = """
+                SELECT 
+                    s.name,
+                    s.platform,
+                    sc.checked_at,
+                    sc.error_message
+                FROM stores s
+                INNER JOIN status_checks sc ON s.id = sc.store_id
+                WHERE sc.is_online = false 
+                AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
+                ORDER BY sc.checked_at DESC
+                LIMIT 100
+            """
+            downtime_incidents = pd.read_sql_query(downtime_query, conn)
+            
+            return latest_status, daily_uptime, downtime_incidents, None
             
     except Exception as e:
         logger.error(f"Error loading data: {e}")
-        return None, None, None, None, str(e)
+        return None, None, None, str(e)
 
-def get_philippines_time():
-    """Get current Philippines time"""
-    return config.get_current_time()
-
-def create_status_pie_chart(online_stores, offline_stores, total_stores):
-    """Create professional pie chart"""
+def create_professional_donut(online_stores, offline_stores, total_stores):
+    """Create clean professional donut chart"""
     online_pct = (online_stores / total_stores * 100) if total_stores > 0 else 0
-    offline_pct = 100 - online_pct
+    
+    # Professional colors and status
+    if online_pct >= 95:
+        online_color = '#059669'
+        status_text = "Healthy"
+    elif online_pct >= 80:
+        online_color = '#D97706'
+        status_text = "Warning"
+    else:
+        online_color = '#DC2626'
+        status_text = "Alert"
     
     fig = go.Figure(data=[go.Pie(
         labels=['Online', 'Offline'],
         values=[online_stores, offline_stores],
-        marker_colors=['#28a745', '#dc3545'],
-        hole=0.4,
+        hole=0.65,
+        marker=dict(
+            colors=[online_color, '#F1F5F9'],
+            line=dict(width=0)
+        ),
         textinfo='none',
-        hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
+        hovertemplate='<b>%{label}</b><br>%{value} stores<extra></extra>',
+        showlegend=False
     )])
     
-    center_text = f"Total: {total_stores} stores<br>{online_stores} Online ({online_pct:.0f}%)<br>{offline_stores} Offline ({offline_pct:.0f}%)"
+    fig.add_annotation(
+        text=f"<b style='font-size:32px;color:{online_color}'>{online_pct:.0f}%</b><br><span style='font-size:12px;color:#64748B'>{status_text}</span>",
+        x=0.5, y=0.5,
+        font=dict(family="Inter"),
+        showarrow=False
+    )
     
     fig.update_layout(
-        height=400,
-        showlegend=False,
+        height=240,
         margin=dict(t=0, b=0, l=0, r=0),
-        annotations=[
-            dict(
-                text=center_text,
-                x=0.5, y=0.5,
-                font_size=14,
-                font_family="Inter",
-                font_color="#2c3e50",
-                showarrow=False
-            )
-        ],
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)'
     )
     
     return fig
 
-def display_system_status():
-    """Display system status indicator"""
+def get_last_check_time(latest_status):
+    """Get the most recent check time from the data"""
+    if latest_status is None or len(latest_status) == 0:
+        return config.get_current_time()
+    
     try:
-        stats = db.get_database_stats()
-        db_type = stats.get('db_type', 'unknown').upper()
-        store_count = stats.get('store_count', 0)
+        # Get the most recent check time
+        latest_time = pd.to_datetime(latest_status['checked_at']).max()
+        if latest_time.tz is None:
+            latest_time = latest_time.tz_localize('UTC')
         
-        philippines_time = get_philippines_time()
-        current_hour = philippines_time.hour
-        in_monitoring_hours = config.is_monitor_time(current_hour)
-        
-        if in_monitoring_hours:
-            status_text = f"🟢 {db_type} | {store_count} stores | Monitoring Active"
-        else:
-            status_text = f"🟡 {db_type} | {store_count} stores | Outside Hours"
-            
-        st.markdown(f'<div class="system-status">{status_text}</div>', unsafe_allow_html=True)
-        
-    except Exception as e:
-        st.markdown('<div class="system-status">🔴 System Error</div>', unsafe_allow_html=True)
+        ph_tz = config.get_timezone()
+        latest_time = latest_time.tz_convert(ph_tz)
+        return latest_time
+    except Exception:
+        return config.get_current_time()
 
 def main():
-    # System status indicator
-    display_system_status()
+    # Load data first to get last check time
+    latest_status, daily_uptime, downtime_incidents, error = load_data()
     
-    # Auto-refresh indicator
-    st.markdown('<div class="refresh-indicator">🔄 Auto-refresh: 5min</div>', unsafe_allow_html=True)
+    # Get last check time instead of current time
+    last_check_time = get_last_check_time(latest_status)
+    timezone_abbr = last_check_time.strftime('%Z') or 'PHT'
     
-    # Load data
-    latest_status, hourly_data, store_logs, daily_uptime, error = load_data()
-    
-    # Header
-    philippines_time = get_philippines_time()
-    timezone_abbr = philippines_time.strftime('%Z')
-    if not timezone_abbr or timezone_abbr == philippines_time.strftime('%z'):
-        timezone_abbr = 'PHT'
-    
+    # PROFESSIONAL HEADER WITH LAST CHECK TIME
     st.markdown(f"""
-    <div class="dashboard-header">
-        <div class="dashboard-title">🥥 CocoPan Store Status Dashboard</div>
-        <div class="dashboard-subtitle">Real-time monitoring across GrabFood and Foodpanda | {philippines_time.strftime('%B %d, %Y • %I:%M %p')} {timezone_abbr}</div>
+    <div class="header-section">
+        <h1>CocoPan Watchtower</h1>
+        <h3>Operations Monitoring System • Data as of {last_check_time.strftime('%B %d, %Y • %I:%M %p')} {timezone_abbr}</h3>
     </div>
     """, unsafe_allow_html=True)
     
-    # Handle errors
     if error:
-        st.error(f"❌ Database Error: {error}")
-        st.info("💡 Make sure the monitor service is running: `python monitor_service.py`")
+        st.error(f"System Error: {error}")
         return
     
     if latest_status is None or len(latest_status) == 0:
-        st.warning("⚠️ No data available yet.")
-        st.info("💡 The monitor service will populate data during business hours (6 AM - 9 PM Philippines time).")
+        st.warning("No operational data available. Monitoring service will collect data during business hours.")
         return
     
-    # 1️⃣ LIVE STORE MONITOR PANEL
-    st.markdown("""
-    <div class="section-header">
-        <div class="section-title">1️⃣ Live Store Monitor</div>
-        <div class="section-subtitle">Real-time view of all Cocopan stores across platforms</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Platform filter
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col2:
-        platforms = ['Both'] + list(latest_status['platform'].unique())
-        selected_platform = st.selectbox("Platform Filter:", platforms, key="platform_filter")
-    
-    # Filter data
-    if selected_platform != 'Both':
-        filtered_data = latest_status[latest_status['platform'] == selected_platform]
-    else:
-        filtered_data = latest_status
-    
     # Calculate metrics
-    total_stores = len(filtered_data)
-    online_stores = len(filtered_data[filtered_data['is_online'] == 1])
+    total_stores = len(latest_status)
+    online_stores = len(latest_status[latest_status['is_online'] == 1])
     offline_stores = total_stores - online_stores
     online_pct = (online_stores / total_stores * 100) if total_stores > 0 else 0
     
-    # Live monitor layout
-    col1, col2 = st.columns([1.2, 0.8])
+    # Platform counts
+    grabfood_count = len(latest_status[latest_status['platform'] == 'grabfood'])
+    foodpanda_count = len(latest_status[latest_status['platform'] == 'foodpanda'])
+    
+    # BETTER LAYOUT - Two rows of metrics
+    st.markdown("### Network Overview")
+    
+    # First row - Main metrics
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        if total_stores > 0:
-            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            fig = create_status_pie_chart(online_stores, offline_stores, total_stores)
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.metric("Total Locations", f"{total_stores}", "operational")
     
     with col2:
-        # Metric cards
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">Total Stores</div>
-            <div class="metric-value">{total_stores}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">Online</div>
-            <div class="metric-value status-online">{online_stores}</div>
-            <div class="metric-label">{online_pct:.0f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">Offline</div>
-            <div class="metric-value status-offline">{offline_stores}</div>
-            <div class="metric-label">{100-online_pct:.0f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric("Online Stores", f"{online_stores}", f"{online_pct:.0f}% active")
     
-    # 2️⃣ HOURLY SNAPSHOT TRENDS PANEL (FIXED DISPLAY)
-    st.markdown("""
-    <div class="section-header">
-        <div class="section-title">2️⃣ Hourly Snapshot Trends</div>
-        <div class="section-subtitle">Track how uptime changes throughout the day</div>
-    </div>
-    """, unsafe_allow_html=True)
+    with col3:
+        st.metric("Offline Stores", f"{offline_stores}", "nominal" if offline_stores == 0 else "requires attention")
     
-    col1, col2 = st.columns([1.5, 1])
+    with col4:
+        # Compact donut chart
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        if total_stores > 0:
+            fig = create_professional_donut(online_stores, offline_stores, total_stores)
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Second row - Platform distribution
+    st.markdown("### Platform Distribution")
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        if len(hourly_data) > 0:
-            # FIXED formatting - keep same data, just display better
-            display_hourly = hourly_data.copy()
+        st.metric("GrabFood Network", f"{grabfood_count}", f"{(grabfood_count/total_stores*100):.0f}% of total")
+    
+    with col2:
+        st.metric("Foodpanda Network", f"{foodpanda_count}", f"{(foodpanda_count/total_stores*100):.0f}% of total")
+    
+    # Professional status message
+    if online_pct == 100:
+        st.success("System Status: All locations operational and performing within normal parameters.")
+    elif online_pct >= 95:
+        st.success(f"System Status: Excellent performance - {online_pct:.0f}% operational capacity maintained.")
+    elif online_pct >= 80:
+        st.warning(f"System Status: Stable operation - {online_pct:.0f}% capacity, {offline_stores} locations require monitoring.")
+    else:
+        st.error(f"System Status: Critical performance - {online_pct:.0f}% capacity, {offline_stores} locations offline requiring immediate attention.")
+    
+    # PROFESSIONAL TABS WITH BETTER NAMES
+    tab1, tab2, tab3 = st.tabs(["Store Uptime Analytics", "Live Operations Monitor", "Downtime Incidents"])
+    
+    with tab1:
+        # SECTION HEADER
+        st.markdown(f"""
+        <div class="section-header">
+            <div class="section-title">Store Uptime Report by Branch</div>
+            <div class="section-subtitle">Daily performance metrics and availability statistics • Data as of {last_check_time.strftime('%I:%M %p')} {timezone_abbr}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if daily_uptime is not None and len(daily_uptime) > 0:
+            # FILTERS
+            st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
             
-            # Convert 24-hour to 12-hour format (22:00 → 10:00 PM)
-            def format_hour(hour):
-                hour = int(hour)
-                if hour == 0:
-                    return "12:00 AM"
-                elif hour < 12:
-                    return f"{hour}:00 AM"
-                elif hour == 12:
-                    return "12:00 PM"
+            with col1:
+                platform_filter = st.selectbox(
+                    "Filter by Platform:",
+                    ["All Platforms", "GrabFood", "Foodpanda"],
+                    key="uptime_platform_filter"
+                )
+            
+            with col2:
+                sort_order = st.selectbox(
+                    "Sort by Uptime:",
+                    ["Highest to Lowest", "Lowest to Highest"],
+                    key="uptime_sort_order"
+                )
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Format performance data professionally
+            performance_data = daily_uptime.copy()
+            performance_data['Branch'] = performance_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
+            performance_data['Platform'] = performance_data['platform'].str.title()
+            performance_data['Uptime %'] = performance_data['uptime_percentage'].apply(lambda x: f"{x:.1f}%")
+            performance_data['Total Checks'] = performance_data['total_checks'].astype(str)  # CHANGED FROM Health Checks
+            
+            # Better status classification
+            def get_health_status(pct):
+                if pct >= 95:
+                    return "Healthy"
+                elif pct >= 85:
+                    return "Warning"
+                elif pct >= 70:
+                    return "Degraded"
                 else:
-                    return f"{hour-12}:00 PM"
+                    return "Alert"
             
-            display_hourly['Hour'] = display_hourly['hour'].apply(format_hour)
+            performance_data['Health Status'] = performance_data['uptime_percentage'].apply(get_health_status)
             
-            # FIXED rounding - ensure percentages always add to 100%
-            online_pct_rounded = display_hourly['online_pct'].round().astype(int)
-            offline_pct_rounded = 100 - online_pct_rounded
+            # Apply filters
+            if platform_filter != "All Platforms":
+                performance_data = performance_data[performance_data['Platform'] == platform_filter]
             
-            display_hourly['Online %'] = online_pct_rounded.astype(str) + '%'
-            display_hourly['Offline %'] = offline_pct_rounded.astype(str) + '%'
+            # Apply sorting
+            if sort_order == "Highest to Lowest":
+                performance_data = performance_data.sort_values('uptime_percentage', ascending=False)
+            else:
+                performance_data = performance_data.sort_values('uptime_percentage', ascending=True)
             
-            # Add status flags
-            def get_flag(online_pct):
-                if online_pct < 60:
-                    return '🔴 Low uptime'
-                elif online_pct < 80:
-                    return '🟡 Monitor'
-                else:
-                    return '✅ Good'
-            
-            display_hourly['Status'] = display_hourly['online_pct'].apply(get_flag)
-            
-            st.subheader("📊 Hourly Tracker Table")
             st.dataframe(
-                display_hourly[['Hour', 'Online %', 'Offline %', 'Status']],
+                performance_data[['Branch', 'Platform', 'Uptime %', 'Health Status', 'Total Checks']],
                 use_container_width=True,
                 hide_index=True,
-                height=300
+                height=400
             )
         else:
-            st.info("⏳ Hourly data will appear as the system collects more data throughout the day.")
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.info("Performance analytics will be available as monitoring data accumulates during operational hours.")
     
-    with col2:
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        if len(hourly_data) > 0:
-            avg_online = hourly_data['online_pct'].mean()
-            st.subheader("📈 Average Uptime")
-            
-            # Small donut chart
-            fig_avg = go.Figure(data=[go.Pie(
-                labels=['Online', 'Offline'],
-                values=[avg_online, 100-avg_online],
-                marker_colors=['#28a745', '#dc3545'],
-                hole=0.6,
-                textinfo='none'
-            )])
-            
-            fig_avg.update_layout(
-                height=250,
-                showlegend=False,
-                margin=dict(t=0, b=0, l=0, r=0),
-                annotations=[
-                    dict(
-                        text=f"{avg_online:.0f}%<br>Online",
-                        x=0.5, y=0.5,
-                        font_size=18,
-                        font_family="Inter",
-                        font_color="#28a745",
-                        showarrow=False
-                    )
-                ]
-            )
-            
-            st.plotly_chart(fig_avg, use_container_width=True, config={'displayModeBar': False})
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 3️⃣ DAILY STORE SUMMARY PANEL
-    st.markdown("""
-    <div class="section-header">
-        <div class="section-title">3️⃣ Daily Store Summary</div>
-        <div class="section-subtitle">Performance ranking by uptime - stores ranked best to worst</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-    if daily_uptime is not None and len(daily_uptime) > 0:
-        # Format daily summary
-        display_summary = daily_uptime.copy()
-        display_summary['Store Name'] = display_summary['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
-        display_summary['Platform'] = display_summary['platform'].str.title()
-        display_summary['% Uptime Today'] = display_summary['uptime_percentage'].astype(str) + '%'
+    with tab2:
+        # SECTION HEADER
+        st.markdown(f"""
+        <div class="section-header">
+            <div class="section-title">Live Operations Monitor</div>
+            <div class="section-subtitle">Real-time store status and response metrics • Data as of {last_check_time.strftime('%I:%M %p')} {timezone_abbr}</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Status with color coding
-        def get_status_badge(pct):
-            if pct >= 90:
-                return '🟢 Excellent'
-            elif pct >= 60:
-                return '🟡 Monitor'
-            else:
-                return '🔴 Critical'
+        # FILTERS
+        st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
         
-        display_summary['Current Status'] = display_summary['uptime_percentage'].apply(get_status_badge)
-        display_summary['Checks Today'] = display_summary['total_checks'].astype(str)
-        
-        # Show the full summary table
-        st.dataframe(
-            display_summary[['Store Name', 'Platform', '% Uptime Today', 'Current Status', 'Checks Today']],
-            use_container_width=True,
-            hide_index=True,
-            height=400
-        )
-        
-        # Show breakdown by status
-        excellent_stores = len(display_summary[display_summary['uptime_percentage'] >= 90])
-        monitor_stores = len(display_summary[(display_summary['uptime_percentage'] >= 60) & (display_summary['uptime_percentage'] < 90)])
-        critical_stores = len(display_summary[display_summary['uptime_percentage'] < 60])
-        
-        col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("🟢 Excellent (90%+)", excellent_stores)
-        with col2:
-            st.metric("🟡 Monitor (60-89%)", monitor_stores)
-        with col3:
-            st.metric("🔴 Critical (<60%)", critical_stores)
-            
-    else:
-        st.info("⏳ Daily summary will populate as data is collected throughout the day.")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 4️⃣ DETAILED STORE LOGS PANEL
-    st.markdown("""
-    <div class="section-header">
-        <div class="section-title">4️⃣ Detailed Store Logs</div>
-        <div class="section-subtitle">Timestamped log of all store status changes today</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-    if store_logs is not None and len(store_logs) > 0:
-        # Format store logs
-        display_logs = store_logs.copy()
+            platform_filter_live = st.selectbox(
+                "Filter by Platform:",
+                ["All Platforms", "GrabFood", "Foodpanda"],
+                key="live_platform_filter"
+            )
         
-        # Convert timestamps to Philippines time
+        with col2:
+            status_filter = st.selectbox(
+                "Filter by Status:",
+                ["All Statuses", "Online Only", "Offline Only"],
+                key="live_status_filter"
+            )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Format current status professionally
+        current_data = latest_status.copy()
+        current_data['Branch'] = current_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
+        current_data['Platform'] = current_data['platform'].str.title()
+        current_data['Status'] = current_data['is_online'].apply(lambda x: 'Online' if x else 'Offline')
+        current_data['Response Time'] = current_data['response_time_ms'].fillna(0).astype(int).astype(str) + 'ms'
+        
+        # Format timestamp
         try:
-            display_logs['checked_at'] = pd.to_datetime(display_logs['checked_at'])
-            if display_logs['checked_at'].dt.tz is None:
-                display_logs['checked_at'] = display_logs['checked_at'].dt.tz_localize('UTC')
+            current_data['checked_at'] = pd.to_datetime(current_data['checked_at'])
+            if current_data['checked_at'].dt.tz is None:
+                current_data['checked_at'] = current_data['checked_at'].dt.tz_localize('UTC')
             
             ph_tz = config.get_timezone()
-            display_logs['checked_at'] = display_logs['checked_at'].dt.tz_convert(ph_tz)
-            display_logs['Time'] = display_logs['checked_at'].dt.strftime('%I:%M %p')
-        except Exception as e:
-            logger.error(f"Timezone conversion error: {e}")
-            display_logs['Time'] = pd.to_datetime(display_logs['checked_at']).dt.strftime('%I:%M %p')
+            current_data['checked_at'] = current_data['checked_at'].dt.tz_convert(ph_tz)
+            current_data['Last Verified'] = current_data['checked_at'].dt.strftime('%I:%M %p')
+        except Exception:
+            current_data['Last Verified'] = pd.to_datetime(current_data['checked_at']).dt.strftime('%I:%M %p')
         
-        display_logs['Store'] = display_logs['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
-        display_logs['Platform'] = display_logs['platform'].str.title()
-        display_logs['Status'] = display_logs['is_online'].apply(lambda x: '✅ Online' if x else '❌ Offline')
-        display_logs['Response Time'] = display_logs['response_time_ms'].fillna(0).astype(int).astype(str) + 'ms'
+        # Apply filters
+        if platform_filter_live != "All Platforms":
+            current_data = current_data[current_data['Platform'] == platform_filter_live]
         
-        # Show logs table
+        if status_filter == "Online Only":
+            current_data = current_data[current_data['is_online'] == 1]
+        elif status_filter == "Offline Only":
+            current_data = current_data[current_data['is_online'] == 0]
+        
         st.dataframe(
-            display_logs[['Time', 'Store', 'Platform', 'Status', 'Response Time']].head(20),
+            current_data[['Branch', 'Platform', 'Status', 'Response Time', 'Last Verified']],
             use_container_width=True,
             hide_index=True,
             height=400
         )
-    else:
-        st.info("⏳ Store logs will appear as monitoring data is collected.")
-    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Footer
-    st.markdown(f"""
-    <div style="text-align: center; padding: 2rem; color: #6c757d; font-size: 0.9rem;">
-        <strong>CocoPan Operations Dashboard</strong> • Last updated: {philippines_time.strftime('%I:%M %p')} {timezone_abbr} • 
-        Auto-refresh: 5 minutes • Data timezone: {config.TIMEZONE} • Database: {db.db_type.upper()}
-    </div>
-    """, unsafe_allow_html=True)
+    with tab3:
+        # SECTION HEADER
+        st.markdown(f"""
+        <div class="section-header">
+            <div class="section-title">Downtime Incident Log</div>
+            <div class="section-subtitle">Historical record of service interruptions and offline events • Data as of {last_check_time.strftime('%I:%M %p')} {timezone_abbr}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if downtime_incidents is not None and len(downtime_incidents) > 0:
+            # FILTERS
+            st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+            platform_filter_down = st.selectbox(
+                "Filter by Platform:",
+                ["All Platforms", "GrabFood", "Foodpanda"],
+                key="down_platform_filter"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Format downtime data
+            downtime_data = downtime_incidents.copy()
+            downtime_data['Branch'] = downtime_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
+            downtime_data['Platform'] = downtime_data['platform'].str.title()
+            
+            # Format timestamp
+            try:
+                downtime_data['checked_at'] = pd.to_datetime(downtime_data['checked_at'])
+                if downtime_data['checked_at'].dt.tz is None:
+                    downtime_data['checked_at'] = downtime_data['checked_at'].dt.tz_localize('UTC')
+                
+                ph_tz = config.get_timezone()
+                downtime_data['checked_at'] = downtime_data['checked_at'].dt.tz_convert(ph_tz)
+                downtime_data['Incident Time'] = downtime_data['checked_at'].dt.strftime('%I:%M %p')
+            except Exception:
+                downtime_data['Incident Time'] = pd.to_datetime(downtime_data['checked_at']).dt.strftime('%I:%M %p')
+            
+            downtime_data['Issue Description'] = downtime_data['error_message'].fillna('Connection timeout or service unavailable')
+            
+            # Apply platform filter
+            if platform_filter_down != "All Platforms":
+                downtime_data = downtime_data[downtime_data['Platform'] == platform_filter_down]
+            
+            if len(downtime_data) > 0:
+                st.dataframe(
+                    downtime_data[['Branch', 'Platform', 'Incident Time', 'Issue Description']],
+                    use_container_width=True,
+                    hide_index=True,
+                    height=400
+                )
+            else:
+                st.success("No downtime incidents recorded for the selected platform filter.")
+        else:
+            st.success("No downtime incidents recorded today. All systems operating normally.")
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        st.error(f"❌ Dashboard Error: {e}")
+        st.error(f"System Error: {e}")
         logger.error(f"Dashboard error: {e}")
-        st.info("💡 Check the monitor service and database connection.")
