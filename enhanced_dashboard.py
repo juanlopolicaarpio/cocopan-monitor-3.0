@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 CocoPan Watchtower - Professional Operations Dashboard
+FIXED: Removed response time, health status, and issue description. Added downtime events table.
 """
 import streamlit as st
 import pandas as pd
@@ -280,15 +281,16 @@ def load_data():
             """
             latest_status = pd.read_sql_query(latest_status_query, conn)
             
-            # Daily uptime data
+            # Daily uptime data with downtime count - FIXED SQL to ensure downtime_count is included
             daily_uptime_query = """
                 SELECT 
                     s.name,
                     s.platform,
                     COUNT(sc.id) as total_checks,
-                    SUM(CASE WHEN sc.is_online THEN 1 ELSE 0 END) as online_checks,
+                    SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) as online_checks,
+                    SUM(CASE WHEN sc.is_online = false THEN 1 ELSE 0 END) as downtime_count,
                     ROUND(
-                        (SUM(CASE WHEN sc.is_online THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id)), 
+                        (SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id)), 
                         1
                     ) as uptime_percentage
                 FROM stores s
@@ -300,23 +302,24 @@ def load_data():
             """
             daily_uptime = pd.read_sql_query(daily_uptime_query, conn)
             
-            # Downtime incidents
-            downtime_query = """
+            # Downtime count data - NEW
+            downtime_count_query = """
                 SELECT 
                     s.name,
                     s.platform,
-                    sc.checked_at,
-                    sc.error_message
+                    COUNT(sc.id) as downtime_events,
+                    MIN(sc.checked_at) as first_downtime,
+                    MAX(sc.checked_at) as last_downtime
                 FROM stores s
                 INNER JOIN status_checks sc ON s.id = sc.store_id
                 WHERE sc.is_online = false 
                 AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
-                ORDER BY sc.checked_at DESC
-                LIMIT 100
+                GROUP BY s.id, s.name, s.platform
+                ORDER BY downtime_events DESC
             """
-            downtime_incidents = pd.read_sql_query(downtime_query, conn)
+            downtime_events = pd.read_sql_query(downtime_count_query, conn)
             
-            return latest_status, daily_uptime, downtime_incidents, None
+            return latest_status, daily_uptime, downtime_events, None
             
     except Exception as e:
         logger.error(f"Error loading data: {e}")
@@ -385,17 +388,16 @@ def get_last_check_time(latest_status):
 
 def main():
     # Load data first to get last check time
-    latest_status, daily_uptime, downtime_incidents, error = load_data()
+    latest_status, daily_uptime, downtime_events, error = load_data()
     
     # Get last check time instead of current time
     last_check_time = get_last_check_time(latest_status)
-    timezone_abbr = last_check_time.strftime('%Z') or 'PHT'
     
-    # PROFESSIONAL HEADER WITH LAST CHECK TIME
+    # PROFESSIONAL HEADER WITH LAST CHECK TIME - MANILA TIME
     st.markdown(f"""
     <div class="header-section">
         <h1>CocoPan Watchtower</h1>
-        <h3>Operations Monitoring System • Data as of {last_check_time.strftime('%B %d, %Y • %I:%M %p')} {timezone_abbr}</h3>
+        <h3>Operations Monitoring System • Data as of {last_check_time.strftime('%B %d, %Y • %I:%M %p')} Manila Time</h3>
     </div>
     """, unsafe_allow_html=True)
     
@@ -461,14 +463,14 @@ def main():
         st.error(f"System Status: Critical performance - {online_pct:.0f}% capacity, {offline_stores} locations offline requiring immediate attention.")
     
     # PROFESSIONAL TABS WITH BETTER NAMES
-    tab1, tab2, tab3 = st.tabs(["Store Uptime Analytics", "Live Operations Monitor", "Downtime Incidents"])
+    tab1, tab2, tab3 = st.tabs(["Store Uptime Analytics", "Live Operations Monitor", "Downtime Events"])
     
     with tab1:
         # SECTION HEADER
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Report by Branch</div>
-            <div class="section-subtitle">Daily performance metrics and availability statistics • Data as of {last_check_time.strftime('%I:%M %p')} {timezone_abbr}</div>
+            <div class="section-subtitle">Daily performance metrics and availability statistics • Data as of {last_check_time.strftime('%I:%M %p')} Manila Time</div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -492,38 +494,30 @@ def main():
                 )
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Format performance data professionally
-            performance_data = daily_uptime.copy()
-            performance_data['Branch'] = performance_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
-            performance_data['Platform'] = performance_data['platform'].str.title()
-            performance_data['Uptime %'] = performance_data['uptime_percentage'].apply(lambda x: f"{x:.1f}%")
-            performance_data['Total Checks'] = performance_data['total_checks'].astype(str)  # CHANGED FROM Health Checks
+            # Create a completely clean dataframe with ONLY the columns we want
+            clean_data = pd.DataFrame()
+            clean_data['Branch'] = daily_uptime['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
+            clean_data['Platform'] = daily_uptime['platform'].str.title()
+            clean_data['Uptime %'] = daily_uptime['uptime_percentage'].apply(lambda x: f"{x:.1f}%")
+            clean_data['Total Checks'] = daily_uptime['total_checks'].astype(str)
+            clean_data['Times Down'] = daily_uptime['downtime_count'].astype(str)
             
-            # Better status classification
-            def get_health_status(pct):
-                if pct >= 95:
-                    return "Healthy"
-                elif pct >= 85:
-                    return "Warning"
-                elif pct >= 70:
-                    return "Degraded"
-                else:
-                    return "Alert"
-            
-            performance_data['Health Status'] = performance_data['uptime_percentage'].apply(get_health_status)
-            
-            # Apply filters
+            # Apply filters to the clean data
             if platform_filter != "All Platforms":
-                performance_data = performance_data[performance_data['Platform'] == platform_filter]
+                clean_data = clean_data[clean_data['Platform'] == platform_filter]
             
-            # Apply sorting
+            # Apply sorting based on original uptime values
             if sort_order == "Highest to Lowest":
-                performance_data = performance_data.sort_values('uptime_percentage', ascending=False)
+                sort_indices = daily_uptime['uptime_percentage'].sort_values(ascending=False).index
             else:
-                performance_data = performance_data.sort_values('uptime_percentage', ascending=True)
+                sort_indices = daily_uptime['uptime_percentage'].sort_values(ascending=True).index
             
+            # Reorder clean_data based on sort_indices
+            clean_data = clean_data.iloc[sort_indices].reset_index(drop=True)
+            
+            # Show ONLY our 5 specific columns - NO OTHER COLUMNS POSSIBLE
             st.dataframe(
-                performance_data[['Branch', 'Platform', 'Uptime %', 'Health Status', 'Total Checks']],
+                clean_data,
                 use_container_width=True,
                 hide_index=True,
                 height=400
@@ -536,7 +530,7 @@ def main():
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Live Operations Monitor</div>
-            <div class="section-subtitle">Real-time store status and response metrics • Data as of {last_check_time.strftime('%I:%M %p')} {timezone_abbr}</div>
+            <div class="section-subtitle">Real-time store status • Data as of {last_check_time.strftime('%I:%M %p')} Manila Time</div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -559,12 +553,11 @@ def main():
             )
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Format current status professionally
+        # Format current status professionally - REMOVED Response Time
         current_data = latest_status.copy()
         current_data['Branch'] = current_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
         current_data['Platform'] = current_data['platform'].str.title()
         current_data['Status'] = current_data['is_online'].apply(lambda x: 'Online' if x else 'Offline')
-        current_data['Response Time'] = current_data['response_time_ms'].fillna(0).astype(int).astype(str) + 'ms'
         
         # Format timestamp
         try:
@@ -588,7 +581,7 @@ def main():
             current_data = current_data[current_data['is_online'] == 0]
         
         st.dataframe(
-            current_data[['Branch', 'Platform', 'Status', 'Response Time', 'Last Verified']],
+            current_data[['Branch', 'Platform', 'Status', 'Last Verified']],
             use_container_width=True,
             hide_index=True,
             height=400
@@ -598,12 +591,12 @@ def main():
         # SECTION HEADER
         st.markdown(f"""
         <div class="section-header">
-            <div class="section-title">Downtime Incident Log</div>
-            <div class="section-subtitle">Historical record of service interruptions and offline events • Data as of {last_check_time.strftime('%I:%M %p')} {timezone_abbr}</div>
+            <div class="section-title">Downtime Events Summary</div>
+            <div class="section-subtitle">Overview of offline events and frequency • Data as of {last_check_time.strftime('%I:%M %p')} Manila Time</div>
         </div>
         """, unsafe_allow_html=True)
         
-        if downtime_incidents is not None and len(downtime_incidents) > 0:
+        if downtime_events is not None and len(downtime_events) > 0:
             # FILTERS
             st.markdown('<div class="filter-container">', unsafe_allow_html=True)
             platform_filter_down = st.selectbox(
@@ -613,24 +606,30 @@ def main():
             )
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Format downtime data
-            downtime_data = downtime_incidents.copy()
+            # Format downtime data - REMOVED Issue Description
+            downtime_data = downtime_events.copy()
             downtime_data['Branch'] = downtime_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
             downtime_data['Platform'] = downtime_data['platform'].str.title()
+            downtime_data['Offline Events'] = downtime_data['downtime_events'].astype(str)
             
-            # Format timestamp
+            # Format timestamps
             try:
-                downtime_data['checked_at'] = pd.to_datetime(downtime_data['checked_at'])
-                if downtime_data['checked_at'].dt.tz is None:
-                    downtime_data['checked_at'] = downtime_data['checked_at'].dt.tz_localize('UTC')
+                downtime_data['first_downtime'] = pd.to_datetime(downtime_data['first_downtime'])
+                downtime_data['last_downtime'] = pd.to_datetime(downtime_data['last_downtime'])
+                
+                if downtime_data['first_downtime'].dt.tz is None:
+                    downtime_data['first_downtime'] = downtime_data['first_downtime'].dt.tz_localize('UTC')
+                    downtime_data['last_downtime'] = downtime_data['last_downtime'].dt.tz_localize('UTC')
                 
                 ph_tz = config.get_timezone()
-                downtime_data['checked_at'] = downtime_data['checked_at'].dt.tz_convert(ph_tz)
-                downtime_data['Incident Time'] = downtime_data['checked_at'].dt.strftime('%I:%M %p')
+                downtime_data['first_downtime'] = downtime_data['first_downtime'].dt.tz_convert(ph_tz)
+                downtime_data['last_downtime'] = downtime_data['last_downtime'].dt.tz_convert(ph_tz)
+                
+                downtime_data['First Offline'] = downtime_data['first_downtime'].dt.strftime('%I:%M %p')
+                downtime_data['Last Offline'] = downtime_data['last_downtime'].dt.strftime('%I:%M %p')
             except Exception:
-                downtime_data['Incident Time'] = pd.to_datetime(downtime_data['checked_at']).dt.strftime('%I:%M %p')
-            
-            downtime_data['Issue Description'] = downtime_data['error_message'].fillna('Connection timeout or service unavailable')
+                downtime_data['First Offline'] = pd.to_datetime(downtime_data['first_downtime']).dt.strftime('%I:%M %p')
+                downtime_data['Last Offline'] = pd.to_datetime(downtime_data['last_downtime']).dt.strftime('%I:%M %p')
             
             # Apply platform filter
             if platform_filter_down != "All Platforms":
@@ -638,15 +637,15 @@ def main():
             
             if len(downtime_data) > 0:
                 st.dataframe(
-                    downtime_data[['Branch', 'Platform', 'Incident Time', 'Issue Description']],
+                    downtime_data[['Branch', 'Platform', 'Offline Events', 'First Offline', 'Last Offline']],
                     use_container_width=True,
                     hide_index=True,
                     height=400
                 )
             else:
-                st.success("No downtime incidents recorded for the selected platform filter.")
+                st.success("No downtime events recorded for the selected platform filter.")
         else:
-            st.success("No downtime incidents recorded today. All systems operating normally.")
+            st.success("No downtime events recorded today. All systems operating normally.")
 
 if __name__ == "__main__":
     try:
