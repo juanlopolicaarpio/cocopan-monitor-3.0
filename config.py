@@ -2,6 +2,7 @@
 """
 CocoPan Monitor - Configuration Management
 Handles all configuration with environment variables and defaults
+FIXED: Relaxed timezone validation for Docker containers
 """
 import os
 from datetime import datetime
@@ -78,7 +79,7 @@ class Config:
     
     @classmethod
     def validate_timezone(cls):
-        """Validate timezone is correctly configured"""
+        """FIXED: Relaxed timezone validation for Docker containers"""
         try:
             tz = cls.get_timezone()
             now = cls.get_current_time()
@@ -88,16 +89,24 @@ class Config:
             print(f"   Current time: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
             print(f"   UTC offset: {now.strftime('%z')}")
             
-            # Should show PHT or +0800, NOT PST
-            tz_name = now.strftime('%Z')
-            if 'PST' in tz_name or 'PDT' in tz_name:
-                print("❌ ERROR: Showing Pacific Time instead of Philippine Time!")
-                return False
-            
-            if cls.TIMEZONE == 'Asia/Manila' and '+08' not in now.strftime('%z'):
-                print("❌ ERROR: UTC offset should be +0800 for Manila!")
-                return False
+            # FIXED: Only validate UTC offset, not timezone abbreviation
+            # Docker containers often show PST instead of PHT due to system timezone data
+            if cls.TIMEZONE == 'Asia/Manila':
+                expected_offset = '+0800'
+                actual_offset = now.strftime('%z')
                 
+                if actual_offset != expected_offset:
+                    print(f"❌ ERROR: UTC offset should be {expected_offset} for Manila, got {actual_offset}!")
+                    return False
+                else:
+                    print("✅ UTC offset correct for Manila time")
+                    # NOTE: Timezone abbreviation may show as PST in Docker containers
+                    # This is normal and doesn't affect functionality
+                    tz_name = now.strftime('%Z')
+                    if 'PST' in tz_name or 'PDT' in tz_name:
+                        print("ℹ️  Note: Timezone shows as PST/PDT due to container settings, but UTC offset is correct")
+                    return True
+            
             return True
         except Exception as e:
             print(f"❌ Timezone validation error: {e}")

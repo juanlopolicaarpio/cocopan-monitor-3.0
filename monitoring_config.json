@@ -1,0 +1,198 @@
+{
+    "version": "1.0.0",
+    "description": "Production CocoPan Monitor Configuration",
+    
+    "circuit_breakers": {
+      "failure_threshold": 3,
+      "timeout_duration": 300,
+      "success_threshold": 2,
+      "enabled": true,
+      "per_store_config": {
+        "foodpanda_stores": {
+          "failure_threshold": 3,
+          "timeout_duration": 300
+        },
+        "grabfood_stores": {
+          "failure_threshold": 3,
+          "timeout_duration": 300
+        }
+      }
+    },
+    
+    "performance": {
+      "max_concurrent_checks": 10,
+      "global_timeout": 30,
+      "check_interval_minutes": 60,
+      "concurrent_browser_limit": 5,
+      "use_uvloop": true,
+      "resource_limits": {
+        "max_memory_mb": 512,
+        "max_cpu_percent": 80,
+        "max_cycle_duration": 600
+      }
+    },
+    
+    "health_monitoring": {
+      "enabled": true,
+      "check_interval": 30,
+      "max_memory_mb": 512,
+      "max_cpu_percent": 80,
+      "max_cycle_time": 300,
+      "max_failed_cycles": 3,
+      "alert_cooldown_seconds": 300,
+      "metrics": {
+        "track_response_times": true,
+        "track_circuit_breaker_states": true,
+        "track_memory_usage": true,
+        "track_error_rates": true
+      }
+    },
+    
+    "alerts": {
+      "enabled": true,
+      "channels": {
+        "webhook": {
+          "enabled": false,
+          "url": "",
+          "timeout": 10,
+          "retry_attempts": 3
+        },
+        "email": {
+          "enabled": false,
+          "recipients": [],
+          "smtp_server": "",
+          "smtp_port": 587,
+          "username": "",
+          "password": ""
+        },
+        "slack": {
+          "enabled": false,
+          "webhook_url": "",
+          "channel": "#monitoring",
+          "username": "CocoPan Monitor"
+        }
+      },
+      "alert_types": {
+        "critical_health_failure": {
+          "enabled": true,
+          "threshold": 3,
+          "message_template": "🚨 CRITICAL: CocoPan Monitor has critical health issues"
+        },
+        "high_memory_usage": {
+          "enabled": true,
+          "threshold": 512,
+          "message_template": "⚠️ WARNING: High memory usage detected"
+        },
+        "monitoring_cycle_timeout": {
+          "enabled": true,
+          "threshold": 600,
+          "message_template": "⏰ WARNING: Monitoring cycle taking too long"
+        },
+        "circuit_breaker_open": {
+          "enabled": true,
+          "threshold": 5,
+          "message_template": "🔌 WARNING: Multiple circuit breakers open"
+        },
+        "database_connectivity": {
+          "enabled": true,
+          "message_template": "💾 ERROR: Database connectivity issues"
+        }
+      }
+    },
+    
+    "store_monitoring": {
+      "platforms": {
+        "foodpanda": {
+          "enabled": true,
+          "use_playwright": true,
+          "timeout": 30,
+          "closed_indicators": [
+            "text=Temporarily unavailable",
+            "text=Closed for now",
+            "text=Currently closed",
+            "text=Restaurant is closed",
+            "text=Out of delivery area",
+            ".restaurant-closed",
+            ".closed-banner",
+            "[data-testid='closed-banner']"
+          ]
+        },
+        "grabfood": {
+          "enabled": true,
+          "use_requests": true,
+          "timeout": 30,
+          "closed_indicators": [
+            "closed",
+            "unavailable", 
+            "offline",
+            "temporarily closed",
+            "restaurant is closed",
+            "not available",
+            "out of delivery area"
+          ]
+        }
+      },
+      "retry_policy": {
+        "max_retries": 3,
+        "retry_delay": 5,
+        "exponential_backoff": true
+      }
+    },
+    
+    "database": {
+      "connection_pool": {
+        "min_connections": 1,
+        "max_connections": 20,
+        "connection_timeout": 30
+      },
+      "query_timeout": 30,
+      "batch_size": 100,
+      "cleanup": {
+        "enabled": true,
+        "retention_days": 90,
+        "cleanup_interval_hours": 24
+      }
+    },
+    
+    "logging": {
+      "level": "INFO",
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+      "files": {
+        "monitor_log": "logs/production_monitor.log",
+        "health_log": "logs/health_monitor.log",
+        "error_log": "logs/errors.log"
+      },
+      "rotation": {
+        "max_size_mb": 100,
+        "backup_count": 5
+      }
+    },
+    
+    "dashboard": {
+      "auto_refresh_seconds": 60,
+      "enable_circuit_breaker_monitoring": true,
+      "enable_health_monitoring": true,
+      "enable_performance_metrics": true,
+      "charts": {
+        "response_time_history": true,
+        "uptime_trends": true,
+        "circuit_breaker_states": true,
+        "error_rate_tracking": true
+      }
+    },
+    
+    "development": {
+      "debug_mode": false,
+      "mock_stores": false,
+      "simulate_failures": false,
+      "test_circuit_breakers": false
+    },
+    
+    "production": {
+      "strict_timeouts": true,
+      "enable_all_monitoring": true,
+      "require_health_checks": true,
+      "resource_monitoring": true,
+      "performance_optimization": true
+    }
+  }

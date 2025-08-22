@@ -1,35 +1,38 @@
-# Dockerfile
-FROM python:3.11-slim
+# Base: Microsoft Playwright (matching your Python package 1.54.0)
+FROM mcr.microsoft.com/playwright/python:v1.54.0-jammy
 
-# ---- Base OS deps (no 'software-properties-common' on slim) ----
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget gnupg ca-certificates postgresql-client \
-  && rm -rf /var/lib/apt/lists/*
+# Root for package install
+USER root
 
-# ---- Runtime env hygiene ----
+# Minimal system deps (psql client, TLS tools)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      curl wget ca-certificates postgresql-client && \
+    rm -rf /var/lib/apt/lists/*
+
+# Runtime env
 ENV PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# ---- Python deps ----
+# Python deps
 COPY requirements.txt .
+# IMPORTANT: playwright in requirements must match the base image (1.54.0) OR be omitted.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ---- Playwright (if you scrape with Chromium) ----
-RUN pip install --no-cache-dir playwright && \
-    python -m playwright install chromium && \
-    python -m playwright install-deps
+# Make sure the matching Chromium is present for the installed playwright version
+RUN python -m playwright install --with-deps chromium
 
-# ---- App code ----
+# App code
 COPY . .
 
-# Optional: a place for logs (mounted in compose)
-RUN mkdir -p /app/logs
+# Logs dir + non-root
+RUN mkdir -p /app/logs && chmod 755 /app/logs && \
+    useradd --create-home --shell /bin/bash app && \
+    chown -R app:app /app
 
-# Streamlit listens here (dashboard service maps/overrides command)
+USER app
 EXPOSE 8501
-
-# Default command (compose can override for dashboard)
 CMD ["python", "monitor_service.py"]
