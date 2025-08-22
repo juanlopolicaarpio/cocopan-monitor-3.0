@@ -41,6 +41,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://cocopan:cocopan123@postgres:5432/cocopan_monitor
       - TIMEZONE=Asia/Manila
+      - TZ=Asia/Manila
       - LOG_LEVEL=INFO
       - MONITOR_START_HOUR=6
       - MONITOR_END_HOUR=21
