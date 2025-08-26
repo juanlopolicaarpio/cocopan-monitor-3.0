@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - Professional Operations Dashboard
-FIXED: Removed response time, health status, and issue description. Added downtime events table.
+CocoPan Watchtower - FIXED Platform Filtering
+FIXED: Platform name consistency between data and filters
 """
 import streamlit as st
 import pandas as pd
@@ -25,7 +25,7 @@ st.set_page_config(
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
-# PROFESSIONAL CORPORATE CSS
+# PROFESSIONAL CORPORATE CSS (same as before)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -257,6 +257,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def standardize_platform_name(platform_value):
+    """FIXED: Standardize platform names consistently"""
+    if pd.isna(platform_value):
+        return "Unknown"
+    
+    platform_str = str(platform_value).lower()
+    if 'grab' in platform_str:
+        return "GrabFood"  # Consistent with filter options
+    elif 'foodpanda' in platform_str or 'panda' in platform_str:
+        return "Foodpanda"  # Consistent with filter options
+    else:
+        return "Unknown"
+
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
 def load_data():
     """Load comprehensive operational data"""
@@ -281,7 +294,11 @@ def load_data():
             """
             latest_status = pd.read_sql_query(latest_status_query, conn)
             
-            # Daily uptime data with downtime count - FIXED SQL to ensure downtime_count is included
+            # FIXED: Apply consistent platform standardization
+            if not latest_status.empty:
+                latest_status['platform'] = latest_status['platform'].apply(standardize_platform_name)
+            
+            # Daily uptime data with downtime count
             daily_uptime_query = """
                 SELECT 
                     s.name,
@@ -302,7 +319,11 @@ def load_data():
             """
             daily_uptime = pd.read_sql_query(daily_uptime_query, conn)
             
-            # Downtime count data - NEW
+            # FIXED: Apply consistent platform standardization
+            if not daily_uptime.empty:
+                daily_uptime['platform'] = daily_uptime['platform'].apply(standardize_platform_name)
+            
+            # Downtime count data
             downtime_count_query = """
                 SELECT 
                     s.name,
@@ -318,6 +339,10 @@ def load_data():
                 ORDER BY downtime_events DESC
             """
             downtime_events = pd.read_sql_query(downtime_count_query, conn)
+            
+            # FIXED: Apply consistent platform standardization
+            if not downtime_events.empty:
+                downtime_events['platform'] = downtime_events['platform'].apply(standardize_platform_name)
             
             return latest_status, daily_uptime, downtime_events, None
             
@@ -415,9 +440,12 @@ def main():
     offline_stores = total_stores - online_stores
     online_pct = (online_stores / total_stores * 100) if total_stores > 0 else 0
     
-    # Platform counts
-    grabfood_count = len(latest_status[latest_status['platform'] == 'grabfood'])
-    foodpanda_count = len(latest_status[latest_status['platform'] == 'foodpanda'])
+    # FIXED: Platform counts using standardized names
+    grabfood_count = len(latest_status[latest_status['platform'] == 'GrabFood'])
+    foodpanda_count = len(latest_status[latest_status['platform'] == 'Foodpanda'])
+    
+    # Debug info for troubleshooting
+    logger.debug(f"Platform distribution: GrabFood={grabfood_count}, Foodpanda={foodpanda_count}, Total={total_stores}")
     
     # BETTER LAYOUT - Two rows of metrics
     st.markdown("### Network Overview")
@@ -480,9 +508,13 @@ def main():
             col1, col2 = st.columns(2)
             
             with col1:
+                # FIXED: Use consistent platform names
+                available_platforms = sorted(daily_uptime['platform'].unique())
+                platform_options = ["All Platforms"] + available_platforms
+                
                 platform_filter = st.selectbox(
                     "Filter by Platform:",
-                    ["All Platforms", "GrabFood", "Foodpanda"],
+                    platform_options,
                     key="uptime_platform_filter"
                 )
             
@@ -494,34 +526,37 @@ def main():
                 )
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Create a completely clean dataframe with ONLY the columns we want
-            clean_data = pd.DataFrame()
-            clean_data['Branch'] = daily_uptime['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
-            clean_data['Platform'] = daily_uptime['platform'].str.title()
-            clean_data['Uptime %'] = daily_uptime['uptime_percentage'].apply(lambda x: f"{x:.1f}%")
-            clean_data['Total Checks'] = daily_uptime['total_checks'].astype(str)
-            clean_data['Times Down'] = daily_uptime['downtime_count'].astype(str)
-            
-            # Apply filters to the clean data
+            # Filter data
+            filtered_data = daily_uptime.copy()
             if platform_filter != "All Platforms":
-                clean_data = clean_data[clean_data['Platform'] == platform_filter]
+                filtered_data = filtered_data[filtered_data['platform'] == platform_filter]
             
-            # Apply sorting based on original uptime values
-            if sort_order == "Highest to Lowest":
-                sort_indices = daily_uptime['uptime_percentage'].sort_values(ascending=False).index
+            if len(filtered_data) == 0:
+                st.info(f"No data available for {platform_filter}")
             else:
-                sort_indices = daily_uptime['uptime_percentage'].sort_values(ascending=True).index
-            
-            # Reorder clean_data based on sort_indices
-            clean_data = clean_data.iloc[sort_indices].reset_index(drop=True)
-            
-            # Show ONLY our 5 specific columns - NO OTHER COLUMNS POSSIBLE
-            st.dataframe(
-                clean_data,
-                use_container_width=True,
-                hide_index=True,
-                height=400
-            )
+                # Create display dataframe
+                display_data = pd.DataFrame()
+                display_data['Branch'] = filtered_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
+                display_data['Platform'] = filtered_data['platform']  # Already standardized
+                display_data['Uptime %'] = filtered_data['uptime_percentage'].apply(lambda x: f"{x:.1f}%")
+                display_data['Total Checks'] = filtered_data['total_checks'].astype(str)
+                display_data['Times Down'] = filtered_data['downtime_count'].astype(str)
+                
+                # Apply sorting
+                if sort_order == "Highest to Lowest":
+                    sort_indices = filtered_data['uptime_percentage'].sort_values(ascending=False).index
+                else:
+                    sort_indices = filtered_data['uptime_percentage'].sort_values(ascending=True).index
+                
+                # Reorder display data
+                display_data = display_data.iloc[sort_indices].reset_index(drop=True)
+                
+                st.dataframe(
+                    display_data,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=400
+                )
         else:
             st.info("Performance analytics will be available as monitoring data accumulates during operational hours.")
     
@@ -539,9 +574,13 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
+            # FIXED: Use actual platform names from data
+            available_platforms = sorted(latest_status['platform'].unique())
+            platform_options = ["All Platforms"] + available_platforms
+            
             platform_filter_live = st.selectbox(
                 "Filter by Platform:",
-                ["All Platforms", "GrabFood", "Foodpanda"],
+                platform_options,
                 key="live_platform_filter"
             )
         
@@ -553,10 +592,10 @@ def main():
             )
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Format current status professionally - REMOVED Response Time
+        # Filter and format current status data
         current_data = latest_status.copy()
         current_data['Branch'] = current_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
-        current_data['Platform'] = current_data['platform'].str.title()
+        current_data['Platform'] = current_data['platform']  # Already standardized
         current_data['Status'] = current_data['is_online'].apply(lambda x: 'Online' if x else 'Offline')
         
         # Format timestamp
@@ -580,12 +619,15 @@ def main():
         elif status_filter == "Offline Only":
             current_data = current_data[current_data['is_online'] == 0]
         
-        st.dataframe(
-            current_data[['Branch', 'Platform', 'Status', 'Last Verified']],
-            use_container_width=True,
-            hide_index=True,
-            height=400
-        )
+        if len(current_data) == 0:
+            st.info(f"No stores found for selected filters: {platform_filter_live} / {status_filter}")
+        else:
+            st.dataframe(
+                current_data[['Branch', 'Platform', 'Status', 'Last Verified']],
+                use_container_width=True,
+                hide_index=True,
+                height=400
+            )
     
     with tab3:
         # SECTION HEADER
@@ -599,51 +641,55 @@ def main():
         if downtime_events is not None and len(downtime_events) > 0:
             # FILTERS
             st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+            available_platforms = sorted(downtime_events['platform'].unique())
+            platform_options = ["All Platforms"] + available_platforms
+            
             platform_filter_down = st.selectbox(
                 "Filter by Platform:",
-                ["All Platforms", "GrabFood", "Foodpanda"],
+                platform_options,
                 key="down_platform_filter"
             )
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Format downtime data - REMOVED Issue Description
-            downtime_data = downtime_events.copy()
-            downtime_data['Branch'] = downtime_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
-            downtime_data['Platform'] = downtime_data['platform'].str.title()
-            downtime_data['Offline Events'] = downtime_data['downtime_events'].astype(str)
-            
-            # Format timestamps
-            try:
-                downtime_data['first_downtime'] = pd.to_datetime(downtime_data['first_downtime'])
-                downtime_data['last_downtime'] = pd.to_datetime(downtime_data['last_downtime'])
-                
-                if downtime_data['first_downtime'].dt.tz is None:
-                    downtime_data['first_downtime'] = downtime_data['first_downtime'].dt.tz_localize('UTC')
-                    downtime_data['last_downtime'] = downtime_data['last_downtime'].dt.tz_localize('UTC')
-                
-                ph_tz = config.get_timezone()
-                downtime_data['first_downtime'] = downtime_data['first_downtime'].dt.tz_convert(ph_tz)
-                downtime_data['last_downtime'] = downtime_data['last_downtime'].dt.tz_convert(ph_tz)
-                
-                downtime_data['First Offline'] = downtime_data['first_downtime'].dt.strftime('%I:%M %p')
-                downtime_data['Last Offline'] = downtime_data['last_downtime'].dt.strftime('%I:%M %p')
-            except Exception:
-                downtime_data['First Offline'] = pd.to_datetime(downtime_data['first_downtime']).dt.strftime('%I:%M %p')
-                downtime_data['Last Offline'] = pd.to_datetime(downtime_data['last_downtime']).dt.strftime('%I:%M %p')
-            
-            # Apply platform filter
+            # Filter data
+            filtered_downtime = downtime_events.copy()
             if platform_filter_down != "All Platforms":
-                downtime_data = downtime_data[downtime_data['Platform'] == platform_filter_down]
+                filtered_downtime = filtered_downtime[filtered_downtime['platform'] == platform_filter_down]
             
-            if len(downtime_data) > 0:
+            if len(filtered_downtime) == 0:
+                st.success(f"No downtime events recorded for {platform_filter_down}.")
+            else:
+                # Format downtime data
+                downtime_data = filtered_downtime.copy()
+                downtime_data['Branch'] = downtime_data['name'].str.replace('Cocopan - ', '').str.replace('Cocopan ', '')
+                downtime_data['Platform'] = downtime_data['platform']  # Already standardized
+                downtime_data['Offline Events'] = downtime_data['downtime_events'].astype(str)
+                
+                # Format timestamps
+                try:
+                    downtime_data['first_downtime'] = pd.to_datetime(downtime_data['first_downtime'])
+                    downtime_data['last_downtime'] = pd.to_datetime(downtime_data['last_downtime'])
+                    
+                    if downtime_data['first_downtime'].dt.tz is None:
+                        downtime_data['first_downtime'] = downtime_data['first_downtime'].dt.tz_localize('UTC')
+                        downtime_data['last_downtime'] = downtime_data['last_downtime'].dt.tz_localize('UTC')
+                    
+                    ph_tz = config.get_timezone()
+                    downtime_data['first_downtime'] = downtime_data['first_downtime'].dt.tz_convert(ph_tz)
+                    downtime_data['last_downtime'] = downtime_data['last_downtime'].dt.tz_convert(ph_tz)
+                    
+                    downtime_data['First Offline'] = downtime_data['first_downtime'].dt.strftime('%I:%M %p')
+                    downtime_data['Last Offline'] = downtime_data['last_downtime'].dt.strftime('%I:%M %p')
+                except Exception:
+                    downtime_data['First Offline'] = pd.to_datetime(downtime_data['first_downtime']).dt.strftime('%I:%M %p')
+                    downtime_data['Last Offline'] = pd.to_datetime(downtime_data['last_downtime']).dt.strftime('%I:%M %p')
+                
                 st.dataframe(
                     downtime_data[['Branch', 'Platform', 'Offline Events', 'First Offline', 'Last Offline']],
                     use_container_width=True,
                     hide_index=True,
                     height=400
                 )
-            else:
-                st.success("No downtime events recorded for the selected platform filter.")
         else:
             st.success("No downtime events recorded today. All systems operating normally.")
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-BACK TO WORKING - CocoPan Monitor Service
-Using simple requests for BOTH platforms (like it was working before)
+FIXED CocoPan Monitor Service - No Threading Issues
+Guarantees ALL stores are checked without Playwright threading problems
 """
 import os
 import json
@@ -9,14 +9,22 @@ import time
 import logging
 import signal
 import sys
-import concurrent.futures
 import random
 import re
-from datetime import datetime
-from typing import List, Tuple, Dict, Any
+import subprocess
+import traceback
+from datetime import datetime, timedelta
+from typing import List, Tuple, Dict, Any, Optional
+from dataclasses import dataclass
+from enum import Enum
 import pytz
 import requests
 from bs4 import BeautifulSoup
+import urllib3
+
+# Disable SSL warnings properly
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 try:
     from apscheduler.schedulers.blocking import BlockingScheduler
     from apscheduler.triggers.cron import CronTrigger
@@ -36,582 +44,742 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class CircuitBreaker:
-    """Circuit breaker for failed stores"""
-    def __init__(self, failure_threshold=3, timeout=300):
-        self.failure_threshold = failure_threshold
-        self.timeout = timeout
-        self.failures = {}
-        self.last_failure_time = {}
-        self.states = {}
-    
-    def is_available(self, store_url: str) -> bool:
-        state = self.states.get(store_url, 'closed')
-        
-        if state == 'closed':
-            return True
-        elif state == 'open':
-            if time.time() - self.last_failure_time.get(store_url, 0) > self.timeout:
-                self.states[store_url] = 'half-open'
-                return True
-            return False
-        elif state == 'half-open':
-            return True
-        
-        return True
-    
-    def record_success(self, store_url: str):
-        self.failures[store_url] = 0
-        self.states[store_url] = 'closed'
-    
-    def record_failure(self, store_url: str):
-        self.failures[store_url] = self.failures.get(store_url, 0) + 1
-        self.last_failure_time[store_url] = time.time()
-        
-        if self.failures[store_url] >= self.failure_threshold:
-            self.states[store_url] = 'open'
-            logger.warning(f"🔴 Circuit breaker OPEN for {store_url}")
-    
-    def get_stats(self) -> Dict[str, int]:
-        stats = {'closed': 0, 'open': 0, 'half-open': 0}
-        for state in self.states.values():
-            stats[state] = stats.get(state, 0) + 1
-        return stats
+class StoreStatus(Enum):
+    """Store status enum"""
+    ONLINE = "online"
+    OFFLINE = "offline"
+    BLOCKED = "blocked"
+    ERROR = "error"
+    UNKNOWN = "unknown"
 
-class StoreMonitor:
+@dataclass
+class CheckResult:
+    """Result from a store check"""
+    status: StoreStatus
+    response_time: int
+    message: str = None
+    confidence: float = 1.0
+
+class RateLimiter:
+    """Smart rate limiting to avoid detection"""
+    def __init__(self):
+        self.last_request_time = {}
+        self.request_counts = {}
+        
+        # Platform-specific delays
+        self.min_delays = {
+            'foodpanda.ph': 2.0,  # 2 seconds between Foodpanda requests
+            'grab.com': 1.0,      # 1 second between Grab requests
+            'default': 1.0
+        }
+        
+        # Max requests per minute
+        self.max_rpm = {
+            'foodpanda.ph': 20,  # Increased to 20 to ensure all stores are checked
+            'grab.com': 30,      # 30 for Grab
+            'default': 25
+        }
+    
+    def wait_if_needed(self, url: str):
+        """Wait if necessary to avoid rate limiting"""
+        domain = self._get_domain(url)
+        
+        # Enforce minimum delay
+        min_delay = self.min_delays.get(domain, self.min_delays['default'])
+        if domain in self.last_request_time:
+            elapsed = time.time() - self.last_request_time[domain]
+            if elapsed < min_delay:
+                wait_time = min_delay - elapsed + random.uniform(0.2, 0.8)
+                time.sleep(wait_time)
+        
+        # Check RPM
+        current_minute = datetime.now().replace(second=0, microsecond=0)
+        if domain not in self.request_counts:
+            self.request_counts[domain] = {}
+            
+        # Clean old entries
+        old_minutes = [m for m in self.request_counts[domain] if m < current_minute - timedelta(minutes=1)]
+        for old_minute in old_minutes:
+            del self.request_counts[domain][old_minute]
+        
+        # Count current minute
+        current_count = self.request_counts[domain].get(current_minute, 0)
+        max_rpm = self.max_rpm.get(domain, self.max_rpm['default'])
+        
+        if current_count >= max_rpm:
+            wait_time = 60 - datetime.now().second + random.uniform(1, 3)
+            logger.debug(f"Rate limit reached for {domain}, waiting {wait_time:.1f}s")
+            time.sleep(wait_time)
+            current_minute = datetime.now().replace(second=0, microsecond=0)
+            self.request_counts[domain][current_minute] = 1
+        else:
+            self.request_counts[domain][current_minute] = current_count + 1
+        
+        self.last_request_time[domain] = time.time()
+    
+    def _get_domain(self, url: str) -> str:
+        """Extract domain from URL"""
+        if 'foodpanda.ph' in url:
+            return 'foodpanda.ph'
+        elif 'grab.com' in url:
+            return 'grab.com'
+        return 'default'
+
+class SimpleStoreMonitor:
+    """Simple monitor without threading issues"""
+    
     def __init__(self):
         self.store_urls = self._load_store_urls()
+        self.rate_limiter = RateLimiter()
+        self.timezone = config.get_timezone()
         
-        # BACK TO WORKING HEADERS - Rotate user agents
+        # User agents
         self.user_agents = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15'
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/119.0.0.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Firefox/121.0',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0.0.0',
         ]
         
-        self.timezone = config.get_timezone()
-        self.circuit_breaker = CircuitBreaker()
-        self.store_cache = {}
-        logger.info(f"🏪 StoreMonitor initialized with {len(self.store_urls)} stores")
-        logger.info(f"🌏 Timezone: {self.timezone}")
-        logger.info("🔄 BACK TO WORKING METHOD: Simple requests for both platforms")
+        # Statistics
+        self.stats = {}
+        self.store_names = {}
+        
+        # Session management for better performance
+        self.sessions = {}
+        
+        logger.info(f"🚀 Simple Monitor initialized")
+        logger.info(f"   📋 {len(self.store_urls)} stores to monitor")
+        logger.info(f"   ✅ No threading issues - simple sequential checking")
     
     def _load_store_urls(self):
+        """Load store URLs from file"""
         try:
             with open(config.STORE_URLS_FILE) as f:
                 data = json.load(f)
                 urls = data.get('urls', [])
-                logger.info(f"📋 Loaded {len(urls)} store URLs")
-                
-                grabfood_count = sum(1 for url in urls if 'grab.com' in url)
-                foodpanda_count = sum(1 for url in urls if 'foodpanda.ph' in url)
-                logger.info(f"   🛒 GrabFood: {grabfood_count} stores (simple requests)")
-                logger.info(f"   🐼 Foodpanda: {foodpanda_count} stores (simple requests - BACK TO WORKING)")
-                
+                # Don't shuffle - keep order consistent
                 return urls
         except Exception as e:
-            logger.error(f"❌ Failed to load store URLs: {e}")
+            logger.error(f"Failed to load URLs: {e}")
             return []
     
-    def _extract_clean_store_name(self, url: str) -> str:
-        """Extract proper store names from URLs"""
-        if url in self.store_cache:
-            return self.store_cache[url]
+    def _extract_store_name(self, url: str) -> str:
+        """Extract and cache store name"""
+        if url in self.store_names:
+            return self.store_names[url]
+            
+        if 'grab.com' in url:
+            match = re.search(r'/restaurant/([^/]+)/', url)
+            name = match.group(1) if match else "Store"
+        elif 'foodpanda.ph' in url:
+            match = re.search(r'/restaurant/[^/]+/([^/?]+)', url)
+            name = match.group(1) if match else "Store"
+        else:
+            name = "Store"
+            
+        name = name.replace('-', ' ').title()
+        if not name.lower().startswith('cocopan'):
+            name = f"Cocopan {name}"
+            
+        self.store_names[url] = name
+        return name
+    
+    def _get_session(self, domain: str):
+        """Get or create session for domain"""
+        if domain not in self.sessions:
+            session = requests.Session()
+            session.headers.update({
+                'User-Agent': random.choice(self.user_agents),
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            })
+            
+            # Add specific headers for Foodpanda
+            if domain == 'foodpanda.ph':
+                session.headers.update({
+                    'Referer': 'https://www.foodpanda.ph/',
+                    'Origin': 'https://www.foodpanda.ph',
+                })
+            
+            self.sessions[domain] = session
+        
+        return self.sessions[domain]
+    
+    def check_store_simple(self, url: str, retry_count: int = 0) -> CheckResult:
+        """Check a single store with simple requests only"""
+        start_time = time.time()
+        max_retries = 2
         
         try:
-            if 'grab.com' in url:
-                match = re.search(r'/restaurant/([^/]+)/', url)
-                if match:
-                    slug = match.group(1)
-                    name = slug.replace('-', ' ').replace('_', ' ')
-                    name = re.sub(r'\s+(delivery|restaurant)$', '', name, flags=re.IGNORECASE)
-                    name = ' '.join(word.capitalize() for word in name.split())
-                    if not name.lower().startswith('cocopan'):
-                        name = f"Cocopan {name}"
-                else:
-                    name = "Cocopan GrabFood Store"
-                    
-            elif 'foodpanda.ph' in url:
-                match = re.search(r'/restaurant/[^/]+/([^/?]+)', url)
-                if match:
-                    slug = match.group(1)
-                    name = slug.replace('-', ' ').replace('_', ' ')
-                    name = ' '.join(word.capitalize() for word in name.split())
-                    if not name.lower().startswith('cocopan'):
-                        name = f"Cocopan {name}"
-                else:
-                    name = "Cocopan Foodpanda Store"
-            else:
-                name = "Cocopan Store"
+            # Apply rate limiting
+            self.rate_limiter.wait_if_needed(url)
             
-            self.store_cache[url] = name
-            return name
+            # Get domain and session
+            domain = 'foodpanda.ph' if 'foodpanda.ph' in url else 'grab.com'
+            session = self._get_session(domain)
+            
+            # Update user agent occasionally
+            if random.random() < 0.1:  # 10% chance
+                session.headers['User-Agent'] = random.choice(self.user_agents)
+            
+            # Make request with timeout (with SSL verification)
+            try:
+                resp = session.get(url, timeout=10, allow_redirects=True)
+            except requests.exceptions.SSLError:
+                # Retry without SSL verification if needed
+                resp = session.get(url, timeout=10, allow_redirects=True, verify=False)
+            
+            response_time = int((time.time() - start_time) * 1000)
+            
+            # Check status code
+            if resp.status_code == 403:
+                # For 403, try with fresh session and different user agent
+                if retry_count < max_retries:
+                    logger.debug(f"Got 403 for {url}, retrying with fresh session...")
+                    # Clear session
+                    if domain in self.sessions:
+                        del self.sessions[domain]
+                    time.sleep(random.uniform(3, 5))
+                    return self.check_store_simple(url, retry_count + 1)
+                
+                return CheckResult(
+                    status=StoreStatus.BLOCKED,
+                    response_time=response_time,
+                    message="Access denied (403) after retries",
+                    confidence=0.9
+                )
+            
+            if resp.status_code == 429:
+                return CheckResult(
+                    status=StoreStatus.BLOCKED,
+                    response_time=response_time,
+                    message="Rate limited (429)",
+                    confidence=0.9
+                )
+            
+            if resp.status_code == 404:
+                return CheckResult(
+                    status=StoreStatus.OFFLINE,
+                    response_time=response_time,
+                    message="Store page not found (404)",
+                    confidence=0.95
+                )
+            
+            # Parse content for 200 responses
+            if resp.status_code == 200:
+                try:
+                    soup = BeautifulSoup(resp.text, 'html.parser')
+                    
+                    # CRITICAL: Remove scripts and styles FIRST (like original)
+                    for script in soup(['script', 'style']):
+                        script.decompose()
+                    
+                    # Get clean visible text only
+                    page_text = soup.get_text().lower()
+                    page_text_clean = ' '.join(page_text.split())  # Clean whitespace
+                    
+                    # Check for bot detection
+                    if any(indicator in page_text_clean for indicator in ['cloudflare', 'checking your browser', 'captcha']):
+                        return CheckResult(
+                            status=StoreStatus.BLOCKED,
+                            response_time=response_time,
+                            message="Bot detection triggered",
+                            confidence=0.8
+                        )
+                    
+                    # PLATFORM-SPECIFIC DETECTION
+                    if 'foodpanda.ph' in url or 'foodpanda.page.link' in str(resp.url):
+                        # Foodpanda specific checks
+                        offline_indicators = [
+                            'restaurant is closed',
+                            'currently closed',
+                            'temporarily unavailable',
+                            'restaurant temporarily unavailable',
+                            'not accepting orders',
+                            'closed for today',
+                            'closed for now',
+                            'out of delivery area',
+                            'no longer available',
+                            'delivery not available'
+                        ]
+                        
+                        for indicator in offline_indicators:
+                            if indicator in page_text_clean:
+                                return CheckResult(
+                                    status=StoreStatus.OFFLINE,
+                                    response_time=response_time,
+                                    message=f"Store closed: {indicator}",
+                                    confidence=0.95
+                                )
+                        
+                        # Check for positive indicators
+                        positive_indicators = [
+                            'add to cart',
+                            'add to basket',
+                            'menu',
+                            'popular items',
+                            'best sellers',
+                            'delivery fee'
+                        ]
+                        
+                        if any(indicator in page_text_clean for indicator in positive_indicators):
+                            return CheckResult(
+                                status=StoreStatus.ONLINE,
+                                response_time=response_time,
+                                message="Store page with menu loaded",
+                                confidence=0.95
+                            )
+                    
+                    elif 'grab.com' in url:
+                        # GrabFood specific checks - RESTORED ORIGINAL LOGIC
+                        
+                        # CRITICAL FIX for "Today Closed" detection
+                        if 'today closed' in page_text_clean:
+                            return CheckResult(
+                                status=StoreStatus.OFFLINE,
+                                response_time=response_time,
+                                message="Store shows: today closed",
+                                confidence=0.98
+                            )
+                        
+                        # Check for other closed indicators
+                        grab_offline_indicators = [
+                            'restaurant is closed',
+                            'currently unavailable',
+                            'not accepting orders',
+                            'temporarily closed',
+                            'currently closed',
+                            'closed for today',
+                            'restaurant closed'
+                        ]
+                        
+                        for indicator in grab_offline_indicators:
+                            if indicator in page_text_clean:
+                                return CheckResult(
+                                    status=StoreStatus.OFFLINE,
+                                    response_time=response_time,
+                                    message=f"Store closed: {indicator}",
+                                    confidence=0.95
+                                )
+                        
+                        # Also check specific HTML elements for Grab
+                        closed_elements = soup.find_all(['div', 'span'], 
+                                                       class_=lambda x: x and 'closed' in str(x).lower() if x else False)
+                        
+                        for element in closed_elements:
+                            if element and element.get_text(strip=True).lower() in ['closed', 'today closed']:
+                                return CheckResult(
+                                    status=StoreStatus.OFFLINE,
+                                    response_time=response_time,
+                                    message="Found closed status element",
+                                    confidence=0.95
+                                )
+                        
+                        # Check for positive indicators
+                        if any(indicator in page_text_clean for indicator in ['order now', 'add to basket', 'delivery fee']):
+                            return CheckResult(
+                                status=StoreStatus.ONLINE,
+                                response_time=response_time,
+                                message="Store page with ordering available",
+                                confidence=0.95
+                            )
+                    
+                    # For any platform - only mark as online if we have strong evidence
+                    if len(page_text_clean) > 500:  # Reasonable page content
+                        # Look for any menu/ordering indicators
+                        if any(word in page_text_clean for word in ['menu', 'order', 'delivery', 'price', 'add']):
+                            return CheckResult(
+                                status=StoreStatus.ONLINE,
+                                response_time=response_time,
+                                message="Store page loaded",
+                                confidence=0.7
+                            )
+                        else:
+                            # Page loaded but no clear indicators
+                            return CheckResult(
+                                status=StoreStatus.UNKNOWN,
+                                response_time=response_time,
+                                message="Page loaded but status unclear",
+                                confidence=0.5
+                            )
+                    else:
+                        # Very short page content - suspicious
+                        return CheckResult(
+                            status=StoreStatus.UNKNOWN,
+                            response_time=response_time,
+                            message="Minimal page content",
+                            confidence=0.3
+                        )
+                    
+                except Exception as e:
+                    # If parsing fails, but we got 200, assume online
+                    return CheckResult(
+                        status=StoreStatus.ONLINE,
+                        response_time=response_time,
+                        message="Page loaded (parse error ignored)",
+                        confidence=0.7
+                    )
+            
+            # Other status codes
+            return CheckResult(
+                status=StoreStatus.UNKNOWN,
+                response_time=response_time,
+                message=f"HTTP {resp.status_code}",
+                confidence=0.5
+            )
+            
+        except requests.exceptions.Timeout:
+            response_time = int((time.time() - start_time) * 1000)
+            return CheckResult(
+                status=StoreStatus.ERROR,
+                response_time=response_time,
+                message="Request timeout",
+                confidence=0.3
+            )
+            
+        except requests.exceptions.ConnectionError as e:
+            response_time = int((time.time() - start_time) * 1000)
+            return CheckResult(
+                status=StoreStatus.ERROR,
+                response_time=response_time,
+                message=f"Connection error: {str(e)[:50]}",
+                confidence=0.3
+            )
             
         except Exception as e:
-            logger.debug(f"Error extracting name from {url}: {e}")
-            return "Cocopan Store"
+            response_time = int((time.time() - start_time) * 1000)
+            logger.error(f"Unexpected error checking {url}: {e}")
+            return CheckResult(
+                status=StoreStatus.ERROR,
+                response_time=response_time,
+                message=f"Error: {str(e)[:50]}",
+                confidence=0.2
+            )
     
-    def _get_headers(self, url: str):
-        """Get headers with rotation for different platforms"""
-        base_headers = {
-            'User-Agent': random.choice(self.user_agents),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
+    def check_all_stores_guaranteed(self):
+        """Check ALL stores - guaranteed completion"""
+        self.stats = {
+            'cycle_start': datetime.now(),
+            'cycle_end': None,
+            'total_stores': len(self.store_urls),
+            'checked': 0,
+            'online': 0,
+            'offline': 0,
+            'blocked': 0,
+            'errors': 0,
+            'unknown': 0
         }
         
-        # Platform-specific headers
-        if 'foodpanda.ph' in url:
-            base_headers.update({
-                'Cache-Control': 'max-age=0',
-                'DNT': '1',
-                'Sec-Fetch-User': '?1',
-            })
-        
-        return base_headers
-    
-    def check_store_simple(self, url: str) -> Tuple[bool, int, str]:
-        """BACK TO WORKING: Simple requests for both platforms"""
-        start_time = time.time()
-        
-        # Check circuit breaker
-        if not self.circuit_breaker.is_available(url):
-            response_time = int((time.time() - start_time) * 1000)
-            return False, response_time, "Circuit breaker OPEN"
-        
-        try:
-            if 'foodpanda.ph' in url:
-                result = self._check_foodpanda_simple(url, start_time)
-            else:
-                result = self._check_grabfood_simple(url, start_time)
-            
-            # Update circuit breaker
-            if result[0]:
-                self.circuit_breaker.record_success(url)
-            else:
-                self.circuit_breaker.record_failure(url)
-                
-            return result
-            
-        except Exception as e:
-            response_time = int((time.time() - start_time) * 1000)
-            error_msg = f"Check failed: {str(e)}"
-            self.circuit_breaker.record_failure(url)
-            return False, response_time, error_msg
-    
-    def _check_grabfood_simple(self, url: str, start_time: float):
-        """GrabFood check with simple requests (WORKING)"""
-        try:
-            # Random delay to be respectful
-            time.sleep(random.uniform(0.5, 2.0))
-            
-            headers = self._get_headers(url)
-            resp = requests.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT)
-            resp.raise_for_status()
-            
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            page_text = soup.get_text().lower()
-            
-            logger.debug(f"🛒 GrabFood check: {resp.status_code}")
-            
-            # Check for closed indicators in text (FIXED for "Today Closed")
-            closed_indicators = [
-                "restaurant is closed",
-                "currently unavailable", 
-                "not accepting orders",
-                "temporarily closed",
-                "closed for today",
-                "currently closed",
-                "today closed",  # CRITICAL FIX for GrabFood
-                "today  closed",  # Handle extra spaces
-            ]
-            
-            for indicator in closed_indicators:
-                if indicator in page_text:
-                    response_time = int((time.time() - start_time) * 1000)
-                    return False, response_time, f"Closed: {indicator}"
-            
-            # More conservative closed banner detection
-            closed_selectors = [
-                '.ant-alert',
-                '.restaurant-closed',
-                '.status-banner',
-                '.closed-banner'
-            ]
-            
-            # FINAL FIX: Smart detection that ignores JavaScript/JSON data
-            
-            # Approach 1: Only look for "today closed" in visible text (not in script tags)
-            # Remove script tags and their content first
-            for script in soup(['script', 'style']):
-                script.decompose()
-            
-            # Get clean visible text only
-            visible_text = soup.get_text().lower()
-            visible_text_clean = ' '.join(visible_text.split())  # Clean whitespace
-            
-            if 'today closed' in visible_text_clean:
-                response_time = int((time.time() - start_time) * 1000)
-                return False, response_time, f"Found 'today closed' in visible text"
-            
-            # Approach 2: Look specifically in opening hours area
-            opening_hours_divs = soup.find_all(['div', 'span'], string=lambda x: x and 'opening hours' in x.lower() if x else False)
-            for oh_div in opening_hours_divs:
-                if oh_div and oh_div.parent:
-                    parent_text = oh_div.parent.get_text().lower()
-                    if 'today' in parent_text and 'closed' in parent_text:
-                        response_time = int((time.time() - start_time) * 1000)
-                        return False, response_time, f"Opening hours shows today closed"
-            
-            # Approach 3: Look for red "Closed" badge (but be conservative)
-            for text_node in soup.find_all(string=lambda x: x and x.strip().lower() == 'closed' if x else False):
-                if text_node and text_node.parent:
-                    parent = text_node.parent
-                    # Only trigger if it seems like a status badge (has specific styling or classes)
-                    if parent.name in ['span', 'button', 'div'] and ('class' in parent.attrs):
-                        classes = ' '.join(parent.attrs.get('class', []))
-                        if any(word in classes.lower() for word in ['closed', 'status', 'badge']):
-                            response_time = int((time.time() - start_time) * 1000)
-                            return False, response_time, f"Found closed status badge"
-                elements = soup.select(selector)
-                for element in elements:
-                    element_text = element.get_text(strip=True).lower()
-                    if any(word in element_text for word in ['closed', 'unavailable', 'not accepting']):
-                        response_time = int((time.time() - start_time) * 1000)
-                        return False, response_time, f"Banner: {element_text[:30]}"
-            
-            response_time = int((time.time() - start_time) * 1000)
-            return True, response_time, None
-            
-        except requests.RequestException as e:
-            response_time = int((time.time() - start_time) * 1000)
-            return False, response_time, f"Network error: {str(e)}"
-        except Exception as e:
-            response_time = int((time.time() - start_time) * 1000)
-            return True, response_time, f"Parse warning: {str(e)}"
-    
-    def _check_foodpanda_simple(self, url: str, start_time: float):
-        """BACK TO WORKING: Foodpanda with simple requests (like before)"""
-        try:
-            # Longer delay for Foodpanda to be more respectful
-            time.sleep(random.uniform(1.0, 3.0))
-            
-            headers = self._get_headers(url)
-            
-            # Add session to maintain cookies
-            session = requests.Session()
-            session.headers.update(headers)
-            
-            resp = session.get(url, timeout=config.REQUEST_TIMEOUT)
-            resp.raise_for_status()
-            
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            page_text = soup.get_text().lower()
-            
-            logger.debug(f"🐼 Foodpanda check: {resp.status_code}")
-            
-            # BACK TO WORKING: Simple closed detection (like before)
-            closed_indicators = [
-                "restaurant is closed",
-                "currently closed",
-                "temporarily unavailable",
-                "restaurant temporarily unavailable",
-                "out of delivery area",
-                "delivery not available",
-                "no longer available",
-                "restaurant is currently closed",
-                "closed for now"
-            ]
-            
-            for indicator in closed_indicators:
-                if indicator in page_text:
-                    response_time = int((time.time() - start_time) * 1000)
-                    return False, response_time, f"Closed: {indicator}"
-            
-            # Check for closed elements (simple approach)
-            closed_selectors = [
-                '.restaurant-closed',
-                '.temporarily-closed',
-                '.unavailable',
-                '.closed-banner',
-                '[data-testid="closed-banner"]'
-            ]
-            
-            for selector in closed_selectors:
-                elements = soup.select(selector)
-                for element in elements:
-                    element_text = element.get_text(strip=True).lower()
-                    if any(word in element_text for word in ['closed', 'unavailable', 'out of delivery']):
-                        response_time = int((time.time() - start_time) * 1000)
-                        return False, response_time, f"Banner: {element_text[:30]}"
-            
-            # Look for menu items as positive indicator
-            positive_selectors = [
-                '.menu-item',
-                '.dish-item',
-                '.product-item',
-                '.food-item',
-                '.price',
-                '[data-testid="menu-item"]'
-            ]
-            
-            has_positive = any(soup.select(selector) for selector in positive_selectors)
-            
-            response_time = int((time.time() - start_time) * 1000)
-            
-            # If we have positive indicators, definitely online
-            if has_positive:
-                return True, response_time, None
-            
-            # BACK TO WORKING: If no clear indicators, assume online (to reduce false positives)
-            return True, response_time, None
-            
-        except requests.RequestException as e:
-            response_time = int((time.time() - start_time) * 1000)
-            
-            # Handle specific errors
-            if e.response and e.response.status_code == 403:
-                return False, response_time, "Access denied (403)"
-            elif e.response and e.response.status_code == 429:
-                return False, response_time, "Rate limited (429)"
-            else:
-                return False, response_time, f"Network error: {str(e)}"
-                
-        except Exception as e:
-            response_time = int((time.time() - start_time) * 1000)
-            # For parsing errors, assume online (BACK TO WORKING approach)
-            return True, response_time, f"Parse warning: {str(e)}"
-    
-    def check_store_with_threading(self, url: str) -> Dict[str, Any]:
-        """Check single store with threading"""
-        try:
-            store_name = self._extract_clean_store_name(url)
-            is_online, response_time, error_msg = self.check_store_simple(url)
-            
-            return {
-                'url': url,
-                'name': store_name,
-                'is_online': is_online,
-                'response_time': response_time,
-                'error_msg': error_msg
-            }
-        except Exception as e:
-            store_name = self._extract_clean_store_name(url)
-            return {
-                'url': url,
-                'name': store_name,
-                'is_online': False,
-                'response_time': 0,
-                'error_msg': f"Critical error: {str(e)}"
-            }
-    
-    def check_all_stores(self):
-        """Check all stores with BACK TO WORKING method"""
         current_time = config.get_current_time()
+        logger.info(f"🚀 CHECKING ALL STORES at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logger.info(f"📋 Will check ALL {len(self.store_urls)} stores sequentially")
         
-        logger.info(f"🔍 Starting BACK TO WORKING check at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        logger.info(f"📋 Checking {len(self.store_urls)} stores with simple requests (like it was working)...")
+        # Group by platform
+        foodpanda_stores = [url for url in self.store_urls if 'foodpanda.ph' in url]
+        grab_stores = [url for url in self.store_urls if 'grab.com' in url]
+        other_stores = [url for url in self.store_urls if url not in foodpanda_stores and url not in grab_stores]
         
-        results = []
-        online_count = 0
-        offline_count = 0
-        database_errors = 0
+        logger.info(f"   🐼 Foodpanda: {len(foodpanda_stores)} stores")
+        logger.info(f"   🛒 GrabFood: {len(grab_stores)} stores")
+        if other_stores:
+            logger.info(f"   ❓ Other: {len(other_stores)} stores")
         
-        # Back to working concurrency (5 workers like before)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_url = {executor.submit(self.check_store_with_threading, url): url 
-                            for url in self.store_urls}
-            
-            for i, future in enumerate(concurrent.futures.as_completed(future_to_url), 1):
-                try:
-                    result = future.result(timeout=30)  # Shorter timeout like before
-                    
-                    store_name = result['name']
-                    url = result['url']
-                    is_online = result['is_online']
-                    response_time = result['response_time']
-                    error_msg = result['error_msg']
-                    
-                    platform = "🛒" if 'grab.com' in url else "🐼"
-                    status = "🟢 ONLINE" if is_online else "🔴 OFFLINE"
-                    logger.info(f"  📊 {i}/{len(self.store_urls)} {store_name} ({platform}): {status} ({response_time}ms)")
-                    
-                    if not is_online and error_msg:
-                        logger.info(f"    📝 Reason: {error_msg}")
-                    
-                    # Save to database
-                    try:
-                        store_id = db.get_or_create_store(store_name, url)
-                        success = db.save_status_check(store_id, is_online, response_time, error_msg)
-                        
-                        if not success:
-                            logger.error(f"  ❌ Failed to save status check for {store_name}")
-                            database_errors += 1
-                        
-                    except Exception as db_error:
-                        logger.error(f"  ❌ Database error for {store_name}: {str(db_error)}")
-                        database_errors += 1
-                    
-                    results.append((store_name, url, is_online, response_time, error_msg))
-                    if is_online:
-                        online_count += 1
-                    else:
-                        offline_count += 1
-                        
-                except concurrent.futures.TimeoutError:
-                    url = future_to_url[future]
-                    logger.error(f"  ❌ Timeout checking store: {url}")
-                    offline_count += 1
-                except Exception as e:
-                    url = future_to_url[future]
-                    logger.error(f"  ❌ Error checking store {url}: {str(e)}")
-                    offline_count += 1
+        all_results = []
         
-        # Save summary report
+        # Check Foodpanda stores
+        if foodpanda_stores:
+            logger.info("🐼 Checking Foodpanda stores...")
+            for i, url in enumerate(foodpanda_stores, 1):
+                result = self._check_single_store_safe(url, i, len(foodpanda_stores), "Foodpanda")
+                all_results.append(result)
+                
+                # Small delay every 5 stores
+                if i % 5 == 0 and i < len(foodpanda_stores):
+                    delay = random.uniform(2, 4)
+                    logger.debug(f"   Brief pause ({delay:.1f}s) after {i} stores...")
+                    time.sleep(delay)
+        
+        # Check GrabFood stores
+        if grab_stores:
+            logger.info("🛒 Checking GrabFood stores...")
+            for i, url in enumerate(grab_stores, 1):
+                result = self._check_single_store_safe(url, i, len(grab_stores), "GrabFood")
+                all_results.append(result)
+                
+                # Smaller delay for Grab
+                if i % 10 == 0 and i < len(grab_stores):
+                    delay = random.uniform(1, 2)
+                    logger.debug(f"   Brief pause ({delay:.1f}s) after {i} stores...")
+                    time.sleep(delay)
+        
+        # Check other stores
+        if other_stores:
+            logger.info("❓ Checking other stores...")
+            for i, url in enumerate(other_stores, 1):
+                result = self._check_single_store_safe(url, i, len(other_stores), "Other")
+                all_results.append(result)
+        
+        # Ensure we checked ALL stores
+        if len(all_results) != len(self.store_urls):
+            logger.error(f"⚠️ Mismatch: {len(all_results)} results but {len(self.store_urls)} stores!")
+            # Add missing stores as errors
+            checked_urls = {r['url'] for r in all_results}
+            for url in self.store_urls:
+                if url not in checked_urls:
+                    logger.error(f"   Missing: {url}")
+                    all_results.append({
+                        'url': url,
+                        'name': self._extract_store_name(url),
+                        'result': CheckResult(
+                            status=StoreStatus.ERROR,
+                            response_time=0,
+                            message="Store was not checked",
+                            confidence=0
+                        )
+                    })
+        
+        # Save all results
+        self._save_all_results(all_results)
+        
+        # Final statistics
+        self.stats['cycle_end'] = datetime.now()
+        cycle_duration = (self.stats['cycle_end'] - self.stats['cycle_start']).total_seconds()
+        
+        logger.info("=" * 60)
+        logger.info(f"✅ CHECK COMPLETED in {cycle_duration:.1f} seconds")
+        logger.info(f"📊 Final Statistics:")
+        logger.info(f"   Total Stores: {self.stats['total_stores']}")
+        logger.info(f"   ✅ Checked: {self.stats['checked']} ({self.stats['checked']/self.stats['total_stores']*100:.1f}%)")
+        logger.info(f"   🟢 Online: {self.stats['online']} ({self.stats['online']/self.stats['total_stores']*100:.1f}%)")
+        logger.info(f"   🔴 Offline: {self.stats['offline']} ({self.stats['offline']/self.stats['total_stores']*100:.1f}%)")
+        logger.info(f"   🚫 Blocked: {self.stats['blocked']} ({self.stats['blocked']/self.stats['total_stores']*100:.1f}%)")
+        logger.info(f"   ⚠️ Errors: {self.stats['errors']} ({self.stats['errors']/self.stats['total_stores']*100:.1f}%)")
+        logger.info(f"   ❓ Unknown: {self.stats['unknown']} ({self.stats['unknown']/self.stats['total_stores']*100:.1f}%)")
+        
+        # List problem stores
+        problem_stores = [r for r in all_results if r['result'].status in [StoreStatus.OFFLINE, StoreStatus.BLOCKED, StoreStatus.ERROR]]
+        if problem_stores:
+            logger.warning(f"⚠️ Problem stores ({len(problem_stores)}):")
+            for store in problem_stores[:10]:  # Show first 10
+                logger.warning(f"   • {store['name']}: {store['result'].status.value} - {store['result'].message}")
+            if len(problem_stores) > 10:
+                logger.warning(f"   ... and {len(problem_stores) - 10} more")
+        
+        # Clear sessions periodically
+        self.sessions.clear()
+        
+        return all_results
+    
+    def _check_single_store_safe(self, url: str, index: int, total: int, platform: str) -> Dict:
+        """Safely check a single store with error handling"""
+        store_name = self._extract_store_name(url)
+        
         try:
-            total_stores = len(results) if results else len(self.store_urls)
-            if total_stores > 0:
-                success = db.save_summary_report(total_stores, online_count, offline_count)
-                if not success:
-                    database_errors += 1
+            logger.info(f"   [{index}/{total}] Checking {store_name}...")
+            
+            # Check the store
+            result = self.check_store_simple(url)
+            
+            # Update statistics
+            self.stats['checked'] += 1
+            if result.status == StoreStatus.ONLINE:
+                self.stats['online'] += 1
+            elif result.status == StoreStatus.OFFLINE:
+                self.stats['offline'] += 1
+            elif result.status == StoreStatus.BLOCKED:
+                self.stats['blocked'] += 1
+            elif result.status == StoreStatus.ERROR:
+                self.stats['errors'] += 1
+            elif result.status == StoreStatus.UNKNOWN:
+                self.stats['unknown'] += 1
+            
+            # Log result
+            status_emoji = {
+                StoreStatus.ONLINE: "🟢",
+                StoreStatus.OFFLINE: "🔴",
+                StoreStatus.BLOCKED: "🚫",
+                StoreStatus.ERROR: "⚠️",
+                StoreStatus.UNKNOWN: "❓"
+            }
+            
+            emoji = status_emoji.get(result.status, "❓")
+            logger.info(f"      {emoji} {result.status.value.upper()} ({result.response_time}ms)")
+            if result.message:
+                logger.debug(f"      📝 {result.message}")
+            
+            return {
+                'url': url,
+                'name': store_name,
+                'result': result
+            }
+            
         except Exception as e:
-            logger.error(f"❌ Error saving summary report: {str(e)}")
-            database_errors += 1
+            # Never let an error stop the checking process
+            logger.error(f"   [{index}/{total}] Failed to check {store_name}: {e}")
+            self.stats['checked'] += 1
+            self.stats['errors'] += 1
+            
+            return {
+                'url': url,
+                'name': store_name,
+                'result': CheckResult(
+                    status=StoreStatus.ERROR,
+                    response_time=0,
+                    message=f"Check failed: {str(e)[:100]}",
+                    confidence=0.1
+                )
+            }
+    
+    def _save_all_results(self, results: List[Dict]):
+        """Save all results to database"""
+        logger.info("💾 Saving results to database...")
         
-        # Summary (like before)
-        total_stores = len(results) if results else len(self.store_urls)
-        online_pct = (online_count / total_stores * 100) if total_stores > 0 else 0
+        saved_count = 0
+        error_count = 0
         
-        # Platform breakdown
-        grabfood_results = [(name, is_online) for name, url, is_online, _, _ in results if 'grab.com' in url]
-        foodpanda_results = [(name, is_online) for name, url, is_online, _, _ in results if 'foodpanda.ph' in url]
+        for result_dict in results:
+            try:
+                store_name = result_dict['name']
+                url = result_dict['url']
+                result = result_dict['result']
+                
+                store_id = db.get_or_create_store(store_name, url)
+                
+                # Convert to database format
+                # IMPORTANT: Blocked/Unknown/Error = Online to avoid false alerts
+                is_online = result.status not in [StoreStatus.OFFLINE]
+                
+                # Add status prefix to message
+                message = result.message or ""
+                if result.status == StoreStatus.BLOCKED:
+                    message = f"[BLOCKED] {message}"
+                elif result.status == StoreStatus.UNKNOWN:
+                    message = f"[UNKNOWN] {message}"
+                elif result.status == StoreStatus.ERROR:
+                    message = f"[ERROR] {message}"
+                
+                db.save_status_check(store_id, is_online, result.response_time, message)
+                saved_count += 1
+                
+            except Exception as e:
+                logger.error(f"Database error for {result_dict['name']}: {e}")
+                error_count += 1
         
-        grabfood_online = sum(1 for _, is_online in grabfood_results if is_online)
-        foodpanda_online = sum(1 for _, is_online in foodpanda_results if is_online)
-        
-        logger.info(f"📊 BACK TO WORKING CHECK COMPLETED:")
-        logger.info(f"   ✅ Total Online: {online_count}/{total_stores} ({online_pct:.1f}%)")
-        logger.info(f"   🛒 GrabFood: {grabfood_online}/{len(grabfood_results)} online")
-        logger.info(f"   🐼 Foodpanda: {foodpanda_online}/{len(foodpanda_results)} online (BACK TO WORKING)")
-        
-        cb_stats = self.circuit_breaker.get_stats()
-        logger.info(f"   🔧 Circuit breaker: {cb_stats}")
-        
-        if database_errors > 0:
-            logger.warning(f"   🔥 Database errors: {database_errors}")
-        
-        if offline_count > 0:
-            offline_stores = [(name, error) for name, _, is_online, _, error in results if not is_online]
-            logger.warning(f"🔴 OFFLINE STORES:")
-            for store_name, error in offline_stores[:5]:
-                logger.warning(f"   • {store_name}: {error}")
-            if len(offline_stores) > 5:
-                logger.warning(f"   ... and {len(offline_stores) - 5} more")
+        # Save summary
+        try:
+            online_count = sum(1 for r in results if r['result'].status == StoreStatus.ONLINE)
+            offline_count = sum(1 for r in results if r['result'].status == StoreStatus.OFFLINE)
+            total_count = len(results)
+            
+            db.save_summary_report(total_count, online_count, offline_count)
+            logger.info(f"✅ Saved {saved_count}/{len(results)} results to database")
+            if error_count > 0:
+                logger.warning(f"   ⚠️ {error_count} database errors")
+                
+        except Exception as e:
+            logger.error(f"Error saving summary: {e}")
 
-# Keep the same main function structure
 def signal_handler(signum, frame):
-    logger.info(f"🛑 Received signal {signum}, shutting down gracefully...")
+    """Handle shutdown signals"""
+    logger.info(f"🛑 Received signal {signum}, shutting down...")
     sys.exit(0)
 
 def main():
-    logger.info("🥥 CocoPan Store Monitor - BACK TO WORKING VERSION")
-    logger.info("=" * 60)
+    """Main entry point"""
+    logger.info("=" * 70)
+    logger.info("🚀 CocoPan Monitor Service - FIXED VERSION")
+    logger.info("✅ No threading issues, checks ALL stores")
+    logger.info("=" * 70)
     
+    # Validate configuration
     if not config.validate_timezone():
-        logger.error("❌ Timezone validation failed! Please check configuration.")
+        logger.error("❌ Timezone validation failed!")
         sys.exit(1)
     
+    # Setup signal handlers
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
     
-    try:
-        monitor = StoreMonitor()
-        
-        if not monitor.store_urls:
-            logger.error("❌ No store URLs loaded. Cannot start monitoring.")
-            sys.exit(1)
-        
-        try:
-            db_stats = db.get_database_stats()
-            logger.info(f"📊 Database connection successful: {db_stats['db_type']} with {db_stats['store_count']} stores")
-        except Exception as e:
-            logger.error(f"❌ Database connection failed: {str(e)}")
-            logger.info("💡 Will continue monitoring but data may not be saved")
-        
-        if HAS_SCHEDULER:
-            try:
-                ph_tz = config.get_timezone()
-                scheduler = BlockingScheduler(timezone=ph_tz)
-                
-                for hour in range(config.MONITOR_START_HOUR, config.MONITOR_END_HOUR + 1):
-                    scheduler.add_job(
-                        func=monitor.check_all_stores,
-                        trigger=CronTrigger(hour=hour, minute=0, timezone=ph_tz),
-                        id=f'store_check_{hour}',
-                        name=f'Store Check at {hour:02d}:00',
-                        max_instances=1,
-                        coalesce=True
-                    )
-                
-                logger.info(f"⏰ Scheduled monitoring every hour from {config.MONITOR_START_HOUR}:00 to {config.MONITOR_END_HOUR}:00 {config.TIMEZONE}")
-                
-                logger.info("🔍 Running initial BACK TO WORKING check...")
-                try:
-                    monitor.check_all_stores()
-                except Exception as e:
-                    logger.error(f"❌ Initial check failed: {str(e)}")
-                
-                logger.info("✅ BACK TO WORKING monitor service started successfully")
-                scheduler.start()
-                
-            except KeyboardInterrupt:
-                logger.info("🛑 Received KeyboardInterrupt")
-            except Exception as e:
-                logger.error(f"❌ Scheduler error: {str(e)}")
-                simple_monitoring_loop(monitor)
-        else:
-            simple_monitoring_loop(monitor)
-            
-    except Exception as e:
-        logger.error(f"❌ Critical error in main: {str(e)}")
-        time.sleep(30)
-
-def simple_monitoring_loop(monitor):
-    logger.info("🔍 Running in simple monitoring mode...")
+    monitor = None
     
     try:
-        monitor.check_all_stores()
+        # Initialize monitor
+        monitor = SimpleStoreMonitor()
         
-        while True:
-            time.sleep(3600)
+        if not monitor.store_urls:
+            logger.error("❌ No store URLs loaded!")
+            sys.exit(1)
+        
+        # Test database
+        try:
+            db_stats = db.get_database_stats()
+            logger.info(f"✅ Database ready: {db_stats['db_type']}")
+        except Exception as e:
+            logger.warning(f"⚠️ Database issue: {e}")
+        
+        # Setup scheduler
+        if HAS_SCHEDULER:
+            ph_tz = config.get_timezone()
+            scheduler = BlockingScheduler(timezone=ph_tz)
             
-            current_hour = config.get_current_time().hour
-            if config.is_monitor_time(current_hour):
-                logger.info("🔍 Running scheduled BACK TO WORKING check...")
+            # Schedule hourly checks
+            for hour in range(config.MONITOR_START_HOUR, config.MONITOR_END_HOUR + 1):
+                scheduler.add_job(
+                    func=monitor.check_all_stores_guaranteed,
+                    trigger=CronTrigger(hour=hour, minute=0, timezone=ph_tz),
+                    id=f'check_{hour}',
+                    name=f'Check at {hour:02d}:00',
+                    max_instances=1,
+                    coalesce=True,
+                    misfire_grace_time=300
+                )
+            
+            logger.info(f"⏰ Scheduled checks from {config.MONITOR_START_HOUR}:00 to {config.MONITOR_END_HOUR}:00")
+            
+            # Run initial check
+            logger.info("🔍 Running initial check...")
+            try:
+                monitor.check_all_stores_guaranteed()
+            except Exception as e:
+                logger.error(f"Initial check error: {e}")
+                logger.error(traceback.format_exc())
+            
+            # Start scheduler
+            logger.info("✅ Monitoring active!")
+            scheduler.start()
+            
+        else:
+            # Simple loop
+            logger.info("⚠️ Using simple loop")
+            while True:
                 try:
-                    monitor.check_all_stores()
+                    current_hour = config.get_current_time().hour
+                    
+                    if config.is_monitor_time(current_hour):
+                        monitor.check_all_stores_guaranteed()
+                    else:
+                        logger.info(f"😴 Outside monitoring hours")
+                    
+                    time.sleep(3600)
+                    
+                except KeyboardInterrupt:
+                    break
                 except Exception as e:
-                    logger.error(f"❌ Scheduled check failed: {str(e)}")
-            else:
-                logger.info(f"😴 Outside monitoring hours ({current_hour}:00), sleeping...")
-                
+                    logger.error(f"Loop error: {e}")
+                    time.sleep(60)
+    
     except KeyboardInterrupt:
-        logger.info("🛑 Received KeyboardInterrupt")
+        logger.info("🛑 Interrupted by user")
     except Exception as e:
-        logger.error(f"❌ Error in monitoring loop: {str(e)}")
+        logger.error(f"❌ Fatal error: {e}")
+        logger.error(traceback.format_exc())
+    finally:
+        logger.info("👋 Monitor stopped")
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
