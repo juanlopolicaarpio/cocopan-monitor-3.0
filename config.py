@@ -3,6 +3,7 @@
 CocoPan Monitor - Configuration Management
 Handles all configuration with environment variables and defaults
 FIXED: Relaxed timezone validation for Docker containers
+ADDED: Email/SMTP configuration for admin alerts
 """
 import os
 from datetime import datetime
@@ -54,6 +55,15 @@ class Config:
         'AppleWebKit/537.36 (KHTML, like Gecko) '
         'Chrome/115.0.0.0 Safari/537.36'
     )
+    
+    # Email/SMTP Configuration (ADDED SECTION)
+    ALERTS_ENABLED = os.getenv('ALERTS_ENABLED', 'false').lower() == 'true'
+    SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+    SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
+    SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'true').lower() == 'true'
+    SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
+    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+    FROM_EMAIL = os.getenv('FROM_EMAIL', '')
     
     @classmethod
     def get_database_url(cls):
@@ -150,6 +160,10 @@ def print_config():
     print(f"   🏪 Store URLs: {config.STORE_URLS_FILE}")
     print(f"   🔁 Max Retries: {config.MAX_RETRIES}")
     print(f"   📊 Dashboard Port: {config.DASHBOARD_PORT}")
+    print(f"   📧 Email Alerts: {'Enabled' if config.ALERTS_ENABLED else 'Disabled'}")
+    if config.ALERTS_ENABLED:
+        print(f"   📮 SMTP Server: {config.SMTP_SERVER}:{config.SMTP_PORT}")
+        print(f"   👤 SMTP User: {config.SMTP_USERNAME}")
     
     # Validate configuration
     errors = config.validate_config()

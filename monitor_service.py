@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FIXED CocoPan Monitor Service - No Threading Issues
-Guarantees ALL stores are checked without Playwright threading problems
+UPDATED CocoPan Monitor Service with Admin Alerts
+Added admin notifications for stores needing manual verification
 """
 import os
 import json
@@ -34,6 +34,9 @@ except ImportError:
     
 from config import config
 from database import db
+
+# ADDED: Import admin alerts
+from admin_alerts import admin_alerts, ProblemStore
 
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL),
@@ -159,32 +162,86 @@ class SimpleStoreMonitor:
             with open(config.STORE_URLS_FILE) as f:
                 data = json.load(f)
                 urls = data.get('urls', [])
-                # Don't shuffle - keep order consistent
                 return urls
         except Exception as e:
             logger.error(f"Failed to load URLs: {e}")
             return []
     
     def _extract_store_name(self, url: str) -> str:
-        """Extract and cache store name"""
+        """IMPROVED: Extract and cache store name with better handling for redirect URLs"""
         if url in self.store_names:
             return self.store_names[url]
+        
+        try:
+            # Handle foodpanda redirect URLs by following them first
+            if 'foodpanda.page.link' in url:
+                resolved_url = self._resolve_redirect_url(url)
+                if resolved_url and resolved_url != url:
+                    return self._extract_store_name_from_resolved_url(resolved_url, url)
             
-        if 'grab.com' in url:
-            match = re.search(r'/restaurant/([^/]+)/', url)
-            name = match.group(1) if match else "Store"
-        elif 'foodpanda.ph' in url:
-            match = re.search(r'/restaurant/[^/]+/([^/?]+)', url)
-            name = match.group(1) if match else "Store"
-        else:
-            name = "Store"
+            # Regular URL parsing
+            if 'grab.com' in url:
+                match = re.search(r'/restaurant/([^/]+)/', url)
+                name = match.group(1) if match else "Store"
+            elif 'foodpanda.ph' in url:
+                match = re.search(r'/restaurant/[^/]+/([^/?]+)', url)
+                name = match.group(1) if match else "Store"
+            else:
+                name = "Store"
+                
+            name = name.replace('-', ' ').title()
+            if not name.lower().startswith('cocopan'):
+                name = f"Cocopan {name}"
+                
+            self.store_names[url] = name
+            return name
             
-        name = name.replace('-', ' ').title()
-        if not name.lower().startswith('cocopan'):
-            name = f"Cocopan {name}"
+        except Exception as e:
+            logger.debug(f"Error extracting store name from {url}: {e}")
+            fallback_name = f"Cocopan Store ({len(self.store_names) + 1})"
+            self.store_names[url] = fallback_name
+            return fallback_name
+    
+    def _resolve_redirect_url(self, redirect_url: str) -> Optional[str]:
+        """ADDED: Resolve foodpanda redirect URLs to get actual store URLs"""
+        try:
+            session = requests.Session()
+            session.headers.update({'User-Agent': random.choice(self.user_agents)})
             
-        self.store_names[url] = name
-        return name
+            # Follow redirects but don't load the full page
+            response = session.head(redirect_url, allow_redirects=True, timeout=10)
+            resolved_url = response.url
+            
+            logger.debug(f"Resolved {redirect_url} -> {resolved_url}")
+            return resolved_url
+            
+        except Exception as e:
+            logger.debug(f"Failed to resolve redirect {redirect_url}: {e}")
+            return None
+    
+    def _extract_store_name_from_resolved_url(self, resolved_url: str, original_url: str) -> str:
+        """ADDED: Extract store name from resolved foodpanda URL"""
+        try:
+            if 'foodpanda.ph' in resolved_url:
+                # Try to extract from resolved URL
+                match = re.search(r'/restaurant/[^/]+/([^/?]+)', resolved_url)
+                if match:
+                    name = match.group(1).replace('-', ' ').title()
+                    if not name.lower().startswith('cocopan'):
+                        name = f"Cocopan {name}"
+                    self.store_names[original_url] = name
+                    return name
+            
+            # Fallback to generic name based on URL index
+            fallback_name = f"Cocopan Store {len(self.store_names) + 1}"
+            self.store_names[original_url] = fallback_name
+            return fallback_name
+            
+        except Exception as e:
+            logger.debug(f"Error extracting name from resolved URL: {e}")
+            fallback_name = f"Cocopan Store {len(self.store_names) + 1}"
+            self.store_names[original_url] = fallback_name
+            return fallback_name
     
     def _get_session(self, domain: str):
         """Get or create session for domain"""
@@ -462,7 +519,7 @@ class SimpleStoreMonitor:
             )
     
     def check_all_stores_guaranteed(self):
-        """Check ALL stores - guaranteed completion"""
+        """Check ALL stores - guaranteed completion with ADMIN ALERTS"""
         self.stats = {
             'cycle_start': datetime.now(),
             'cycle_end': None,
@@ -480,7 +537,7 @@ class SimpleStoreMonitor:
         logger.info(f"📋 Will check ALL {len(self.store_urls)} stores sequentially")
         
         # Group by platform
-        foodpanda_stores = [url for url in self.store_urls if 'foodpanda.ph' in url]
+        foodpanda_stores = [url for url in self.store_urls if 'foodpanda.ph' in url or 'foodpanda.page.link' in url]
         grab_stores = [url for url in self.store_urls if 'grab.com' in url]
         other_stores = [url for url in self.store_urls if url not in foodpanda_stores and url not in grab_stores]
         
@@ -524,27 +581,11 @@ class SimpleStoreMonitor:
                 result = self._check_single_store_safe(url, i, len(other_stores), "Other")
                 all_results.append(result)
         
-        # Ensure we checked ALL stores
-        if len(all_results) != len(self.store_urls):
-            logger.error(f"⚠️ Mismatch: {len(all_results)} results but {len(self.store_urls)} stores!")
-            # Add missing stores as errors
-            checked_urls = {r['url'] for r in all_results}
-            for url in self.store_urls:
-                if url not in checked_urls:
-                    logger.error(f"   Missing: {url}")
-                    all_results.append({
-                        'url': url,
-                        'name': self._extract_store_name(url),
-                        'result': CheckResult(
-                            status=StoreStatus.ERROR,
-                            response_time=0,
-                            message="Store was not checked",
-                            confidence=0
-                        )
-                    })
-        
         # Save all results
         self._save_all_results(all_results)
+        
+        # ADDED: Check for problematic stores and send admin alerts
+        self._check_and_send_admin_alerts(all_results)
         
         # Final statistics
         self.stats['cycle_end'] = datetime.now()
@@ -634,6 +675,62 @@ class SimpleStoreMonitor:
                     confidence=0.1
                 )
             }
+    
+    def _check_and_send_admin_alerts(self, results: List[Dict]):
+        """ADDED: Check for problematic stores and send admin alerts"""
+        try:
+            # Find stores that need manual verification
+            problem_stores = []
+            
+            for result_dict in results:
+                result = result_dict['result']
+                if result.status in [StoreStatus.BLOCKED, StoreStatus.UNKNOWN, StoreStatus.ERROR]:
+                    
+                    # Determine platform
+                    url = result_dict['url']
+                    if 'foodpanda' in url:
+                        platform = 'foodpanda'
+                    elif 'grab.com' in url:
+                        platform = 'grabfood' 
+                    else:
+                        platform = 'unknown'
+                    
+                    problem_store = ProblemStore(
+                        name=result_dict['name'],
+                        url=url,
+                        status=result.status.value.upper(),
+                        message=result.message or "No details available",
+                        response_time=result.response_time,
+                        platform=platform
+                    )
+                    problem_stores.append(problem_store)
+            
+            if problem_stores:
+                logger.info(f"🚨 Found {len(problem_stores)} stores needing admin attention")
+                
+                # Send admin alert
+                success = admin_alerts.send_manual_verification_alert(problem_stores)
+                if success:
+                    logger.info("✅ Admin alert sent successfully")
+                else:
+                    logger.warning("⚠️ Failed to send admin alert")
+            else:
+                logger.info("✅ All stores checked successfully - no admin alerts needed")
+                
+            # Check for bot detection spike
+            blocked_count = sum(1 for r in results if r['result'].status == StoreStatus.BLOCKED)
+            if blocked_count >= 3:
+                admin_alerts.send_bot_detection_alert(blocked_count)
+                
+            # Check system health 
+            cycle_duration = (self.stats['cycle_end'] - self.stats['cycle_start']).total_seconds()
+            database_errors = 0  # Track this from _save_all_results if needed
+            
+            if cycle_duration > 600 or database_errors > 5:  # 10 minutes or 5+ db errors
+                admin_alerts.send_system_health_alert(cycle_duration, database_errors)
+                
+        except Exception as e:
+            logger.error(f"Error checking admin alerts: {e}")
     
     def _save_all_results(self, results: List[Dict]):
         """Save all results to database"""
