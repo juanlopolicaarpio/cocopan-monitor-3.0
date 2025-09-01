@@ -56,7 +56,7 @@ class Config:
         'Chrome/115.0.0.0 Safari/537.36'
     )
     
-    # Email/SMTP Configuration (ADDED SECTION)
+    # Email/SMTP Configuration (ADDED)
     ALERTS_ENABLED = os.getenv('ALERTS_ENABLED', 'false').lower() == 'true'
     SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
     SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))

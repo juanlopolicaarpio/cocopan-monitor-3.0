@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-UPDATED CocoPan Monitor Service with Admin Alerts
-Added admin notifications for stores needing manual verification
+COMPLETE CocoPan Monitor Service
+✅ Admin alerts for manual verification
+✅ Fixed store naming for redirect URLs  
+✅ Fixed platform classification
+✅ No threading issues - sequential checking
 """
 import os
 import json
@@ -36,7 +39,12 @@ from config import config
 from database import db
 
 # ADDED: Import admin alerts
-from admin_alerts import admin_alerts, ProblemStore
+try:
+    from admin_alerts import admin_alerts, ProblemStore
+    HAS_ADMIN_ALERTS = True
+except ImportError:
+    HAS_ADMIN_ALERTS = False
+    logging.warning("Admin alerts not available - continuing without admin notifications")
 
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL),
@@ -78,8 +86,8 @@ class RateLimiter:
         
         # Max requests per minute
         self.max_rpm = {
-            'foodpanda.ph': 20,  # Increased to 20 to ensure all stores are checked
-            'grab.com': 30,      # 30 for Grab
+            'foodpanda.ph': 20,
+            'grab.com': 30,
             'default': 25
         }
     
@@ -129,14 +137,14 @@ class RateLimiter:
         return 'default'
 
 class SimpleStoreMonitor:
-    """Simple monitor without threading issues"""
+    """Complete monitor with admin alerts and improved naming"""
     
     def __init__(self):
         self.store_urls = self._load_store_urls()
         self.rate_limiter = RateLimiter()
         self.timezone = config.get_timezone()
         
-        # User agents
+        # User agents for rotation
         self.user_agents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/119.0.0.0',
@@ -147,14 +155,16 @@ class SimpleStoreMonitor:
         
         # Statistics
         self.stats = {}
-        self.store_names = {}
+        self.store_names = {}  # Cache for store names
         
-        # Session management for better performance
+        # Session management
         self.sessions = {}
         
         logger.info(f"🚀 Simple Monitor initialized")
         logger.info(f"   📋 {len(self.store_urls)} stores to monitor")
         logger.info(f"   ✅ No threading issues - simple sequential checking")
+        if HAS_ADMIN_ALERTS:
+            logger.info(f"   📧 Admin alerts enabled")
     
     def _load_store_urls(self):
         """Load store URLs from file"""
@@ -168,12 +178,12 @@ class SimpleStoreMonitor:
             return []
     
     def _extract_store_name(self, url: str) -> str:
-        """IMPROVED: Extract and cache store name with better handling for redirect URLs"""
+        """FIXED: Extract and cache store name with redirect resolution"""
         if url in self.store_names:
             return self.store_names[url]
         
         try:
-            # Handle foodpanda redirect URLs by following them first
+            # FIXED: Handle foodpanda redirect URLs
             if 'foodpanda.page.link' in url:
                 resolved_url = self._resolve_redirect_url(url)
                 if resolved_url and resolved_url != url:
@@ -198,7 +208,8 @@ class SimpleStoreMonitor:
             
         except Exception as e:
             logger.debug(f"Error extracting store name from {url}: {e}")
-            fallback_name = f"Cocopan Store ({len(self.store_names) + 1})"
+            # Generate unique fallback name
+            fallback_name = f"Cocopan Store {len(self.store_names) + 1}"
             self.store_names[url] = fallback_name
             return fallback_name
     
@@ -230,9 +241,10 @@ class SimpleStoreMonitor:
                     if not name.lower().startswith('cocopan'):
                         name = f"Cocopan {name}"
                     self.store_names[original_url] = name
+                    logger.debug(f"Extracted name '{name}' from resolved URL")
                     return name
             
-            # Fallback to generic name based on URL index
+            # Fallback to indexed name
             fallback_name = f"Cocopan Store {len(self.store_names) + 1}"
             self.store_names[original_url] = fallback_name
             return fallback_name
@@ -276,15 +288,21 @@ class SimpleStoreMonitor:
             # Apply rate limiting
             self.rate_limiter.wait_if_needed(url)
             
-            # Get domain and session
-            domain = 'foodpanda.ph' if 'foodpanda.ph' in url else 'grab.com'
+            # FIXED: Proper domain detection for redirect URLs
+            if 'foodpanda.page.link' in url or 'foodpanda.ph' in url:
+                domain = 'foodpanda.ph'
+            elif 'grab.com' in url:
+                domain = 'grab.com'
+            else:
+                domain = 'default'
+            
             session = self._get_session(domain)
             
             # Update user agent occasionally
             if random.random() < 0.1:  # 10% chance
                 session.headers['User-Agent'] = random.choice(self.user_agents)
             
-            # Make request with timeout (with SSL verification)
+            # Make request with timeout
             try:
                 resp = session.get(url, timeout=10, allow_redirects=True)
             except requests.exceptions.SSLError:
@@ -332,7 +350,7 @@ class SimpleStoreMonitor:
                 try:
                     soup = BeautifulSoup(resp.text, 'html.parser')
                     
-                    # CRITICAL: Remove scripts and styles FIRST (like original)
+                    # Remove scripts and styles first
                     for script in soup(['script', 'style']):
                         script.decompose()
                     
@@ -350,7 +368,7 @@ class SimpleStoreMonitor:
                         )
                     
                     # PLATFORM-SPECIFIC DETECTION
-                    if 'foodpanda.ph' in url or 'foodpanda.page.link' in str(resp.url):
+                    if 'foodpanda.ph' in url or 'foodpanda.page.link' in str(resp.url) or 'foodpanda.ph' in str(resp.url):
                         # Foodpanda specific checks
                         offline_indicators = [
                             'restaurant is closed',
@@ -393,7 +411,7 @@ class SimpleStoreMonitor:
                             )
                     
                     elif 'grab.com' in url:
-                        # GrabFood specific checks - RESTORED ORIGINAL LOGIC
+                        # GrabFood specific checks
                         
                         # CRITICAL FIX for "Today Closed" detection
                         if 'today closed' in page_text_clean:
@@ -536,10 +554,18 @@ class SimpleStoreMonitor:
         logger.info(f"🚀 CHECKING ALL STORES at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         logger.info(f"📋 Will check ALL {len(self.store_urls)} stores sequentially")
         
-        # Group by platform
-        foodpanda_stores = [url for url in self.store_urls if 'foodpanda.ph' in url or 'foodpanda.page.link' in url]
-        grab_stores = [url for url in self.store_urls if 'grab.com' in url]
-        other_stores = [url for url in self.store_urls if url not in foodpanda_stores and url not in grab_stores]
+        # FIXED: Group by platform with proper detection
+        foodpanda_stores = []
+        grab_stores = []
+        other_stores = []
+        
+        for url in self.store_urls:
+            if 'foodpanda.ph' in url or 'foodpanda.page.link' in url:
+                foodpanda_stores.append(url)
+            elif 'grab.com' in url:
+                grab_stores.append(url)
+            else:
+                other_stores.append(url)
         
         logger.info(f"   🐼 Foodpanda: {len(foodpanda_stores)} stores")
         logger.info(f"   🛒 GrabFood: {len(grab_stores)} stores")
@@ -585,7 +611,8 @@ class SimpleStoreMonitor:
         self._save_all_results(all_results)
         
         # ADDED: Check for problematic stores and send admin alerts
-        self._check_and_send_admin_alerts(all_results)
+        if HAS_ADMIN_ALERTS:
+            self._check_and_send_admin_alerts(all_results)
         
         # Final statistics
         self.stats['cycle_end'] = datetime.now()
@@ -686,7 +713,7 @@ class SimpleStoreMonitor:
                 result = result_dict['result']
                 if result.status in [StoreStatus.BLOCKED, StoreStatus.UNKNOWN, StoreStatus.ERROR]:
                     
-                    # Determine platform
+                    # FIXED: Determine platform correctly
                     url = result_dict['url']
                     if 'foodpanda' in url:
                         platform = 'foodpanda'
@@ -722,18 +749,11 @@ class SimpleStoreMonitor:
             if blocked_count >= 3:
                 admin_alerts.send_bot_detection_alert(blocked_count)
                 
-            # Check system health 
-            cycle_duration = (self.stats['cycle_end'] - self.stats['cycle_start']).total_seconds()
-            database_errors = 0  # Track this from _save_all_results if needed
-            
-            if cycle_duration > 600 or database_errors > 5:  # 10 minutes or 5+ db errors
-                admin_alerts.send_system_health_alert(cycle_duration, database_errors)
-                
         except Exception as e:
             logger.error(f"Error checking admin alerts: {e}")
     
     def _save_all_results(self, results: List[Dict]):
-        """Save all results to database"""
+        """Save all results to database with ACCURATE status data"""
         logger.info("💾 Saving results to database...")
         
         saved_count = 0
@@ -747,11 +767,10 @@ class SimpleStoreMonitor:
                 
                 store_id = db.get_or_create_store(store_name, url)
                 
-                # Convert to database format
-                # IMPORTANT: Blocked/Unknown/Error = Online to avoid false alerts
-                is_online = result.status not in [StoreStatus.OFFLINE]
+                # FIXED: Save actual status - let dashboard handle display logic
+                is_online = result.status == StoreStatus.ONLINE
                 
-                # Add status prefix to message
+                # Add status prefix to message for admin debugging
                 message = result.message or ""
                 if result.status == StoreStatus.BLOCKED:
                     message = f"[BLOCKED] {message}"
@@ -759,6 +778,8 @@ class SimpleStoreMonitor:
                     message = f"[UNKNOWN] {message}"
                 elif result.status == StoreStatus.ERROR:
                     message = f"[ERROR] {message}"
+                elif result.status == StoreStatus.OFFLINE:
+                    message = f"[OFFLINE] {message}"
                 
                 db.save_status_check(store_id, is_online, result.response_time, message)
                 saved_count += 1

@@ -31,7 +31,7 @@ services:
         reservations:
           memory: 256M
 
-  # CocoPan Monitor Service (Background scheduler)
+  # CocoPan Monitor Service (Background scheduler with admin alerts)
   monitor:
     build: 
       context: .
@@ -49,8 +49,17 @@ services:
       - REQUEST_TIMEOUT=15
       - MAX_RETRIES=3
       - RETRY_DELAY=5
+      # Admin email alerts
+      - ALERTS_ENABLED=true
+      - SMTP_SERVER=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USE_TLS=true
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL}
     volumes:
       - ./branch_urls.json:/app/branch_urls.json:ro
+      - ./admin_alerts.json:/app/admin_alerts.json:ro
       - monitor_logs:/app/logs
     networks:
       - cocopan_network
@@ -72,13 +81,12 @@ services:
       retries: 3
       start_period: 60s
 
-  # Streamlit Dashboard - FIXED
+  # Streamlit Dashboard (with admin features)
   dashboard:
     build: 
       context: .
       dockerfile: Dockerfile
     container_name: cocopan_dashboard
-    # Fixed command - removed problematic options
     command: >
       streamlit run enhanced_dashboard.py 
       --server.port=8501 
@@ -89,8 +97,12 @@ services:
       - DATABASE_URL=postgresql://cocopan:cocopan123@postgres:5432/cocopan_monitor
       - TIMEZONE=Asia/Manila
       - DASHBOARD_AUTO_REFRESH=300
+      # Admin dashboard settings
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
     ports:
       - "8501:8501"
+    volumes:
+      - ./admin_alerts.json:/app/admin_alerts.json:ro
     networks:
       - cocopan_network
     depends_on:
@@ -104,7 +116,6 @@ services:
           cpus: '0.3'
         reservations:
           memory: 256M
-    # Simplified healthcheck
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8501/healthz || exit 1"]
       interval: 60s

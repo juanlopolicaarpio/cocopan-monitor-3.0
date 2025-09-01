@@ -2,6 +2,7 @@
 """
 Fixed CocoPan Database Module
 Dynamic timezone support and proper cursor result handling
+ADDED: Manual override functionality for admin interface
 """
 import os
 import time
@@ -174,7 +175,9 @@ class DatabaseManager:
                         name VARCHAR(255) NOT NULL,
                         url TEXT NOT NULL UNIQUE,
                         platform VARCHAR(50) NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        name_override VARCHAR(255),
+                        last_manual_check TIMESTAMP
                     )
                 """)
                 
@@ -209,7 +212,9 @@ class DatabaseManager:
                         name TEXT NOT NULL,
                         url TEXT NOT NULL UNIQUE,
                         platform TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        name_override TEXT,
+                        last_manual_check TIMESTAMP
                     )
                 """)
                 
@@ -240,7 +245,7 @@ class DatabaseManager:
     
     def get_or_create_store(self, name: str, url: str) -> int:
         """Get or create store with proper tuple indexing"""
-        platform = "foodpanda" if "foodpanda.ph" in url else "grabfood"
+        platform = "foodpanda" if "foodpanda" in url else "grabfood"
         
         for attempt in range(self.max_retries):
             try:
@@ -373,6 +378,7 @@ class DatabaseManager:
                 query = """
                     SELECT 
                         s.name,
+                        COALESCE(s.name_override, s.name) as display_name,
                         s.url,
                         s.platform,
                         sc.is_online,
@@ -385,7 +391,7 @@ class DatabaseManager:
                         FROM status_checks
                         GROUP BY store_id
                     ) latest ON sc.store_id = latest.store_id AND sc.checked_at = latest.latest_check
-                    ORDER BY s.name
+                    ORDER BY display_name
                 """
                 return pd.read_sql_query(query, conn)
         except Exception as e:
@@ -439,7 +445,7 @@ class DatabaseManager:
                 if self.db_type == "postgresql":
                     query = """
                         SELECT 
-                            s.name,
+                            COALESCE(s.name_override, s.name) as name,
                             s.platform,
                             sc.is_online,
                             sc.checked_at,
@@ -460,7 +466,7 @@ class DatabaseManager:
                     
                     query = f"""
                         SELECT 
-                            s.name,
+                            COALESCE(s.name_override, s.name) as name,
                             s.platform,
                             sc.is_online,
                             sc.checked_at,
@@ -483,7 +489,7 @@ class DatabaseManager:
                 if self.db_type == "postgresql":
                     query = """
                         SELECT 
-                            s.name,
+                            COALESCE(s.name_override, s.name) as name,
                             s.platform,
                             COUNT(sc.id) as total_checks,
                             SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) as online_checks,
@@ -494,7 +500,7 @@ class DatabaseManager:
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
                         WHERE DATE(sc.checked_at AT TIME ZONE %s) = CURRENT_DATE
-                        GROUP BY s.id, s.name, s.platform
+                        GROUP BY s.id, s.name, s.name_override, s.platform
                         ORDER BY uptime_percentage DESC
                     """
                     return pd.read_sql_query(query, conn, params=(self.timezone,))
@@ -507,7 +513,7 @@ class DatabaseManager:
                     
                     query = f"""
                         SELECT 
-                            s.name,
+                            COALESCE(s.name_override, s.name) as name,
                             s.platform,
                             COUNT(sc.id) as total_checks,
                             SUM(CASE WHEN sc.is_online = 1 THEN 1 ELSE 0 END) as online_checks,
@@ -518,7 +524,7 @@ class DatabaseManager:
                         FROM stores s
                         INNER JOIN status_checks sc ON s.id = sc.store_id
                         WHERE DATE(sc.checked_at, '{offset_hours}') = DATE('now', '{offset_hours}')
-                        GROUP BY s.id, s.name, s.platform
+                        GROUP BY s.id, s.name, s.name_override, s.platform
                         ORDER BY uptime_percentage DESC
                     """
                     return pd.read_sql_query(query, conn)
@@ -589,6 +595,83 @@ class DatabaseManager:
                 'db_type': self.db_type,
                 'timezone': self.timezone
             }
+    
+    # ADDED: Manual Override Methods
+    
+    def get_stores_needing_attention(self) -> pd.DataFrame:
+        """Get stores that need manual attention (BLOCKED, UNKNOWN, ERROR)"""
+        try:
+            with self.get_connection() as conn:
+                query = """
+                    SELECT 
+                        s.id,
+                        COALESCE(s.name_override, s.name) as name,
+                        s.url,
+                        s.platform,
+                        sc.is_online,
+                        sc.checked_at,
+                        sc.response_time_ms,
+                        sc.error_message,
+                        
+                        -- Determine problematic status from error message
+                        CASE 
+                            WHEN sc.error_message LIKE '[BLOCKED]%' THEN 'BLOCKED'
+                            WHEN sc.error_message LIKE '[UNKNOWN]%' THEN 'UNKNOWN'  
+                            WHEN sc.error_message LIKE '[ERROR]%' THEN 'ERROR'
+                            WHEN sc.is_online = false AND sc.error_message IS NOT NULL THEN 'NEEDS_CHECK'
+                            ELSE 'OK'
+                        END as problem_status
+                        
+                    FROM stores s
+                    INNER JOIN (
+                        SELECT DISTINCT ON (store_id) 
+                            store_id, is_online, checked_at, response_time_ms, error_message
+                        FROM status_checks 
+                        ORDER BY store_id, checked_at DESC
+                    ) sc ON s.id = sc.store_id
+                    
+                    WHERE (
+                        sc.error_message LIKE '[BLOCKED]%' OR 
+                        sc.error_message LIKE '[UNKNOWN]%' OR 
+                        sc.error_message LIKE '[ERROR]%'
+                    )
+                    AND DATE(sc.checked_at) = CURRENT_DATE  -- Only today's issues
+                    
+                    ORDER BY sc.checked_at DESC
+                """
+                
+                return pd.read_sql_query(query, conn)
+                
+        except Exception as e:
+            logger.error(f"Failed to get stores needing attention: {e}")
+            return pd.DataFrame()
+    
+    def set_store_name_override(self, store_id: int, new_name: str, set_by: str) -> bool:
+        """Set custom name for a store"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                if self.db_type == "postgresql":
+                    cursor.execute("""
+                        UPDATE stores 
+                        SET name_override = %s, last_manual_check = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (new_name, store_id))
+                else:
+                    cursor.execute("""
+                        UPDATE stores 
+                        SET name_override = ?, last_manual_check = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    """, (new_name, store_id))
+                
+                conn.commit()
+                logger.info(f"✅ Store name updated: store_id={store_id}, name='{new_name}', by={set_by}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Failed to set store name override: {e}")
+            return False
     
     def close(self):
         """Close database connections"""
