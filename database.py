@@ -3,6 +3,7 @@
 Fixed CocoPan Database Module
 Dynamic timezone support and proper cursor result handling
 ADDED: Manual override functionality for admin interface
+ADDED: Hourly snapshot schema + idempotent upserts (store_status_hourly, status_summary_hourly)
 """
 import os
 import time
@@ -56,7 +57,7 @@ class DatabaseManager:
             db_url = config.DATABASE_URL
             logger.info(f"🔌 Attempting PostgreSQL connection...")
             
-            if not db_url.startswith('postgresql://'):
+            if not db_url.startswith('postgresql://') and not db_url.startswith('postgres://'):
                 raise ValueError(f"Invalid PostgreSQL URL format: {db_url}")
             
             # Test basic connection first
@@ -204,6 +205,36 @@ class DatabaseManager:
                         report_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+                
+                # --- NEW: hourly per-store snapshot (idempotent) ---
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS store_status_hourly (
+                        effective_at  timestamptz NOT NULL,
+                        platform      text        NOT NULL,
+                        store_id      integer     NOT NULL REFERENCES stores(id),
+                        status        text        NOT NULL,   -- ONLINE/OFFLINE/BLOCKED/ERROR/UNKNOWN
+                        confidence    real        NOT NULL,
+                        response_ms   integer     NULL,
+                        evidence      text        NULL,
+                        probe_time    timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        run_id        uuid        NOT NULL,
+                        PRIMARY KEY (platform, store_id, effective_at)
+                    )
+                """)
+
+                # --- NEW: hourly summary (idempotent) ---
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS status_summary_hourly (
+                        effective_at  timestamptz PRIMARY KEY,
+                        total         integer NOT NULL,
+                        online        integer NOT NULL,
+                        offline       integer NOT NULL,
+                        blocked       integer NOT NULL,
+                        errors        integer NOT NULL,
+                        unknown       integer NOT NULL,
+                        last_probe_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
             else:
                 # SQLite tables
                 cursor.execute("""
@@ -238,6 +269,36 @@ class DatabaseManager:
                         offline_stores INTEGER NOT NULL,
                         online_percentage REAL NOT NULL,
                         report_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                # --- NEW (SQLite): hourly per-store snapshot ---
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS store_status_hourly (
+                        effective_at  TEXT NOT NULL,   -- ISO timestamp
+                        platform      TEXT NOT NULL,
+                        store_id      INTEGER NOT NULL,
+                        status        TEXT NOT NULL,
+                        confidence    REAL NOT NULL,
+                        response_ms   INTEGER,
+                        evidence      TEXT,
+                        probe_time    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        run_id        TEXT NOT NULL,
+                        PRIMARY KEY (platform, store_id, effective_at)
+                    )
+                """)
+
+                # --- NEW (SQLite): hourly summary ---
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS status_summary_hourly (
+                        effective_at  TEXT PRIMARY KEY,
+                        total         INTEGER NOT NULL,
+                        online        INTEGER NOT NULL,
+                        offline       INTEGER NOT NULL,
+                        blocked       INTEGER NOT NULL,
+                        errors        INTEGER NOT NULL,
+                        unknown       INTEGER NOT NULL,
+                        last_probe_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
             
@@ -426,8 +487,7 @@ class DatabaseManager:
                         SELECT 
                             strftime('%H', report_time, '{offset_hours}') as hour,
                             ROUND(AVG(online_percentage), 0) as online_pct,
-                            ROUND(AVG(100 - online_percentage), 0) as offline_pct,
-                            COUNT(*) as data_points
+                            ROUND(AVG(100 - online_percentage), 0), COUNT(*) as data_points
                         FROM summary_reports
                         WHERE DATE(report_time, '{offset_hours}') = DATE('now', '{offset_hours}')
                         GROUP BY strftime('%H', report_time, '{offset_hours}')
@@ -542,7 +602,10 @@ class DatabaseManager:
                 store_count = cursor.fetchone()[0]
                 
                 cursor.execute('SELECT platform, COUNT(*) FROM stores GROUP BY platform')
-                platforms = dict(cursor.fetchall())
+                if self.db_type == "postgresql":
+                    platforms = dict(cursor.fetchall())
+                else:
+                    platforms = {row["platform"]: row["COUNT(*)"] for row in cursor.fetchall()}
                 
                 cursor.execute('SELECT COUNT(*) FROM status_checks')
                 total_checks = cursor.fetchone()[0]
@@ -555,15 +618,9 @@ class DatabaseManager:
                         ORDER BY report_time DESC 
                         LIMIT 1
                     """)
-                else:
-                    cursor.execute('SELECT * FROM summary_reports ORDER BY report_time DESC LIMIT 1')
-                
-                latest_summary = cursor.fetchone()
-                
-                # FIXED: Proper handling of latest_summary tuple
-                if latest_summary:
-                    if self.db_type == "postgresql":
-                        # We know the column order for PostgreSQL
+                    latest_summary = cursor.fetchone()
+                    latest_summary_dict = None
+                    if latest_summary:
                         latest_summary_dict = {
                             'total_stores': latest_summary[0],
                             'online_stores': latest_summary[1], 
@@ -571,11 +628,10 @@ class DatabaseManager:
                             'online_percentage': latest_summary[3],
                             'report_time': latest_summary[4]
                         }
-                    else:
-                        # SQLite Row can be converted to dict
-                        latest_summary_dict = dict(latest_summary)
                 else:
-                    latest_summary_dict = None
+                    cursor.execute('SELECT * FROM summary_reports ORDER BY report_time DESC LIMIT 1')
+                    latest_summary = cursor.fetchone()
+                    latest_summary_dict = dict(latest_summary) if latest_summary else None
                 
                 return {
                     'store_count': store_count,
@@ -672,6 +728,98 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Failed to set store name override: {e}")
             return False
+
+    # ---------- NEW PUBLIC HELPERS FOR HOURLY SNAPSHOTS ----------
+
+    def ensure_schema(self) -> None:
+        """Idempotently ensure hourly tables exist (safe to call anytime)."""
+        self._create_tables()
+
+    def upsert_store_status_hourly(
+        self, *,
+        effective_at, platform, store_id, status,
+        confidence, response_ms, evidence, probe_time, run_id
+    ) -> None:
+        """One row per (platform, store_id, hour). Latest probe in the hour wins."""
+        for attempt in range(self.max_retries):
+            try:
+                with self.get_connection() as conn:
+                    cursor = conn.cursor()
+                    if self.db_type == "postgresql":
+                        cursor.execute("""
+                            INSERT INTO store_status_hourly
+                              (effective_at, platform, store_id, status, confidence, response_ms, evidence, probe_time, run_id)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                            ON CONFLICT (platform, store_id, effective_at)
+                            DO UPDATE SET
+                              status      = EXCLUDED.status,
+                              confidence  = EXCLUDED.confidence,
+                              response_ms = EXCLUDED.response_ms,
+                              evidence    = EXCLUDED.evidence,
+                              probe_time  = EXCLUDED.probe_time,
+                              run_id      = EXCLUDED.run_id
+                            WHERE store_status_hourly.probe_time <= EXCLUDED.probe_time
+                        """, (effective_at, platform, store_id, status, confidence, response_ms, evidence, probe_time, str(run_id)))
+                    else:
+                        cursor.execute("""
+                            INSERT INTO store_status_hourly
+                              (effective_at, platform, store_id, status, confidence, response_ms, evidence, probe_time, run_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(platform, store_id, effective_at) DO UPDATE SET
+                              status      = EXCLUDED.status,
+                              confidence  = EXCLUDED.confidence,
+                              response_ms = EXCLUDED.response_ms,
+                              evidence    = EXCLUDED.evidence,
+                              probe_time  = EXCLUDED.probe_time,
+                              run_id      = EXCLUDED.run_id
+                            WHERE store_status_hourly.probe_time <= EXCLUDED.probe_time
+                        """, (str(effective_at), platform, store_id, status, float(confidence),
+                              response_ms, evidence, str(probe_time), str(run_id)))
+                    conn.commit()
+                    return
+            except Exception as e:
+                logger.error(f"❌ upsert_store_status_hourly failed (attempt {attempt + 1}): {e}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay)
+                else:
+                    raise
+
+    def upsert_status_summary_hourly(
+        self, *, effective_at, total, online, offline, blocked, errors, unknown, last_probe_at
+    ) -> None:
+        """One summary row per hour (idempotent)."""
+        for attempt in range(self.max_retries):
+            try:
+                with self.get_connection() as conn:
+                    cursor = conn.cursor()
+                    if self.db_type == "postgresql":
+                        cursor.execute("""
+                            INSERT INTO status_summary_hourly
+                              (effective_at, total, online, offline, blocked, errors, unknown, last_probe_at)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                            ON CONFLICT (effective_at) DO UPDATE SET
+                              total=EXCLUDED.total, online=EXCLUDED.online, offline=EXCLUDED.offline,
+                              blocked=EXCLUDED.blocked, errors=EXCLUDED.errors, unknown=EXCLUDED.unknown,
+                              last_probe_at=EXCLUDED.last_probe_at
+                        """, (effective_at, total, online, offline, blocked, errors, unknown, last_probe_at))
+                    else:
+                        cursor.execute("""
+                            INSERT INTO status_summary_hourly
+                              (effective_at, total, online, offline, blocked, errors, unknown, last_probe_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(effective_at) DO UPDATE SET
+                              total=EXCLUDED.total, online=EXCLUDED.online, offline=EXCLUDED.offline,
+                              blocked=EXCLUDED.blocked, errors=EXCLUDED.errors, unknown=EXCLUDED.unknown,
+                              last_probe_at=EXCLUDED.last_probe_at
+                        """, (str(effective_at), total, online, offline, blocked, errors, unknown, str(last_probe_at)))
+                    conn.commit()
+                    return
+            except Exception as e:
+                logger.error(f"❌ upsert_status_summary_hourly failed (attempt {attempt + 1}): {e}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay)
+                else:
+                    raise
     
     def close(self):
         """Close database connections"""
