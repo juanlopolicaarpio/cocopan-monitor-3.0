@@ -13,7 +13,7 @@
         "enabled": true,
         "min_stores_threshold": 1,
         "statuses": ["BLOCKED", "UNKNOWN", "ERROR"],
-        "cooldown_minutes": 60,
+        "cooldown_minutes": 30,
         "include_direct_links": true
       },
       

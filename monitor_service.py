@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-ANTI-DETECTION MONITOR SERVICE - PRODUCTION READY
-✅ All 66 stores checked every hour
+ANTI-DETECTION MONITOR SERVICE - PRODUCTION READY (FIXED)
+✅ Exactly 66 stores monitored every hour
+✅ Proper name extraction for ALL store types including foodpanda.page.link
+✅ Fixed platform detection (foodpanda.page.link = foodpanda)
 ✅ Advanced anti-detection for Foodpanda
 ✅ Expected: 5-15 blocked stores (down from 35+)
 ✅ Simple for VAs - admin override handles blocked stores
-✅ Logical-hour snapshots with idempotent DB upserts (via database.py helpers)
+✅ Logical-hour snapshots with idempotent DB upserts
 """
 import os
 import json
@@ -78,7 +80,146 @@ class CheckResult:
     confidence: float = 1.0
 
 # ------------------------------------------------------------------------------
-# Anti-Detection Manager
+# Store Name Cache & Utilities
+# ------------------------------------------------------------------------------
+class StoreNameManager:
+    """Manages proper store name extraction and caching"""
+    
+    def __init__(self):
+        self.name_cache = {}
+        self.redirect_cache = {}
+    
+    def clean_store_name(self, name: str) -> str:
+        """Clean and standardize store names"""
+        if not name or name.strip() == '':
+            return "Cocopan Store (Unknown)"
+        
+        # Remove common prefixes
+        name = re.sub(r'^(Cocopan\s*-\s*|Cocopan\s+)', '', name.strip(), flags=re.IGNORECASE)
+        
+        # Clean up the name
+        name = name.replace('-', ' ').replace('_', ' ').title()
+        
+        # Remove extra whitespace
+        name = ' '.join(name.split())
+        
+        # Add Cocopan prefix if not present
+        if not name.lower().startswith('cocopan'):
+            name = f"Cocopan {name}"
+        
+        return name
+    
+    def resolve_foodpanda_redirect(self, redirect_url: str) -> Optional[str]:
+        """Resolve foodpanda.page.link redirects with caching"""
+        if redirect_url in self.redirect_cache:
+            return self.redirect_cache[redirect_url]
+        
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+            
+            # Try HEAD first (faster)
+            resp = requests.head(redirect_url, allow_redirects=True, timeout=8, headers=headers)
+            resolved_url = resp.url
+            
+            # If HEAD didn't redirect properly, try GET
+            if resolved_url == redirect_url or 'page.link' in resolved_url:
+                resp = requests.get(redirect_url, allow_redirects=True, timeout=8, headers=headers)
+                resolved_url = resp.url
+            
+            # Cache the result
+            if resolved_url and resolved_url != redirect_url and 'foodpanda.ph' in resolved_url:
+                self.redirect_cache[redirect_url] = resolved_url
+                logger.debug(f"✅ Resolved redirect: {redirect_url} -> {resolved_url}")
+                return resolved_url
+            else:
+                # Cache failed result to avoid repeated attempts
+                self.redirect_cache[redirect_url] = None
+                logger.warning(f"⚠️  Failed to resolve redirect: {redirect_url}")
+                return None
+                
+        except Exception as e:
+            logger.debug(f"Error resolving redirect {redirect_url}: {e}")
+            # Cache failed result
+            self.redirect_cache[redirect_url] = None
+            return None
+    
+    def extract_store_name_from_url(self, url: str) -> str:
+        """Extract proper store name from URL with improved logic"""
+        if url in self.name_cache:
+            return self.name_cache[url]
+        
+        try:
+            original_url = url
+            
+            # Handle foodpanda.page.link redirects
+            if 'foodpanda.page.link' in url:
+                resolved_url = self.resolve_foodpanda_redirect(url)
+                if resolved_url:
+                    url = resolved_url
+                else:
+                    # Fallback: create name from redirect URL identifier
+                    url_part = original_url.split('/')[-1][:8]
+                    name = f"Cocopan {url_part}"
+                    self.name_cache[original_url] = name
+                    return name
+            
+            # Handle direct foodpanda URLs
+            if 'foodpanda.ph' in url:
+                # Pattern: /restaurant/code/store-name
+                match = re.search(r'/restaurant/[^/]+/([^/?]+)', url)
+                if match:
+                    raw_name = match.group(1)
+                    name = self.clean_store_name(raw_name)
+                    self.name_cache[original_url] = name
+                    return name
+                else:
+                    logger.warning(f"Could not extract name from foodpanda URL: {url}")
+                    name = "Cocopan Foodpanda Store"
+                    self.name_cache[original_url] = name
+                    return name
+            
+            # Handle GrabFood URLs
+            elif 'grab.com' in url:
+                # Pattern: /restaurant/store-name-delivery/
+                match = re.search(r'/restaurant/([^/]+)', url)
+                if match:
+                    raw_name = match.group(1)
+                    # Remove -delivery suffix if present
+                    raw_name = re.sub(r'-delivery$', '', raw_name)
+                    name = self.clean_store_name(raw_name)
+                    self.name_cache[original_url] = name
+                    return name
+                else:
+                    logger.warning(f"Could not extract name from GrabFood URL: {url}")
+                    name = "Cocopan GrabFood Store"
+                    self.name_cache[original_url] = name
+                    return name
+            
+            else:
+                logger.warning(f"Unknown URL format: {url}")
+                name = "Cocopan Store (Unknown)"
+                self.name_cache[original_url] = name
+                return name
+        
+        except Exception as e:
+            logger.error(f"Error extracting name from {url}: {e}")
+            name = f"Cocopan Store (Error)"
+            self.name_cache[original_url] = name
+            return name
+    
+    def get_platform_from_url(self, url: str) -> str:
+        """Determine platform from URL - FIXED to properly detect foodpanda.page.link"""
+        if 'foodpanda' in url:  # This catches both foodpanda.ph and foodpanda.page.link
+            return 'foodpanda'
+        elif 'grab.com' in url:
+            return 'grabfood'
+        else:
+            return 'unknown'
+
+# ------------------------------------------------------------------------------
+# Anti-Detection Manager (Same as before)
 # ------------------------------------------------------------------------------
 class AntiDetectionManager:
     """Advanced anti-detection techniques for Foodpanda"""
@@ -124,9 +265,6 @@ class AntiDetectionManager:
         self.request_sequence_counter = 0
 
         logger.info("🔒 Anti-Detection Manager initialized")
-        logger.info("   🎭 12 user agents, 4 accept headers, 5 languages")
-        logger.info("   🔄 Fresh sessions every 5-8 requests")
-        logger.info("   ⏱️  (FP) 8–20s random delays + occasional longer pause")
 
     def get_random_headers(self) -> Dict[str, str]:
         base_headers = {
@@ -225,90 +363,53 @@ class AntiDetectionManager:
             logger.debug(f"🧹 Cleaned up {len(remove)} old sessions")
 
 # ------------------------------------------------------------------------------
-# Monitor
+# Monitor (Updated with fixed naming)
 # ------------------------------------------------------------------------------
 class StealthStoreMonitor:
     def __init__(self):
         self.store_urls = self._load_store_urls()
         self.anti_detection = AntiDetectionManager()
+        self.name_manager = StoreNameManager()  # NEW: Proper name management
         self.timezone = config.get_timezone()
         self.stats = {}
-        self.store_names = {}
         self.last_store_order: List[str] = []
 
         logger.info(f"🕵️ Stealth Monitor initialized")
         logger.info(f"   📋 {len(self.store_urls)} stores to monitor")
-        logger.info(f"   🔒 Advanced anti-detection enabled")
+        
+        # Validate we have exactly 66 stores
+        if len(self.store_urls) != 66:
+            logger.error(f"❌ Expected 66 stores, got {len(self.store_urls)}! Check branch_urls.json")
+        else:
+            logger.info(f"✅ Exactly 66 stores loaded")
+        
+        # Count by platform for verification
+        grab_count = sum(1 for url in self.store_urls if 'grab.com' in url)
+        foodpanda_direct = sum(1 for url in self.store_urls if 'foodpanda.ph' in url)
+        foodpanda_redirect = sum(1 for url in self.store_urls if 'foodpanda.page.link' in url)
+        
+        logger.info(f"   🛒 GrabFood: {grab_count} stores")
+        logger.info(f"   🐼 Foodpanda (direct): {foodpanda_direct} stores")
+        logger.info(f"   🔗 Foodpanda (redirect): {foodpanda_redirect} stores")
+        logger.info(f"   📊 Total: {grab_count + foodpanda_direct + foodpanda_redirect} stores")
+        
         if HAS_ADMIN_ALERTS:
-            logger.info(f"   📧 Admin alerts for manual override")
+            logger.info(f"   📧 Admin alerts enabled")
 
-    # ---------- Utility ----------
     def _load_store_urls(self):
+        """Load exactly 66 store URLs"""
         try:
             with open(config.STORE_URLS_FILE) as f:
-                return json.load(f).get('urls', [])
+                data = json.load(f)
+                urls = data.get('urls', [])
+                logger.info(f"📋 Loaded {len(urls)} store URLs from {config.STORE_URLS_FILE}")
+                return urls
         except Exception as e:
             logger.error(f"Failed to load URLs: {e}")
             return []
 
-    def _extract_store_name(self, url: str) -> str:
-        if url in self.store_names:
-            return self.store_names[url]
-        try:
-            if 'foodpanda.page.link' in url:
-                resolved_url = self._resolve_redirect_url(url)
-                if resolved_url and resolved_url != url:
-                    return self._extract_store_name_from_resolved_url(resolved_url, url)
-            if 'grab.com' in url:
-                m = re.search(r'/restaurant/([^/]+)/', url)
-                name = m.group(1) if m else "Store"
-            elif 'foodpanda.ph' in url:
-                m = re.search(r'/restaurant/[^/]+/([^/?]+)', url)
-                name = m.group(1) if m else "Store"
-            else:
-                name = "Store"
-            name = name.replace('-', ' ').title()
-            if not name.lower().startswith('cocopan'):
-                name = f"Cocopan {name}"
-            self.store_names[url] = name
-            return name
-        except Exception as e:
-            logger.debug(f"Error extracting store name from {url}: {e}")
-            fallback = f"Cocopan Store {len(self.store_names) + 1}"
-            self.store_names[url] = fallback
-            return fallback
-
-    def _resolve_redirect_url(self, redirect_url: str) -> Optional[str]:
-        try:
-            resp = self.anti_detection.request('HEAD', redirect_url, allow_redirects=True, timeout=10)
-            if resp.url == redirect_url:
-                resp = self.anti_detection.request('GET', redirect_url, allow_redirects=True, timeout=10)
-            return resp.url
-        except Exception as e:
-            logger.debug(f"Failed to resolve redirect {redirect_url}: {e}")
-            return None
-
-    def _extract_store_name_from_resolved_url(self, resolved_url: str, original_url: str) -> str:
-        try:
-            if 'foodpanda.ph' in resolved_url:
-                m = re.search(r'/restaurant/[^/]+/([^/?]+)', resolved_url)
-                if m:
-                    name = m.group(1).replace('-', ' ').title()
-                    if not name.lower().startswith('cocopan'):
-                        name = f"Cocopan {name}"
-                    self.store_names[original_url] = name
-                    logger.debug(f"Extracted name '{name}' from resolved URL")
-                    return name
-            fallback = f"Cocopan Store {len(self.store_names) + 1}"
-            self.store_names[original_url] = fallback
-            return fallback
-        except Exception as e:
-            logger.debug(f"Error extracting name from resolved URL: {e}")
-            fallback = f"Cocopan Store {len(self.store_names) + 1}"
-            self.store_names[original_url] = fallback
-            return fallback
-
     def randomize_store_order(self, stores: List[str]) -> List[str]:
+        """Randomize store checking order"""
         attempts = 0
         while attempts < 10:
             shuffled = stores.copy()
@@ -320,7 +421,7 @@ class StealthStoreMonitor:
         random.shuffle(stores)
         return stores
 
-    # ---------- Checkers (your logic kept intact) ----------
+    # Store checking methods (keeping your existing logic)
     def check_store_stealth(self, url: str) -> CheckResult:
         start_time = time.time()
         try:
@@ -460,7 +561,7 @@ class StealthStoreMonitor:
             response_time = int((time.time() - start_time) * 1000)
             return CheckResult(StoreStatus.ERROR, response_time, f"Error: {str(e)[:50]}", 0.2)
 
-    # ---------- Master sweep ----------
+    # Master sweep method with proper store naming
     def check_all_stores_stealth(self):
         # Logical-hour snapshot keys
         tz = self.timezone
@@ -489,7 +590,7 @@ class StealthStoreMonitor:
 
         all_results: List[Dict[str, Any]] = []
 
-        # GrabFood sweep (short delay, original method)
+        # GrabFood sweep
         if grab_stores:
             logger.info("🛒 Checking GrabFood stores (original method)...")
             for i, url in enumerate(grab_stores, 1):
@@ -498,7 +599,7 @@ class StealthStoreMonitor:
                 if i < len(grab_stores):
                     time.sleep(random.uniform(1, 3))
 
-        # Foodpanda sweep (stealth, bounded jitter)
+        # Foodpanda sweep (stealth)
         if foodp_stores:
             logger.info("🐼 Checking Foodpanda stores with stealth mode...")
             logger.info("   🔒 Using randomized headers, sessions, and timing")
@@ -552,9 +653,10 @@ class StealthStoreMonitor:
 
         return all_results
 
-    # ---------- Safe wrappers ----------
+    # Helper methods with proper naming
     def _check_single_store_safe_grabfood(self, url: str, index: int, total: int) -> Dict[str, Any]:
-        store_name = self._extract_store_name(url)
+        # Use proper name extraction
+        store_name = self.name_manager.extract_store_name_from_url(url)
         try:
             logger.info(f"   [{index}/{total}] Checking {store_name}...")
             result = self.check_store_simple_grabfood(url)
@@ -569,7 +671,7 @@ class StealthStoreMonitor:
                 StoreStatus.ERROR: "⚠️",
                 StoreStatus.UNKNOWN: "❓"
             }.get(result.status, "❓")
-            logger.info(f"      {emoji} {result.status.value.upper()} ({result.response_time}ms) 📡")
+            logger.info(f"      {emoji} {result.status.value.upper()} ({result.response_time}ms)")
             return {'url': url, 'name': store_name, 'result': result}
         except Exception as e:
             logger.error(f"   [{index}/{total}] Failed to check {store_name}: {e}")
@@ -579,7 +681,8 @@ class StealthStoreMonitor:
                     'result': CheckResult(StoreStatus.ERROR, 0, f"Check failed: {str(e)[:100]}", 0.1)}
 
     def _check_single_store_safe_foodpanda(self, url: str, index: int, total: int) -> Dict[str, Any]:
-        store_name = self._extract_store_name(url)
+        # Use proper name extraction
+        store_name = self.name_manager.extract_store_name_from_url(url)
         try:
             logger.info(f"   [{index}/{total}] Checking {store_name}...")
             result = self.check_store_stealth(url)
@@ -612,7 +715,6 @@ class StealthStoreMonitor:
         elif status == StoreStatus.ERROR: self.stats['errors'] += 1
         elif status == StoreStatus.UNKNOWN: self.stats['unknown'] += 1
 
-    # ---------- Admin alerts ----------
     def _check_and_send_admin_alerts(self, results: List[Dict[str, Any]]):
         try:
             problem_stores = []
@@ -620,7 +722,7 @@ class StealthStoreMonitor:
                 result = rd['result']
                 if result.status in [StoreStatus.BLOCKED, StoreStatus.UNKNOWN, StoreStatus.ERROR]:
                     url = rd['url']
-                    platform = 'foodpanda' if 'foodpanda' in url else 'grabfood' if 'grab.com' in url else 'unknown'
+                    platform = self.name_manager.get_platform_from_url(url)
                     problem_stores.append(ProblemStore(
                         name=rd['name'], url=url, status=result.status.value.upper(),
                         message=result.message or "No details available",
@@ -637,7 +739,6 @@ class StealthStoreMonitor:
         except Exception as e:
             logger.error(f"Error with admin alerts: {e}")
 
-    # ---------- DB saving via database.py helpers ----------
     def _save_all_results(self, results: List[Dict[str, Any]], effective_at: datetime, run_id: uuid.UUID):
         logger.info("💾 Saving results to database (hourly upserts via db)...")
 
@@ -651,8 +752,10 @@ class StealthStoreMonitor:
                 url = rd['url']
                 result: CheckResult = rd['result']
 
+                # Use proper platform detection
+                platform = self.name_manager.get_platform_from_url(url)
+                
                 store_id = db.get_or_create_store(store_name, url)
-                platform = 'foodpanda' if 'foodpanda' in url else 'grabfood' if 'grab.com' in url else 'unknown'
                 evidence = result.message or ""
 
                 db.upsert_store_status_hourly(
@@ -713,9 +816,7 @@ class StealthStoreMonitor:
         except Exception as e:
             logger.error(f"Error saving hourly summary: {e}")
 
-# ------------------------------------------------------------------------------
-# Signal handling
-# ------------------------------------------------------------------------------
+# Signal handling and main (same as before)
 def signal_handler(signum, frame):
     logger.info(f"🛑 Received signal {signum}, shutting down...")
     try:
@@ -723,13 +824,11 @@ def signal_handler(signum, frame):
     finally:
         sys.exit(0)
 
-# ------------------------------------------------------------------------------
-# Main
-# ------------------------------------------------------------------------------
 def main():
     logger.info("=" * 80)
-    logger.info("🕵️ CocoPan Anti-Detection Monitor - PRODUCTION READY")
-    logger.info("🎯 Target: All stores checked, ≤15 stealth-blocked")
+    logger.info("🕵️ CocoPan Anti-Detection Monitor - PRODUCTION READY (FIXED)")
+    logger.info("🎯 Target: Exactly 66 stores checked, ≤15 stealth-blocked")
+    logger.info("🔧 Fixed: Proper naming for all store types including redirects")
     logger.info("🔒 Advanced anti-detection: Headers, sessions, timing, behavior")
     logger.info("=" * 80)
 
@@ -746,6 +845,11 @@ def main():
         if not monitor.store_urls:
             logger.error("❌ No store URLs loaded!")
             sys.exit(1)
+        
+        if len(monitor.store_urls) != 66:
+            logger.error(f"❌ Expected exactly 66 stores, got {len(monitor.store_urls)}!")
+            logger.error("Run the database cleanup script first!")
+            sys.exit(1)
 
         # DB sanity + ensure hourly schema (idempotent)
         try:
@@ -761,7 +865,6 @@ def main():
             ph_tz = config.get_timezone()
             scheduler = BlockingScheduler(timezone=ph_tz)
 
-            # One hourly job at :00, safe overlap (max 2)
             def job_wrapper():
                 now_hour = config.get_current_time().hour
                 if config.is_monitor_time(now_hour):

@@ -112,7 +112,7 @@ st.markdown("""
     
     .btn-check {
         flex: 1;
-        background: #3B82F6;
+        background: white;
         color: white;
         border: none;
         border-radius: 8px;

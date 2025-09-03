@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT-SAFE DASHBOARD (v2.1)
+CocoPan Watchtower - CLIENT-SAFE DASHBOARD (v2.3 - FIXED REPORTS + MANILA TODAY)
 - Donut center shows ONLY uptime % (Online vs Offline); 'Stores Under Review' excluded
 - 'Stores Under Review' is its own category (neither Online nor Offline)
 - No verification/alarm wording
 - Platform cards: 'Grab stores' and 'Foodpanda stores' with offline counts
 - Platform cards positioned UNDER the Online/Offline/Under Review row
+- FIXED: Reports tab uptime cannot exceed 100% (excludes under-review from numerator and denominator)
+- FIXED: Uptime Analytics uses Manila "today" correctly
 """
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 # Import our production modules
@@ -95,7 +97,7 @@ def load_comprehensive_data():
             latest_status_query = """
                 SELECT 
                     s.id,
-                    s.name,
+                    COALESCE(s.name_override, s.name) AS name,
                     s.platform,
                     sc.is_online,
                     sc.checked_at,
@@ -117,20 +119,58 @@ def load_comprehensive_data():
             if not latest_status.empty:
                 latest_status['platform'] = latest_status['platform'].apply(standardize_platform_name)
 
+            # Daily uptime (Manila "today") excluding under-review on BOTH sides
             daily_uptime_query = """
                 SELECT 
                     s.id,
-                    s.name,
+                    COALESCE(s.name_override, s.name) AS name,
                     s.platform,
-                    COUNT(sc.id) AS total_checks,
-                    SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) AS online_checks,
-                    SUM(CASE WHEN sc.is_online = false THEN 1 ELSE 0 END) AS downtime_count,
-                    ROUND((SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id)), 1) AS uptime_percentage
+
+                    -- effective checks exclude 'under review'
+                    COUNT(sc.id) FILTER (
+                      WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
+                             OR  sc.error_message LIKE '[UNKNOWN]%%'
+                             OR  sc.error_message LIKE '[ERROR]%%')
+                    ) AS effective_checks,
+
+                    -- online/offline also exclude under-review
+                    SUM(CASE WHEN sc.is_online = true AND NOT (
+                              sc.error_message LIKE '[BLOCKED]%%'
+                           OR sc.error_message LIKE '[UNKNOWN]%%'
+                           OR sc.error_message LIKE '[ERROR]%%'
+                        ) THEN 1 ELSE 0 END) AS online_checks,
+
+                    SUM(CASE WHEN sc.is_online = false AND NOT (
+                              sc.error_message LIKE '[BLOCKED]%%'
+                           OR sc.error_message LIKE '[UNKNOWN]%%'
+                           OR sc.error_message LIKE '[ERROR]%%'
+                        ) THEN 1 ELSE 0 END) AS downtime_count,
+
+                    ROUND(
+                        (SUM(CASE WHEN sc.is_online = true AND NOT (
+                                  sc.error_message LIKE '[BLOCKED]%%'
+                               OR sc.error_message LIKE '[UNKNOWN]%%'
+                               OR sc.error_message LIKE '[ERROR]%%'
+                             ) THEN 1 ELSE 0 END)
+                         * 100.0 / NULLIF(
+                             COUNT(sc.id) FILTER (
+                               WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
+                                      OR  sc.error_message LIKE '[UNKNOWN]%%'
+                                      OR  sc.error_message LIKE '[ERROR]%%')
+                             ), 0)
+                        ), 1
+                    ) AS uptime_percentage
+
                 FROM stores s
                 LEFT JOIN status_checks sc ON s.id = sc.store_id 
-                  AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
-                GROUP BY s.id, s.name, s.platform
-                HAVING COUNT(sc.id) > 0
+                  AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')
+                      = DATE(timezone('Asia/Manila', now()))
+                GROUP BY s.id, s.name, s.name_override, s.platform
+                HAVING COUNT(sc.id) FILTER (
+                    WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
+                           OR  sc.error_message LIKE '[UNKNOWN]%%'
+                           OR  sc.error_message LIKE '[ERROR]%%')
+                ) > 0
                 ORDER BY uptime_percentage DESC
             """
             daily_uptime = pd.read_sql_query(daily_uptime_query, conn)
@@ -141,6 +181,78 @@ def load_comprehensive_data():
     except Exception as e:
         logger.error(f"Error loading data: {e}")
         return None, None, str(e)
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_reports_data(start_date, end_date):
+    """Load uptime data for specified date range, excluding under-review on BOTH sides."""
+    try:
+        with db.get_connection() as conn:
+            reports_query = """
+                SELECT 
+                    s.id,
+                    COALESCE(s.name_override, s.name) as name,
+                    s.platform,
+
+                    COUNT(sc.id) AS total_checks,
+
+                    -- counts for display (raw)
+                    SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) AS online_checks,
+                    SUM(CASE WHEN sc.error_message LIKE '[BLOCKED]%%' 
+                          OR  sc.error_message LIKE '[UNKNOWN]%%' 
+                          OR  sc.error_message LIKE '[ERROR]%%' THEN 1 ELSE 0 END) AS under_review_checks,
+
+                    -- effective denominator excludes under-review checks
+                    COUNT(sc.id) FILTER (
+                      WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
+                             OR  sc.error_message LIKE '[UNKNOWN]%%'
+                             OR  sc.error_message LIKE '[ERROR]%%')
+                    ) AS effective_checks,
+
+                    -- effective numerator excludes under-review checks
+                    SUM(CASE WHEN sc.is_online = true AND NOT (
+                              sc.error_message LIKE '[BLOCKED]%%'
+                           OR sc.error_message LIKE '[UNKNOWN]%%'
+                           OR sc.error_message LIKE '[ERROR]%%'
+                        ) THEN 1 ELSE 0 END) AS effective_online_checks,
+
+                    CASE 
+                        WHEN COUNT(sc.id) FILTER (
+                               WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
+                                      OR  sc.error_message LIKE '[UNKNOWN]%%'
+                                      OR  sc.error_message LIKE '[ERROR]%%')
+                             ) = 0 
+                        THEN NULL
+                        ELSE ROUND(
+                            (SUM(CASE WHEN sc.is_online = true AND NOT (
+                                      sc.error_message LIKE '[BLOCKED]%%'
+                                   OR sc.error_message LIKE '[UNKNOWN]%%'
+                                   OR sc.error_message LIKE '[ERROR]%%'
+                                 ) THEN 1 ELSE 0 END) * 100.0
+                             / NULLIF(
+                                 COUNT(sc.id) FILTER (
+                                   WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
+                                          OR  sc.error_message LIKE '[UNKNOWN]%%'
+                                          OR  sc.error_message LIKE '[ERROR]%%')
+                                 ), 0)
+                            ), 
+                            1
+                        )
+                    END as uptime_percentage
+
+                FROM stores s
+                LEFT JOIN status_checks sc ON s.id = sc.store_id
+                  AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
+                GROUP BY s.id, s.name, s.name_override, s.platform
+                ORDER BY s.name
+            """
+            reports_data = pd.read_sql_query(reports_query, conn, params=(start_date, end_date))
+            if not reports_data.empty:
+                reports_data['platform'] = reports_data['platform'].apply(standardize_platform_name)
+            return reports_data, None
+
+    except Exception as e:
+        logger.error(f"Error loading reports data: {e}")
+        return None, str(e)
 
 def create_donut(online_count: int, offline_count: int):
     """Donut with only percentage text inside (no caption)."""
@@ -171,7 +283,7 @@ def create_donut(online_count: int, offline_count: int):
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         legend=dict(
-            orientation="h",
+            orientation="h",   # Plotly expects 'h' or 'v'
             yanchor="bottom",
             y=-0.08,
             xanchor="center",
@@ -265,8 +377,8 @@ def main():
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Tabs (with 'Under Review' filter)
-    tab1, tab2, tab3 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events"])
+    # Tabs (with 'Under Review' filter + new Reports tab)
+    tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports"])
 
     with tab1:
         st.markdown(f"""
@@ -378,7 +490,7 @@ def main():
                         return f"🔴 {u:.1f}%"
 
                 disp['Uptime'] = [fmt_u(u) for u in filt['uptime_percentage']]
-                disp['Total Checks'] = filt['total_checks'].astype(str)
+                disp['Total Checks'] = filt['effective_checks'].astype(str)
                 disp['Times Down'] = filt['downtime_count'].astype(str)
 
                 sort_vals = filt['uptime_percentage'].astype(float)
@@ -409,7 +521,10 @@ def main():
                     FROM stores s
                     INNER JOIN status_checks sc ON s.id = sc.store_id
                     WHERE sc.is_online = false 
-                      AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
+                      AND NOT (sc.error_message LIKE '[BLOCKED]%%'
+                           OR  sc.error_message LIKE '[UNKNOWN]%%'
+                           OR  sc.error_message LIKE '[ERROR]%%')
+                      AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = DATE(timezone('Asia/Manila', now()))
                     GROUP BY s.id, s.name, s.platform
                     ORDER BY downtime_events DESC
                 """
@@ -434,7 +549,7 @@ def main():
                 data = data[data['platform'] == pf]
 
             if len(data) == 0:
-                st.info(f"No downtime events for {pf}.")
+                st.info(f"📊 No downtime events for {pf} today ({last_check_time.strftime('%B %d, %Y')}).")
             else:
                 disp = pd.DataFrame()
                 disp['Branch'] = data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
@@ -466,6 +581,153 @@ def main():
                     disp['Last Offline'] = '—'
 
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
+
+    with tab4:
+        st.markdown(f"""
+        <div class="section-header">
+            <div class="section-title">Store Uptime Reports</div>
+            <div class="section-subtitle">Historical uptime analysis for any date range • Excludes Under Review periods</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Date range selector with default last 7 days (use Manila time)
+        st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([2, 2, 1])
+        ph_now = config.get_current_time()
+
+        with col1:
+            default_start = (ph_now - timedelta(days=7)).date()
+            start_date = st.date_input(
+                "Start Date",
+                value=default_start,
+                key="reports_start_date"
+            )
+        with col2:
+            default_end = ph_now.date()
+            end_date = st.date_input(
+                "End Date", 
+                value=default_end,
+                key="reports_end_date"
+            )
+        with col3:
+            st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+            generate_report = st.button("📊 Generate Report", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Validate date range
+        if start_date > end_date:
+            st.error("❌ Start date must be before end date")
+        elif start_date == end_date == ph_now.date():
+            st.info("💡 Tip: Select a date range of at least 2-3 days for meaningful uptime analysis")
+        else:
+            # Load and display reports data
+            reports_data, error = load_reports_data(start_date, end_date)
+            
+            if error:
+                st.error(f"Error loading reports data: {error}")
+            elif reports_data is None or reports_data.empty:
+                st.info("📭 No data available for the selected date range")
+            else:
+                # Calculate summary stats
+                total_stores = len(reports_data)
+                stores_with_data = int((reports_data['effective_checks'] > 0).sum())
+                stores_no_data = total_stores - stores_with_data
+                avg_uptime = reports_data['uptime_percentage'].dropna().mean() if stores_with_data > 0 else 0.0
+                
+                # Summary metrics
+                st.markdown("### 📊 Report Summary")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Date Range", f"{(end_date - start_date).days + 1} days")
+                with col2:
+                    st.metric("Stores with Data", f"{stores_with_data}/{total_stores}")
+                with col3:
+                    st.metric("Average Uptime", f"{avg_uptime:.1f}%" if stores_with_data > 0 else "N/A")
+                with col4:
+                    st.metric("Period", f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d')}")
+
+                # Platform filter
+                st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+                r1, r2 = st.columns(2)
+                with r1:
+                    available_platforms = sorted(reports_data['platform'].dropna().unique())
+                    platform_options = ["All Platforms"] + available_platforms
+                    platform_filter_reports = st.selectbox("Filter by Platform:", platform_options, key="reports_platform_filter")
+                with r2:
+                    sort_options = ["Uptime (High to Low)", "Uptime (Low to High)", "Store Name (A-Z)", "Platform"]
+                    sort_order = st.selectbox("Sort by:", sort_options, key="reports_sort_order")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                # Filter data
+                filtered_data = reports_data.copy()
+                if platform_filter_reports != "All Platforms":
+                    filtered_data = filtered_data[filtered_data['platform'] == platform_filter_reports]
+
+                # Prepare display data
+                display_data = pd.DataFrame()
+                display_data['Branch'] = filtered_data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
+                display_data['Platform'] = filtered_data['platform']
+                
+                # Format uptime with color coding
+                uptime_formatted = []
+                for _, row in filtered_data.iterrows():
+                    if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
+                        uptime_formatted.append("📊 No Data")
+                    else:
+                        uptime = float(row['uptime_percentage'])
+                        if uptime >= 95:
+                            uptime_formatted.append(f"🟢 {uptime:.1f}%")
+                        elif uptime >= 80:
+                            uptime_formatted.append(f"🟡 {uptime:.1f}%")
+                        else:
+                            uptime_formatted.append(f"🔴 {uptime:.1f}%")
+                display_data['Uptime'] = uptime_formatted
+                
+                # Sort data
+                if sort_order == "Uptime (High to Low)":
+                    sort_values = []
+                    for _, row in filtered_data.iterrows():
+                        if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
+                            sort_values.append(-1)  # No data goes to end
+                        else:
+                            sort_values.append(float(row['uptime_percentage']))
+                    display_data['sort_helper'] = sort_values
+                    display_data = display_data.sort_values('sort_helper', ascending=False).drop('sort_helper', axis=1)
+                elif sort_order == "Uptime (Low to High)":
+                    sort_values = []
+                    for _, row in filtered_data.iterrows():
+                        if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
+                            sort_values.append(999)  # No data goes to end
+                        else:
+                            sort_values.append(float(row['uptime_percentage']))
+                    display_data['sort_helper'] = sort_values
+                    display_data = display_data.sort_values('sort_helper', ascending=True).drop('sort_helper', axis=1)
+                elif sort_order == "Store Name (A-Z)":
+                    display_data = display_data.sort_values('Branch')
+                elif sort_order == "Platform":
+                    display_data = display_data.sort_values(['Platform', 'Branch'])
+
+                # Display the table
+                st.markdown("### 📈 Store Uptime Report")
+                if len(display_data) == 0:
+                    st.info(f"No stores found for {platform_filter_reports}")
+                else:
+                    st.dataframe(display_data, use_container_width=True, hide_index=True, height=420)
+                    st.markdown("**Legend:** 🟢 Excellent (≥95%) • 🟡 Good (80-94%) • 🔴 Needs Attention (<80%) • 📊 No Data Available")
+
+                    # Quick insights
+                    if stores_with_data > 0:
+                        high_performers = int(((filtered_data['uptime_percentage'] >= 95) & filtered_data['uptime_percentage'].notna()).sum())
+                        low_performers = int(((filtered_data['uptime_percentage'] < 80) & filtered_data['uptime_percentage'].notna()).sum())
+                        st.markdown("### 📋 Quick Insights")
+                        insight_col1, insight_col2, insight_col3 = st.columns(3)
+                        with insight_col1:
+                            st.markdown(f"**🟢 High Performers:** {high_performers} stores (≥95% uptime)")
+                        with insight_col2:
+                            st.markdown(f"**🔴 Need Attention:** {low_performers} stores (<80% uptime)")
+                        with insight_col3:
+                            if stores_no_data > 0:
+                                st.markdown(f"**📊 No Data:** {stores_no_data} stores (no activity in period)")
 
 if __name__ == "__main__":
     try:
