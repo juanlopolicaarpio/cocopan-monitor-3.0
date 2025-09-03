@@ -42,7 +42,7 @@
       "subject_prefix": "🚨 CocoPan Admin Alert",
       "priority": "high",
       "include_dashboard_link": true,
-      "dashboard_url": "http://localhost:8501/admin"
+      "dashboard_url": "http://localhost:8502"
     },
     
     "templates": {
