@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-CocoPan Monitor Service - GRABFOOD ONLY VERSION
-✅ ONLY monitors GrabFood stores (~24 stores)
-✅ NO Foodpanda scraping (VA handles via admin dashboard)
-✅ Filters branch_urls.json to only process grab.com URLs
-✅ Simple, reliable monitoring without anti-detection complexity
-✅ Integrates with VA check-in data for unified 66-store view
+CocoPan Monitor Service - COMPLETE VERSION WITH ALL FIXES
+✅ 145 stores total (70 GrabFood + 75 Foodpanda)
+✅ 15-minute early scheduling with retry logic
+✅ Calm, friendly verification alerts (no alarms)
+✅ Client email alerts after every check
+✅ Production-ready with proper error handling
 """
 import os
 import json
@@ -46,6 +46,13 @@ try:
     HAS_ADMIN_ALERTS = True
 except ImportError:
     HAS_ADMIN_ALERTS = False
+
+# Client alerts (optional)
+try:
+    from client_alerts import client_alerts, StoreAlert
+    HAS_CLIENT_ALERTS = True
+except ImportError:
+    HAS_CLIENT_ALERTS = False
 
 # ------------------------------------------------------------------------------
 # Logging
@@ -149,7 +156,7 @@ class StoreNameManager:
 # Simple GrabFood Monitor
 # ------------------------------------------------------------------------------
 class GrabFoodMonitor:
-    """Simple, reliable GrabFood store monitor without anti-detection complexity"""
+    """Simple, reliable GrabFood store monitor with chill alerts"""
     
     def __init__(self):
         self.store_urls = self._load_grabfood_urls()
@@ -168,7 +175,9 @@ class GrabFoodMonitor:
         logger.info(f"   📋 {len(self.store_urls)} GrabFood stores to monitor")
         
         if HAS_ADMIN_ALERTS:
-            logger.info(f"   📧 Admin alerts enabled")
+            logger.info(f"   📧 Admin alerts enabled (friendly reminders)")
+        if HAS_CLIENT_ALERTS:
+            logger.info(f"   📬 Client alerts enabled (business notifications)")
 
     def _load_grabfood_urls(self):
         """Load ONLY GrabFood URLs from branch_urls.json"""
@@ -179,10 +188,11 @@ class GrabFoodMonitor:
                 
                 # Filter to only GrabFood URLs
                 grabfood_urls = [url for url in all_urls if 'grab.com' in url]
+                foodpanda_urls = [url for url in all_urls if 'foodpanda' in url]
                 
                 logger.info(f"📋 Loaded {len(all_urls)} total URLs from {config.STORE_URLS_FILE}")
                 logger.info(f"🛒 Filtered to {len(grabfood_urls)} GrabFood URLs")
-                logger.info(f"🐼 Skipping {len(all_urls) - len(grabfood_urls)} Foodpanda URLs (handled by VA)")
+                logger.info(f"🐼 Skipping {len(foodpanda_urls)} Foodpanda URLs (handled by VA)")
                 
                 return grabfood_urls
                 
@@ -287,8 +297,8 @@ class GrabFoodMonitor:
             response_time = int((time.time() - start_time) * 1000)
             return CheckResult(StoreStatus.ERROR, response_time, f"Error: {str(e)[:50]}", 0.2)
 
-    def check_all_grabfood_stores(self):
-        """Check all GrabFood stores and save results"""
+    def check_all_grabfood_stores_with_retries(self):
+        """Check all GrabFood stores with retry logic for blocked stores"""
         
         # Logical-hour snapshot keys
         tz = self.timezone
@@ -299,32 +309,101 @@ class GrabFoodMonitor:
             'cycle_start': datetime.now(),
             'cycle_end': None,
             'total_stores': len(self.store_urls),
-            'checked': 0, 'online': 0, 'offline': 0, 'blocked': 0, 'errors': 0, 'unknown': 0
+            'checked': 0, 'online': 0, 'offline': 0, 'blocked': 0, 'errors': 0, 'unknown': 0,
+            'retries': 0, 'retry_successes': 0
         }
 
         current_time = config.get_current_time()
-        logger.info(f"🛒 GRABFOOD MONITORING at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        logger.info(f"📋 Checking {len(self.store_urls)} GrabFood stores only")
-        logger.info(f"🐼 Foodpanda stores handled by VA check-in system")
+        target_hour = effective_at.hour
+        logger.info(f"🛒 GRABFOOD EARLY MONITORING at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logger.info(f"📋 Checking {len(self.store_urls)} GrabFood stores (target hour: {target_hour}:00)")
+        logger.info(f"🔄 Will retry blocked stores until {target_hour}:00")
 
         all_results: List[Dict[str, Any]] = []
+        blocked_stores: List[str] = []
 
-        # Check all GrabFood stores
+        # First pass - check all stores
         for i, url in enumerate(self.store_urls, 1):
             result = self._check_single_store_safe(url, i, len(self.store_urls))
             if result:
                 all_results.append(result)
+                if result['result'].status == StoreStatus.BLOCKED:
+                    blocked_stores.append(url)
             
             # Simple delay between requests
             if i < len(self.store_urls):
                 time.sleep(random.uniform(1, 3))
 
+        # Retry logic for blocked stores
+        retry_round = 1
+        max_retry_rounds = 5
+        
+        while blocked_stores and retry_round <= max_retry_rounds:
+            current_time = config.get_current_time()
+            minutes_remaining = 60 - current_time.minute
+            
+            # Stop retrying if we're past the target hour
+            if current_time.hour != target_hour and current_time.minute >= 0:
+                logger.info(f"⏰ Reached target hour {target_hour}:00, stopping retries")
+                break
+            
+            # Only retry if we have at least 5 minutes left
+            if minutes_remaining < 5:
+                logger.info(f"⏰ Only {minutes_remaining} minutes until {target_hour}:00, stopping retries")
+                break
+
+            logger.info(f"🔄 Retry round {retry_round}: {len(blocked_stores)} blocked stores")
+            
+            # Wait before retrying
+            retry_delay = min(180, 60 * retry_round)  # 1-3 minutes based on round
+            logger.info(f"   ⏱️ Waiting {retry_delay} seconds before retry...")
+            time.sleep(retry_delay)
+            
+            newly_unblocked = []
+            still_blocked = []
+            
+            for url in blocked_stores:
+                logger.info(f"   🔄 Retrying blocked store: {url}")
+                
+                # Find and update the result for this URL
+                for i, result_data in enumerate(all_results):
+                    if result_data['url'] == url:
+                        retry_result = self._check_single_store_safe(url, retry_round, len(blocked_stores), is_retry=True)
+                        if retry_result:
+                            self.stats['retries'] += 1
+                            
+                            if retry_result['result'].status != StoreStatus.BLOCKED:
+                                # Success! Update the result
+                                all_results[i] = retry_result
+                                newly_unblocked.append(url)
+                                self.stats['retry_successes'] += 1
+                                logger.info(f"   ✅ Retry successful: {retry_result['name']} now {retry_result['result'].status.value}")
+                            else:
+                                still_blocked.append(url)
+                                logger.info(f"   🚫 Still blocked: {retry_result['name']}")
+                        break
+                
+                time.sleep(random.uniform(2, 5))  # Delay between retry attempts
+            
+            blocked_stores = still_blocked
+            retry_round += 1
+            
+            if newly_unblocked:
+                logger.info(f"   🎉 Unblocked {len(newly_unblocked)} stores in round {retry_round-1}")
+
+        # Final status update
+        if blocked_stores:
+            logger.warning(f"🚫 {len(blocked_stores)} stores remain blocked after retries")
+
+        # Send client alerts BEFORE saving to database
+        self._send_client_alerts(all_results)
+
         # Save results
         self._save_all_results(all_results, effective_at, run_id)
 
-        # Admin alerts for blocked/error stores (optional)
+        # Admin alerts for blocked/error stores (friendly reminders)
         if HAS_ADMIN_ALERTS:
-            self._check_and_send_admin_alerts(all_results)
+            self._send_friendly_admin_alerts(all_results)
 
         # Final stats
         self.stats['cycle_end'] = datetime.now()
@@ -340,31 +419,26 @@ class GrabFoodMonitor:
         logger.info(f"   🚫 Blocked: {self.stats['blocked']}")
         logger.info(f"   ⚠️ Errors: {self.stats['errors']}")
         logger.info(f"   ❓ Unknown: {self.stats['unknown']}")
-        
-        # Show blocked stores if any
-        blocked_stores = [r for r in all_results if r['result'].status == StoreStatus.BLOCKED]
-        if blocked_stores:
-            logger.warning(f"🚫 {len(blocked_stores)} GrabFood stores blocked:")
-            for store in blocked_stores[:5]:
-                logger.warning(f"   • {store['name']}: {store['result'].message}")
-            if len(blocked_stores) > 5:
-                logger.warning(f"   ... and {len(blocked_stores) - 5} more")
-        
-        logger.info(f"🐼 Foodpanda stores ({66 - len(self.store_urls)} stores) managed by VA check-in")
-        logger.info("📊 Combined data from GrabFood + VA check-in visible in client dashboard")
+        logger.info(f"   🔄 Retries: {self.stats['retries']} (successes: {self.stats['retry_successes']})")
 
         return all_results
 
-    def _check_single_store_safe(self, url: str, index: int, total: int) -> Dict[str, Any]:
+    def check_all_grabfood_stores(self):
+        """Legacy method - calls the new retry version"""
+        return self.check_all_grabfood_stores_with_retries()
+
+    def _check_single_store_safe(self, url: str, index: int, total: int, is_retry: bool = False) -> Dict[str, Any]:
         """Check single store with proper error handling"""
         store_name = self.name_manager.extract_store_name_from_url(url)
         
         try:
-            logger.info(f"   [{index}/{total}] Checking {store_name}...")
+            retry_text = " (retry)" if is_retry else ""
+            logger.info(f"   [{index}/{total}] Checking {store_name}{retry_text}...")
             result = self.check_grabfood_store(url)
 
-            self.stats['checked'] += 1
-            self._bump_stats(result.status)
+            if not is_retry:  # Only update stats for initial checks
+                self.stats['checked'] += 1
+                self._bump_stats(result.status)
 
             emoji = {
                 StoreStatus.ONLINE: "🟢",
@@ -382,8 +456,9 @@ class GrabFoodMonitor:
             
         except Exception as e:
             logger.error(f"   [{index}/{total}] Failed to check {store_name}: {e}")
-            self.stats['checked'] += 1
-            self.stats['errors'] += 1
+            if not is_retry:
+                self.stats['checked'] += 1
+                self.stats['errors'] += 1
             return {'url': url, 'name': store_name,
                     'result': CheckResult(StoreStatus.ERROR, 0, f"Check failed: {str(e)[:100]}", 0.1)}
 
@@ -400,8 +475,46 @@ class GrabFoodMonitor:
         elif status == StoreStatus.UNKNOWN:
             self.stats['unknown'] += 1
 
-    def _check_and_send_admin_alerts(self, results: List[Dict[str, Any]]):
-        """Send admin alerts for problematic stores"""
+    def _send_client_alerts(self, results: List[Dict[str, Any]]):
+        """Send email alerts to clients about offline stores"""
+        try:
+            if not HAS_CLIENT_ALERTS:
+                logger.debug("Client alerts module not available")
+                return
+
+            offline_stores = []
+            for rd in results:
+                result = rd['result']
+                if result.status == StoreStatus.OFFLINE:
+                    platform = self.name_manager.get_platform_from_url(rd['url'])
+                    platform_name = "GrabFood" if platform == "grabfood" else "Unknown"
+                    
+                    offline_stores.append(StoreAlert(
+                        name=rd['name'],
+                        platform=platform_name,
+                        status="OFFLINE",
+                        last_check=datetime.now(self.timezone)
+                    ))
+            
+            total_stores = len(results)
+            
+            if offline_stores:
+                logger.info(f"📧 Sending client alerts for {len(offline_stores)} offline stores")
+                success = client_alerts.send_hourly_status_alert(offline_stores, total_stores)
+                if success:
+                    logger.info("✅ Client alerts sent successfully")
+                else:
+                    logger.warning("⚠️ Client alerts failed or skipped")
+            else:
+                logger.info("📧 All stores online - sending positive status update")
+                # Send positive update when all stores are online
+                success = client_alerts.send_hourly_status_alert([], total_stores)
+                
+        except Exception as e:
+            logger.error(f"Error sending client alerts: {e}")
+
+    def _send_friendly_admin_alerts(self, results: List[Dict[str, Any]]):
+        """Send friendly, calm admin alerts for verification needs"""
         try:
             problem_stores = []
             for rd in results:
@@ -413,22 +526,22 @@ class GrabFoodMonitor:
                         name=rd['name'], 
                         url=url, 
                         status=result.status.value.upper(),
-                        message=result.message or "No details available",
+                        message=result.message or "Routine verification needed",
                         response_time=result.response_time, 
                         platform=platform
                     ))
             
             if problem_stores:
-                logger.info(f"🚨 Found {len(problem_stores)} GrabFood stores needing admin attention")
+                logger.info(f"📋 Found {len(problem_stores)} GrabFood stores for routine verification")
                 success = admin_alerts.send_manual_verification_alert(problem_stores)
                 if success:
-                    logger.info("✅ Admin alert sent successfully")
+                    logger.info("✅ Friendly admin reminder sent")
                 else:
-                    logger.warning("⚠️ Failed to send admin alert")
+                    logger.debug("⚠️ Admin reminder skipped (cooldown or disabled)")
                     
-            # Bot detection alert for too many blocked stores
+            # Only send bot detection for excessive blocking (adjust threshold)
             blocked_count = sum(1 for r in results if r['result'].status == StoreStatus.BLOCKED)
-            if blocked_count >= 3:
+            if blocked_count >= 5:  # Higher threshold for less alarm
                 admin_alerts.send_bot_detection_alert(blocked_count)
                 
         except Exception as e:
@@ -496,9 +609,6 @@ class GrabFoodMonitor:
             errors = sum(1 for r in results if r['result'].status == StoreStatus.ERROR)
             unknown = sum(1 for r in results if r['result'].status == StoreStatus.UNKNOWN)
 
-            # Note: This saves only GrabFood summary. VA check-in saves Foodpanda data separately
-            # The client dashboard combines both data sources for unified view
-            
             logger.info(f"✅ Saved {saved_count}/{len(results)} GrabFood hourly rows")
             if error_count > 0:
                 logger.warning(f"   ⚠️ {error_count} database errors")
@@ -520,10 +630,11 @@ def signal_handler(signum, frame):
 def main():
     """Main entry point"""
     logger.info("=" * 80)
-    logger.info("🛒 CocoPan GrabFood Monitor - PRODUCTION READY")
-    logger.info("🎯 Target: Monitor ~24 GrabFood stores only")
-    logger.info("🐼 Foodpanda: Handled by VA hourly check-in system")
-    logger.info("📊 Combined: 66-store unified view in client dashboard")
+    logger.info("🛒 CocoPan GrabFood Monitor - COMPLETE PRODUCTION VERSION")
+    logger.info("🎯 Features: 145 stores, 15-min early start, calm alerts, client emails")
+    logger.info("🎯 Target: Monitor 70 GrabFood stores with retry logic")
+    logger.info("🐼 Foodpanda: Handled by VA hourly check-in system (75 stores)")
+    logger.info("📊 Combined: 145-store unified view in client dashboard")
     logger.info("=" * 80)
 
     if not config.validate_timezone():
@@ -549,36 +660,38 @@ def main():
         except Exception as e:
             logger.warning(f"⚠️ Database issue: {e}")
 
-        # Scheduler
+        # Scheduler - FIXED: Runs at :45 minutes for 15-minute early start
         if HAS_SCHEDULER:
             ph_tz = config.get_timezone()
             scheduler = BlockingScheduler(timezone=ph_tz)
 
-            def job_wrapper():
+            def early_check_job():
+                """Start checking at :45 to give time for retries"""
                 now_hour = config.get_current_time().hour
                 if config.is_monitor_time(now_hour):
-                    monitor.check_all_grabfood_stores()
+                    monitor.check_all_grabfood_stores_with_retries()
                 else:
                     logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
 
+            # FIXED: Schedule at :45 minutes past each hour for 15-minute early start
             scheduler.add_job(
-                func=job_wrapper,
-                trigger=CronTrigger(minute=0, timezone=ph_tz),
-                id='hourly_grabfood_check',
+                func=early_check_job,
+                trigger=CronTrigger(minute=45, timezone=ph_tz),
+                id='early_grabfood_check',
                 max_instances=1,
                 coalesce=True,
-                misfire_grace_time=900
+                misfire_grace_time=300
             )
 
-            logger.info(f"⏰ Scheduled GrabFood checks at the top of every hour ({config.MONITOR_START_HOUR}:00–{config.MONITOR_END_HOUR}:00)")
+            logger.info(f"⏰ Scheduled GrabFood checks at :45 past each hour ({config.MONITOR_START_HOUR}:45–{config.MONITOR_END_HOUR}:45) for early completion")
             logger.info("🔍 Running initial GrabFood check...")
             
             try:
-                job_wrapper()
+                early_check_job()
             except Exception as e:
                 logger.error(f"Initial check error: {e}")
 
-            logger.info("✅ GrabFood monitoring active!")
+            logger.info("✅ GrabFood monitoring active with 15-minute early scheduling!")
             scheduler.start()
 
         else:
@@ -587,7 +700,7 @@ def main():
                 try:
                     now_hour = config.get_current_time().hour
                     if config.is_monitor_time(now_hour):
-                        monitor.check_all_grabfood_stores()
+                        monitor.check_all_grabfood_stores_with_retries()
                     else:
                         logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
                     time.sleep(3600)  # Sleep for 1 hour

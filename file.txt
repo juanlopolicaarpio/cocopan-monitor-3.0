@@ -1,0 +1,9 @@
+# Enable alerts
+ALERTS_ENABLED=true
+# Gmail setup (easiest)
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=cocopanmonitor@gmail.com
+SMTP_PASSWORD=jnkg xhma czpm qsuy
+  # From Google Account Security
+FROM_EMAIL=cocopanmonitor@gmail.com
