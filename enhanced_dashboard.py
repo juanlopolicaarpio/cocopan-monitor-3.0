@@ -1,23 +1,67 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT-SAFE DASHBOARD (v2.3 - FIXED REPORTS + MANILA TODAY)
-- Donut center shows ONLY uptime % (Online vs Offline); 'Stores Under Review' excluded
-- 'Stores Under Review' is its own category (neither Online nor Offline)
-- No verification/alarm wording
-- Platform cards: 'Grab stores' and 'Foodpanda stores' with offline counts
-- Platform cards positioned UNDER the Online/Offline/Under Review row
-- FIXED: Reports tab uptime cannot exceed 100% (excludes under-review from numerator and denominator)
-- FIXED: Uptime Analytics uses Manila "today" correctly
+CocoPan Watchtower - CLIENT DASHBOARD with EMAIL AUTH & CSV EXPORT
+- Email-only authentication using client_alerts.json
+- CSV export with metadata for reports
+- Unified view of GrabFood (automated) + Foodpanda (VA check-in) data
+- DESIGN UNCHANGED - only enhanced functionality
 """
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import logging
+import json
+import io
+import csv
+import os
 
 # Import our production modules
 from config import config
 from database import db
+
+# Health check endpoint for Railway
+import threading
+import http.server
+import socketserver
+from urllib.parse import urlparse
+
+def create_health_server():
+    """Create a simple health check server"""
+    class HealthHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/healthz':
+                try:
+                    # Quick database check
+                    db.get_database_stats()
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(b'OK - Client Dashboard Healthy')
+                except Exception as e:
+                    self.send_response(500)
+                    self.send_header('Content-type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(f'ERROR - {str(e)}'.encode())
+            else:
+                self.send_response(404)
+                self.end_headers()
+        
+        def log_message(self, format, *args):
+            # Suppress health check logs
+            pass
+    
+    try:
+        port = 8503  # Different port for health checks
+        with socketserver.TCPServer(("", port), HealthHandler) as httpd:
+            httpd.serve_forever()
+    except Exception as e:
+        logger.debug(f"Health server error: {e}")
+
+# Start health check server in background
+if os.getenv('RAILWAY_ENVIRONMENT') == 'production':
+    health_thread = threading.Thread(target=create_health_server, daemon=True)
+    health_thread.start()
 
 # Set page config
 st.set_page_config(
@@ -31,7 +75,78 @@ st.set_page_config(
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
-# ----------- STYLES -------------
+# ----------- EMAIL AUTHENTICATION -----------
+def load_authorized_emails():
+    """Load authorized client emails from client_alerts.json"""
+    try:
+        with open('client_alerts.json', 'r') as f:
+            data = json.load(f)
+            
+        # Extract all client emails from all client groups
+        authorized_emails = []
+        clients = data.get('clients', {})
+        
+        for client_group in clients.values():
+            if client_group.get('enabled', False):
+                emails = client_group.get('emails', [])
+                # Filter out empty strings
+                authorized_emails.extend([email.strip() for email in emails if email.strip()])
+        
+        logger.info(f"✅ Loaded {len(authorized_emails)} authorized client emails")
+        return authorized_emails
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to load client emails: {e}")
+        # Fallback to ensure system works
+        return ["juanlopolicarpio@gmail.com"]
+
+def check_email_authentication():
+    """Check if user is authenticated via email"""
+    authorized_emails = load_authorized_emails()
+    
+    if 'client_authenticated' not in st.session_state:
+        st.session_state.client_authenticated = False
+        st.session_state.client_email = None
+    
+    if not st.session_state.client_authenticated:
+        # Show email authentication form
+        st.markdown("""
+        <div style="max-width: 400px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="text-align: center; color: #1E293B; margin-bottom: 1.5rem;">
+                🏢 CocoPan Watchtower Access
+            </h2>
+            <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem;">
+                Enter your authorized email address to access the dashboard
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("email_auth_form"):
+            email = st.text_input(
+                "Email Address", 
+                placeholder="your.email@company.com",
+                help="Enter your authorized email address"
+            )
+            submit = st.form_submit_button("Access Dashboard", use_container_width=True)
+            
+            if submit:
+                email = email.strip().lower()
+                
+                if email in [auth_email.lower() for auth_email in authorized_emails]:
+                    st.session_state.client_authenticated = True
+                    st.session_state.client_email = email
+                    logger.info(f"✅ Client authenticated: {email}")
+                    st.success("✅ Access granted! Redirecting...")
+                    st.rerun()
+                else:
+                    st.error("❌ Email not authorized. Please contact your administrator.")
+                    logger.warning(f"❌ Unauthorized access attempt: {email}")
+        
+        return False
+    
+    return True
+
+# ----------- STYLES (unchanged) -----------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -65,12 +180,15 @@ st.markdown("""
     .chart-container { background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:.75rem; box-shadow:0 1px 3px rgba(0,0,0,.06); }
 
     .filter-container { background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem; margin-bottom:.9rem; }
+    
+    .csv-download-container { background: #EBF8FF; border: 1px solid #3B82F6; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+    .csv-download-button { background: #3B82F6 !important; color: white !important; border: none !important; }
+    
     @media (max-width: 768px){ h1{font-size:1.9rem !important;} .main>div{padding:1rem;} }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------- HELPERS -------------
-
+# ----------- HELPERS (unchanged) -----------
 def standardize_platform_name(platform_value):
     if pd.isna(platform_value):
         return "Unknown"
@@ -91,7 +209,7 @@ def is_under_review(error_message: str) -> bool:
 
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
 def load_comprehensive_data():
-    """Load data without exposing verification to UI."""
+    """Load unified data (GrabFood automated + Foodpanda VA check-ins)"""
     try:
         with db.get_connection() as conn:
             latest_status_query = """
@@ -99,6 +217,7 @@ def load_comprehensive_data():
                     s.id,
                     COALESCE(s.name_override, s.name) AS name,
                     s.platform,
+                    s.url,
                     sc.is_online,
                     sc.checked_at,
                     sc.response_time_ms,
@@ -192,6 +311,7 @@ def load_reports_data(start_date, end_date):
                     s.id,
                     COALESCE(s.name_override, s.name) as name,
                     s.platform,
+                    s.url,
 
                     COUNT(sc.id) AS total_checks,
 
@@ -242,7 +362,7 @@ def load_reports_data(start_date, end_date):
                 FROM stores s
                 LEFT JOIN status_checks sc ON s.id = sc.store_id
                   AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
-                GROUP BY s.id, s.name, s.name_override, s.platform
+                GROUP BY s.id, s.name, s.name_override, s.platform, s.url
                 ORDER BY s.name
             """
             reports_data = pd.read_sql_query(reports_query, conn, params=(start_date, end_date))
@@ -253,6 +373,58 @@ def load_reports_data(start_date, end_date):
     except Exception as e:
         logger.error(f"Error loading reports data: {e}")
         return None, str(e)
+
+# ----------- CSV EXPORT FUNCTIONALITY -----------
+#def create_csv_download(data, start_date, end_date, platform_filter, user_email):
+    """Create CSV file with metadata for download"""
+    try:
+        # Create a string buffer
+        output = io.StringIO()
+        
+        # Write metadata header
+        output.write("# CocoPan Watchtower - Store Uptime Report\n")
+        output.write(f"# Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} Manila Time\n")
+        output.write(f"# Generated by: {user_email}\n")
+        output.write(f"# Date Range: {start_date} to {end_date}\n")
+        output.write(f"# Platform Filter: {platform_filter}\n")
+        output.write(f"# Total Stores: {len(data)}\n")
+        output.write("#\n")
+        output.write("# Legend:\n")
+        output.write("# - Uptime % calculated excluding 'Under Review' periods\n")
+        output.write("# - Under Review = Technical issues (BLOCKED/ERROR/UNKNOWN)\n")
+        output.write("# - Effective Checks = Total checks minus Under Review periods\n")
+        output.write("#\n\n")
+        
+        # Prepare data for CSV
+        csv_data = []
+        for _, row in data.iterrows():
+            csv_row = {
+                'Store Name': row['name'].replace('Cocopan - ', '').replace('Cocopan ', ''),
+                'Platform': row['platform'],
+                'Uptime Percentage': f"{row['uptime_percentage']:.1f}%" if pd.notna(row['uptime_percentage']) else "No Data",
+                'Total Checks': row['total_checks'],
+                'Effective Checks': row['effective_checks'],
+                'Online Checks': row['effective_online_checks'],
+                'Under Review Checks': row['under_review_checks'],
+                'Store URL': row['url']
+            }
+            csv_data.append(csv_row)
+        
+        # Write CSV data
+        if csv_data:
+            writer = csv.DictWriter(output, fieldnames=csv_data[0].keys())
+            writer.writeheader()
+            writer.writerows(csv_data)
+        
+        # Get the CSV content
+        csv_content = output.getvalue()
+        output.close()
+        
+        return csv_content
+        
+    except Exception as e:
+        logger.error(f"Error creating CSV: {e}")
+        return None
 
 def create_donut(online_count: int, offline_count: int):
     """Donut with only percentage text inside (no caption)."""
@@ -283,7 +455,7 @@ def create_donut(online_count: int, offline_count: int):
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         legend=dict(
-            orientation="h",   # Plotly expects 'h' or 'v'
+            orientation="h",
             yanchor="bottom",
             y=-0.08,
             xanchor="center",
@@ -306,9 +478,20 @@ def get_last_check_time(latest_status):
     except Exception:
         return config.get_current_time()
 
-# ----------- APP -------------
-
+# ----------- MAIN APP -----------
 def main():
+    # Check email authentication first
+    if not check_email_authentication():
+        return
+    
+    # Show user info in sidebar
+    with st.sidebar:
+        st.markdown(f"**Logged in as:**\n{st.session_state.client_email}")
+        if st.button("Logout"):
+            st.session_state.client_authenticated = False
+            st.session_state.client_email = None
+            st.rerun()
+    
     latest_status, daily_uptime, error = load_comprehensive_data()
     last_check_time = get_last_check_time(latest_status)
 
@@ -377,8 +560,8 @@ def main():
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Tabs (with 'Under Review' filter + new Reports tab)
-    tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports"])
+    # Tabs (with enhanced Reports tab)
+    tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports & Export"])
 
     with tab1:
         st.markdown(f"""
@@ -585,8 +768,8 @@ def main():
     with tab4:
         st.markdown(f"""
         <div class="section-header">
-            <div class="section-title">Store Uptime Reports</div>
-            <div class="section-subtitle">Historical uptime analysis for any date range • Excludes Under Review periods</div>
+            <div class="section-title">Store Uptime Reports & CSV Export</div>
+            <div class="section-subtitle">Historical uptime analysis with downloadable reports • Excludes Under Review periods</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -646,9 +829,9 @@ def main():
                 with col4:
                     st.metric("Period", f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d')}")
 
-                # Platform filter
+                # Platform filter and CSV download
                 st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-                r1, r2 = st.columns(2)
+                r1, r2, r3 = st.columns([2, 2, 1])
                 with r1:
                     available_platforms = sorted(reports_data['platform'].dropna().unique())
                     platform_options = ["All Platforms"] + available_platforms
@@ -656,8 +839,6 @@ def main():
                 with r2:
                     sort_options = ["Uptime (High to Low)", "Uptime (Low to High)", "Store Name (A-Z)", "Platform"]
                     sort_order = st.selectbox("Sort by:", sort_options, key="reports_sort_order")
-                st.markdown('</div>', unsafe_allow_html=True)
-
                 # Filter data
                 filtered_data = reports_data.copy()
                 if platform_filter_reports != "All Platforms":

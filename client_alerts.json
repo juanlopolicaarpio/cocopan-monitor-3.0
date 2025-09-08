@@ -1,125 +1,127 @@
 {
-    "clients": {
-      "cocopan_ops": {
-        "name": "CocoPan Operations Team",
-        "emails": [
-          "juanlopolicarpio@gmail.com",
-          ""
-        ],
-        "alert_types": [
-          "store_offline",
-          "store_online", 
-          "multiple_offline",
-          "daily_summary",
-          "system_error"
-        ],
-        "enabled": true,
-        "timezone": "Asia/Manila",
-        "priority_threshold": "medium",
-        "description": "Main operations team - receives all operational alerts"
-      },
-      
-      "cocopan_management": {
-        "name": "CocoPan Management",
-        "emails": [
-          "ceo@cocopan.com",
-          "management@cocopan.com"
-        ],
-        "alert_types": [
-          "daily_summary",
-          "multiple_offline",
-          "system_error"
-        ],
-        "enabled": true,
-        "timezone": "Asia/Manila",
-        "priority_threshold": "high",
-        "description": "Executive team - receives summary reports and critical alerts only"
-      },
-      
-      "cocopan_tech": {
-        "name": "CocoPan Tech Team",
-        "emails": [
-          "tech@cocopan.com",
-          "devops@cocopan.com",
-          "alerts@cocopan.com"
-        ],
-        "alert_types": [
-          "system_error",
-          "multiple_offline",
-          "daily_summary"
-        ],
-        "enabled": true,
-        "timezone": "Asia/Manila", 
-        "priority_threshold": "medium",
-        "description": "Technical team - receives system and infrastructure alerts"
-      },
-      
-      "external_partners": {
-        "name": "External Partners",
-        "emails": [
-          "partner@example.com"
-        ],
-        "alert_types": [
-          "daily_summary"
-        ],
-        "enabled": false,
-        "timezone": "Asia/Manila",
-        "priority_threshold": "low",
-        "description": "External partners - summary reports only (disabled by default)"
+  "clients": {
+    "cocopan_ops": {
+      "name": "CocoPan Operations Team",
+      "emails": [
+        "juanlopolicarpio@gmail.com",
+        "operations@cocopan.com",
+        "manager@cocopan.com"
+      ],
+      "alert_types": [
+        "store_offline",
+        "store_online", 
+        "multiple_offline",
+        "daily_summary",
+        "system_error"
+      ],
+      "enabled": true,
+      "timezone": "Asia/Manila",
+      "priority_threshold": "medium",
+      "description": "Main operations team - receives all operational alerts"
+    },
+    
+    "cocopan_management": {
+      "name": "CocoPan Management",
+      "emails": [
+        "juanlopolicarpio@gmail.com",
+        "ceo@cocopan.com",
+        "management@cocopan.com"
+      ],
+      "alert_types": [
+        "daily_summary",
+        "multiple_offline",
+        "system_error"
+      ],
+      "enabled": true,
+      "timezone": "Asia/Manila",
+      "priority_threshold": "high",
+      "description": "Executive team - receives summary reports and critical alerts only"
+    },
+    
+    "cocopan_tech": {
+      "name": "CocoPan Tech Team",
+      "emails": [
+        "tech@cocopan.com",
+        "devops@cocopan.com",
+        "alerts@cocopan.com"
+      ],
+      "alert_types": [
+        "system_error",
+        "multiple_offline",
+        "daily_summary"
+      ],
+      "enabled": false,
+      "timezone": "Asia/Manila", 
+      "priority_threshold": "medium",
+      "description": "Technical team - receives system and infrastructure alerts"
+    },
+    
+    "external_partners": {
+      "name": "External Partners",
+      "emails": [
+        "partner@example.com"
+      ],
+      "alert_types": [
+        "daily_summary"
+      ],
+      "enabled": false,
+      "timezone": "Asia/Manila",
+      "priority_threshold": "low",
+      "description": "External partners - summary reports only (disabled by default)"
+    }
+  },
+  
+  "alert_settings": {
+    "rate_limiting": {
+      "max_alerts_per_hour": 50,
+      "max_alerts_per_store_per_hour": 5,
+      "cooldown_minutes": {
+        "store_offline": 30,
+        "store_online": 5,
+        "multiple_offline": 60,
+        "daily_summary": 1440,
+        "system_error": 15
       }
     },
     
-    "alert_settings": {
-      "rate_limiting": {
-        "max_alerts_per_hour": 50,
-        "max_alerts_per_store_per_hour": 5,
-        "cooldown_minutes": {
-          "store_offline": 30,
-          "store_online": 5,
-          "multiple_offline": 60,
-          "daily_summary": 1440,
-          "system_error": 15
-        }
-      },
-      
-      "escalation": {
-        "enabled": true,
-        "multiple_stores_threshold": 3,
-        "critical_uptime_threshold": 80,
-        "response_time_threshold_ms": 30000,
-        "consecutive_failures_threshold": 5
-      },
-      
-      "templates": {
-        "company_name": "CocoPan",
-        "logo_url": "https://your-domain.com/logo.png",
-        "dashboard_url": "https://your-domain.com:8501",
-        "support_email": "support@cocopan.com",
-        "company_website": "https://cocopan.com"
-      },
-      
-      "delivery_options": {
-        "retry_attempts": 3,
-        "retry_delay_seconds": [5, 15, 30],
-        "timeout_seconds": 30,
-        "batch_size": 10,
-        "send_individual_emails": false
-      }
+    "escalation": {
+      "enabled": true,
+      "multiple_stores_threshold": 3,
+      "critical_uptime_threshold": 80,
+      "response_time_threshold_ms": 30000,
+      "consecutive_failures_threshold": 5
     },
     
-    "maintenance": {
-      "quiet_hours": {
-        "enabled": false,
-        "start_hour": 1,
-        "end_hour": 6,
-        "timezone": "Asia/Manila",
-        "emergency_override": true
-      },
-      
-      "alert_history": {
-        "retention_days": 30,
-        "cleanup_enabled": true,
-        "max_history_entries": 10000
-      }
+    "templates": {
+      "company_name": "CocoPan",
+      "logo_url": "https://your-domain.com/logo.png",
+      "dashboard_url": "https://your-domain.com:8501",
+      "support_email": "support@cocopan.com",
+      "company_website": "https://cocopan.com"
+    },
+    
+    "delivery_options": {
+      "retry_attempts": 3,
+      "retry_delay_seconds": [5, 15, 30],
+      "timeout_seconds": 30,
+      "batch_size": 10,
+      "send_individual_emails": false
+    }
+  },
+  
+  "maintenance": {
+    "quiet_hours": {
+      "enabled": false,
+      "start_hour": 1,
+      "end_hour": 6,
+      "timezone": "Asia/Manila",
+      "emergency_override": true
+    },
+    
+    "alert_history": {
+      "retention_days": 30,
+      "cleanup_enabled": true,
+      "max_history_entries": 10000
     }
   }
+}

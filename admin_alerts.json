@@ -2,7 +2,9 @@
     "admin_team": {
       "name": "CocoPan Operations Admin",
       "emails": [
-        "juanlopolicarpio@gmail.com"
+        "juanlopolicarpio@gmail.com",
+        "admin@cocopan.com",
+        "operations@cocopan.com"
       ],
       "enabled": true,
       "timezone": "Asia/Manila"
