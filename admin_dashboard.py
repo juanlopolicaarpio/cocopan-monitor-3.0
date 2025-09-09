@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-CocoPan Admin Dashboard - Email Auth + VA Hourly Check-in (Idempotent)
+CocoPan Admin Dashboard - Email Auth + VA Hourly Check-in (Idempotent, TZ-safe)
 - Email-only authentication using admin_alerts.json
-- VA Hourly Check-in tab (7–10 PM Manila) with hour-slot tracking
-- Idempotent submissions: one VA row per (store, hour_slot) no matter how many clicks
-- “Already submitted” indicator for the current hour
+- VA Hourly Check-in with 10-minute-early window (X:50 → X+1:50)
+- Idempotent submissions: one VA row per (store, hour_slot)
+- “Already submitted” indicator + state preservation
+- Timezone-safe queries (UTC → Asia/Manila)
 - Health server hardened for Railway/Streamlit reruns
 - Mobile-first design maintained
 """
@@ -18,7 +19,7 @@ import threading
 import http.server
 import socketserver
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Set
 
 # ===== Third-party =====
 import pytz
@@ -265,23 +266,44 @@ def format_time_ago(checked_at) -> str:
         return "Unknown"
 
 # ------------------------------------------------------------------------------
-# VA Check-in: schedule & helpers
+# VA Check-in: schedule & helpers (10-minute early window; TZ-safe)
 # ------------------------------------------------------------------------------
 def get_va_checkin_schedule():
-    """7–10 PM Manila window."""
+    """Define allowed check hours (Manila)."""
+    # Adjust as needed
     return {"start_hour": 6, "end_hour": 22, "timezone": "Asia/Manila"}
 
 def get_current_manila_time():
     return datetime.now(pytz.timezone("Asia/Manila"))
 
 def get_current_hour_slot():
+    """Get current hour slot with the 10-minute rule.
+    If now is X:50 or later, we treat the slot as (X+1):00.
+    Else we treat it as X:00.
+    """
     now = get_current_manila_time()
-    return now.replace(minute=0, second=0, microsecond=0)
+    if now.minute >= 50:
+        target_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    else:
+        target_hour = now.replace(minute=0, second=0, microsecond=0)
+    logger.debug(f"Current time: {now}, Target hour slot: {target_hour}")
+    return target_hour
 
 def is_checkin_time():
-    sched = get_va_checkin_schedule()
-    h = get_current_manila_time().hour
-    return sched["start_hour"] <= h <= sched["end_hour"]
+    """Window is X:50 to (X+1):50 for the slot at (X+1):00.
+    Determine target_check_hour and see if it falls within schedule.
+    """
+    now = get_current_manila_time()
+    current_hour = now.hour
+    minute = now.minute
+    schedule = get_va_checkin_schedule()
+
+    if minute >= 50:
+        target_check_hour = current_hour + 1
+    else:
+        target_check_hour = current_hour
+
+    return schedule["start_hour"] <= target_check_hour <= schedule["end_hour"]
 
 def _fmt_hour(h24: int) -> str:
     tz = pytz.timezone("Asia/Manila")
@@ -289,58 +311,141 @@ def _fmt_hour(h24: int) -> str:
     return dt.strftime("%I:%M %p").lstrip("0")
 
 def get_next_checkin_time():
+    """Next window start is at (target_hour_slot - 10 minutes).
+    For UX messages we return the target hour (top-of-hour), and in UI we show window start/end explicitly.
+    """
     sched = get_va_checkin_schedule()
     now = get_current_manila_time()
-    h = now.hour
-    if h < sched["start_hour"]:
-        return now.replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
-    if h <= sched["end_hour"]:
-        return (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0) if h < sched["end_hour"] \
-               else (now + timedelta(days=1)).replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
-    return (now + timedelta(days=1)).replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
+    current_minute = now.minute
+    current_hour = now.hour
+
+    if current_minute >= 50:
+        # We're currently inside a window; next window is next hour's slot
+        next_hour = current_hour + 1
+        if next_hour > sched["end_hour"]:
+            next_window = (now + timedelta(days=1)).replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
+        else:
+            next_window = now.replace(hour=next_hour, minute=0, second=0, microsecond=0)
+    else:
+        # Not yet inside the window; next window aligns to the current hour's slot (at top of next hour if needed)
+        if current_hour < sched["start_hour"]:
+            next_window = now.replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
+        elif current_hour >= sched["end_hour"]:
+            next_window = (now + timedelta(days=1)).replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
+        else:
+            next_window = now.replace(hour=current_hour + 1, minute=0, second=0, microsecond=0)
+
+    return next_window
+
+# ------------------------------------------------------------------------------
+# TZ-safe DB reads for submitted state / completion
+# ------------------------------------------------------------------------------
+def load_submitted_va_state(hour_slot: datetime) -> Set[int]:
+    """Load the actual submitted VA state from database for this hour (Manila slot)."""
+    try:
+        _ = load_foodpanda_stores()  # ensure IDs exist / cached
+        offline_store_ids: Set[int] = set()
+        with db.get_connection() as conn:
+            cur = conn.cursor()
+            hour_start = hour_slot
+            hour_end = hour_slot + timedelta(hours=1)
+            # Convert stored UTC timestamptz to Manila when filtering
+            cur.execute("""
+                SELECT store_id, is_online, checked_at
+                  FROM status_checks
+                 WHERE error_message LIKE '[VA_CHECKIN]%%'
+                   AND checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' >= %s
+                   AND checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' <  %s
+                 ORDER BY checked_at DESC
+            """, (hour_start, hour_end))
+            rows = cur.fetchall()
+            logger.info(f"Query for hour {hour_slot}: found {len(rows)} VA results")
+            if rows:
+                logger.info(f"Sample timestamps: {[r[2] for r in rows[:3]]}")
+            for store_id, is_online, _ts in rows:
+                if not is_online:
+                    offline_store_ids.add(store_id)
+        logger.info(f"Loaded submitted VA state for {hour_slot:%H:00}: {len(offline_store_ids)} offline stores")
+        return offline_store_ids
+    except Exception as e:
+        logger.error(f"Error loading submitted VA state: {e}")
+        return set()
 
 def check_if_hour_already_completed(hour_slot: datetime) -> bool:
-    """True if any VA row exists in this hour slot."""
+    """Hour completion check with timezone handling."""
     try:
         with db.get_connection() as conn:
             cur = conn.cursor()
+            hour_start = hour_slot
+            hour_end = hour_slot + timedelta(hours=1)
             cur.execute("""
-                SELECT 1
-                FROM status_checks
-                WHERE error_message LIKE '[VA_CHECKIN]%%'
-                  AND checked_at >= %s
-                  AND checked_at <  %s + INTERVAL '1 hour'
-                LIMIT 1
-            """, (hour_slot, hour_slot))
-            return cur.fetchone() is not None
+                SELECT COUNT(*) as va_count
+                  FROM status_checks
+                 WHERE error_message LIKE '[VA_CHECKIN]%%'
+                   AND checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' >= %s
+                   AND checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' <  %s
+            """, (hour_start, hour_end))
+            result = cur.fetchone()
+            va_count = result[0] if result else 0
+            logger.info(f"Hour completion check for {hour_slot:%Y-%m-%d %H:00}: {va_count} rows")
+            return va_count > 0
     except Exception as e:
         logger.error(f"Error checking hour completion: {e}")
         return False
 
 def get_completed_hours_today() -> List[int]:
-    """List of Manila hours (ints) already completed today."""
+    """Get completed Manila hours today (timezone-fixed)."""
     try:
         with db.get_connection() as conn:
             cur = conn.cursor()
             cur.execute("""
-                SELECT DISTINCT EXTRACT(HOUR FROM checked_at AT TIME ZONE 'Asia/Manila')::int AS h
-                FROM status_checks
-                WHERE error_message LIKE '[VA_CHECKIN]%%'
-                  AND DATE(checked_at AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
-                ORDER BY h
+                SELECT DISTINCT 
+                       EXTRACT(HOUR FROM checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')::int AS h
+                  FROM status_checks
+                 WHERE error_message LIKE '[VA_CHECKIN]%%'
+                   AND DATE(checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
+                 ORDER BY h
             """)
-            return [int(r[0]) for r in cur.fetchall()]
+            hours = [int(r[0]) for r in cur.fetchall()]
+            logger.info(f"Completed hours today (timezone-fixed): {hours}")
+            return hours
     except Exception as e:
         logger.error(f"Error getting completed hours: {e}")
         return []
 
+def debug_va_timestamps():
+    """Debug helper to examine latest VA rows across timezones."""
+    try:
+        with db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT 
+                    store_id,
+                    is_online,
+                    checked_at as utc_time,
+                    checked_at AT TIME ZONE 'Asia/Manila' as manila_time,
+                    DATE(checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') as manila_date,
+                    EXTRACT(HOUR FROM checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') as manila_hour
+                  FROM status_checks
+                 WHERE error_message LIKE '[VA_CHECKIN]%%'
+              ORDER BY checked_at DESC
+                 LIMIT 5
+            """)
+            rows = cur.fetchall()
+            logger.info("=== VA TIMESTAMP DEBUG ===")
+            for r in rows:
+                logger.info(f"Store {r[0]}: UTC={r[2]}, Manila={r[3]}, Date={r[4]}, Hour={r[5]}")
+    except Exception as e:
+        logger.error(f"Debug timestamps error: {e}")
+
 # ------------------------------------------------------------------------------
-# Idempotent VA save (SPAM-PROOF)
+# Idempotent VA save (SPAM-PROOF) with exact hour_slot timestamp
 # ------------------------------------------------------------------------------
 def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hour_slot: datetime) -> bool:
     """
-    Idempotent save: we DELETE any prior VA row for (store, hour_slot) before insert.
-    This guarantees at most one row per store per hour, regardless of button spam.
+    FIXED: Idempotent save with correct timestamps.
+    - DELETE any prior VA rows for (store, hour_slot) window
+    - INSERT with checked_at = exact hour_slot (not "now") to align UI/queries
     """
     try:
         stores = load_foodpanda_stores()
@@ -356,44 +461,27 @@ def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hou
                 hour_str = hour_slot.strftime("%Y-%m-%d %H:00")
                 msg = f"[VA_CHECKIN] {hour_str} - Store {'online' if is_online else 'offline'} via {admin_email}"
 
-                # Idempotency: wipe any VA row for this store/hour
                 with db.get_connection() as conn:
                     cur = conn.cursor()
+
+                    # Idempotency: wipe any VA row for this store/hour (TZ handled by snapping to hour_slot)
                     cur.execute("""
                         DELETE FROM status_checks
-                        WHERE store_id = %s
-                          AND error_message LIKE '[VA_CHECKIN]%%'
-                          AND checked_at >= %s
-                          AND checked_at <  %s + INTERVAL '1 hour'
+                         WHERE store_id = %s
+                           AND error_message LIKE '[VA_CHECKIN]%%'
+                           AND checked_at >= %s
+                           AND checked_at <  %s + INTERVAL '1 hour'
                     """, (store_id, hour_slot, hour_slot))
+
+                    # Direct insert with exact timestamp to avoid post-update drift
+                    cur.execute("""
+                        INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message, checked_at)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (store_id, is_online, 1000, msg, hour_slot))
+
                     conn.commit()
-
-                # Insert fresh
-                ok = db.save_status_check(
-                    store_id=store_id,
-                    is_online=is_online,
-                    response_time_ms=1000,
-                    error_message=msg,
-                )
-
-                # Snap timestamp to hour_slot (so UI/queries align perfectly)
-                if ok:
-                    with db.get_connection() as conn:
-                        cur = conn.cursor()
-                        cur.execute("""
-                            UPDATE status_checks
-                               SET checked_at = %s
-                             WHERE id = (
-                                   SELECT id FROM status_checks
-                                    WHERE store_id = %s
-                                 ORDER BY checked_at DESC
-                                    LIMIT 1
-                             )
-                        """, (hour_slot, store_id))
-                        conn.commit()
                     success_count += 1
-                else:
-                    error_count += 1
+                    logger.debug(f"Saved VA check for {store['name']}: {is_online} at {hour_slot}")
 
             except Exception as e:
                 logger.error(f"Error saving VA for store {store_id}: {e}")
@@ -401,14 +489,18 @@ def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hou
 
         logger.info(f"✅ VA Check-in for {hour_slot:%H:00} saved: {success_count} ok / {error_count} err")
         return error_count == 0
+
     except Exception as e:
         logger.error(f"❌ save_va_checkin_enhanced fatal: {e}")
         return False
 
 # ------------------------------------------------------------------------------
-# VA Check-in UI Tab
+# VA Check-in UI Tab (state preservation + TZ debug)
 # ------------------------------------------------------------------------------
 def enhanced_va_checkin_tab():
+    # Debug timezone/timestamps (visible only in logs)
+    debug_va_timestamps()
+
     current_time = get_current_manila_time()
     current_hour_slot = get_current_hour_slot()
     schedule = get_va_checkin_schedule()
@@ -420,31 +512,42 @@ def enhanced_va_checkin_tab():
     </div>
     """, unsafe_allow_html=True)
 
-    # Inform outside-hours but keep the stores visible
+    # Show check-in window banner
     if not is_checkin_time():
         next_check = get_next_checkin_time()
-        delta = next_check - current_time
         st.info(f"""
-⏰ **Outside Check-in Hours**
+⏰ **Outside Check-in Window**
 
-Window: {_fmt_hour(schedule['start_hour'])} – {_fmt_hour(schedule['end_hour'])} Manila  
-Next window: {next_check.strftime('%I:%M %p')} (in {int(delta.total_seconds()//3600)}h {int((delta.total_seconds()%3600)//60)}m)
+Current window: {current_hour_slot.strftime('%I:00 %p')} check (active 10 minutes before: {(current_hour_slot - timedelta(minutes=10)).strftime('%I:%M %p')} - {(current_hour_slot + timedelta(minutes=50)).strftime('%I:%M %p')})
+Next window starts: {(next_check - timedelta(minutes=10)).strftime('%I:%M %p')}
 
-You can review stores below; submissions are only accepted during the window.
+You can review stores below; submissions are accepted during the window.
         """)
 
-    # Calculate hour completion (always show state, even outside the window)
+    # Hour completion + completed hours list
     hour_completed = check_if_hour_already_completed(current_hour_slot)
     completed_hours = get_completed_hours_today()
 
-    # Header strip for the current hour
+    # Session state bucket (preserved across reruns)
+    if "va_offline_stores" not in st.session_state:
+        st.session_state.va_offline_stores = set()
+
+    # If hour already completed and we have no local state, load submitted state
+    if hour_completed and len(st.session_state.va_offline_stores) == 0:
+        submitted_offline_ids = load_submitted_va_state(current_hour_slot)
+        st.session_state.va_offline_stores = submitted_offline_ids
+        logger.info(f"Loaded submitted state into session: {len(submitted_offline_ids)} offline stores")
+
+    # Header strip with exact window
+    window_start = current_hour_slot - timedelta(minutes=10)
+    window_end = current_hour_slot + timedelta(minutes=50)
     st.markdown(f"""
     <div style="background: {'#DCFCE7' if hour_completed else '#FEF3E2'}; border: 1px solid {'#16A34A' if hour_completed else '#F59E0B'}; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
         <h4 style="margin: 0 0 0.4rem 0; color: {'#166534' if hour_completed else '#92400E'};">
-            🕐 {current_hour_slot.strftime('%I:00 %p')} Hour Slot
+            🕐 {current_hour_slot.strftime('%I:00 %p')} Check Window ({window_start.strftime('%I:%M %p')} - {window_end.strftime('%I:%M %p')})
         </h4>
         <p style="margin: 0; color: {'#166534' if hour_completed else '#92400E'};">
-            {"✅ Already submitted for this hour. You may re-submit (it will safely replace the previous data)." if is_checkin_time() else ("✅ Already submitted for this hour." if hour_completed else "Review stores below.")}
+            {"✅ Already submitted for this hour. Current submitted state is shown below." if hour_completed else "⏳ Ready for submission. Mark stores offline as needed."}
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -455,11 +558,7 @@ You can review stores below; submissions are only accepted during the window.
         st.error("❌ Failed to load Foodpanda stores. Please refresh the page.")
         return
 
-    # Session state for selections
-    if "va_offline_stores" not in st.session_state:
-        st.session_state.va_offline_stores = set()
-
-    # Summary
+    # Summary metrics
     total = len(stores)
     offline = len(st.session_state.va_offline_stores)
     online = total - offline
@@ -472,9 +571,10 @@ You can review stores below; submissions are only accepted during the window.
     with c3:
         st.metric("📊 Total Foodpanda", total, "All stores")
 
-    st.markdown("---")
+    if hour_completed:
+        st.info(f"📋 **Showing submitted state:** This reflects what was actually submitted for {current_hour_slot.strftime('%I:00 %p')}.")
 
-    # Search & mark — ignores "Cocopan" prefix for matching
+    st.markdown("---")
     st.markdown("### 🔍 Search & Mark Stores")
 
     BRAND_PREFIX_RE = re.compile(r'^\s*cocopan[\s\-:]+', re.IGNORECASE)
@@ -513,7 +613,7 @@ You can review stores below; submissions are only accepted during the window.
     if not filtered:
         st.warning(f"No stores match “{q}”. Try a shorter prefix or a different term.")
 
-    # Render list
+    # Render each store with preserved state
     for s in filtered:
         sid, sname, surl = s["id"], s["name"], s["url"]
         if not sid:
@@ -571,15 +671,14 @@ You can review stores below; submissions are only accepted during the window.
     else:
         st.warning(f"⚠️ {offline} stores will be marked as OFFLINE. {online} stores will remain ONLINE.")
 
-    # If this hour is already submitted, show that — but allow re-submit inside the window (safe replace)
     if hour_completed:
-        st.success("✅ This hour has already been submitted.")
+        st.success("✅ This hour has already been submitted. The state above reflects your submission.")
     else:
         st.info("⏳ Not submitted yet for this hour.")
 
-    # Button enablement by window
+    # Enable submit only inside the window
     if not is_checkin_time():
-        st.button("📤 Submit Check-in (Outside Hours)", use_container_width=True, disabled=True)
+        st.button("📤 Submit Check-in (Outside Window)", use_container_width=True, disabled=True)
     else:
         btn_label = ("🔁 Re-submit for " if hour_completed else "📤 Submit Check-in for ") + current_hour_slot.strftime("%I:00 %p")
         if st.button(btn_label, use_container_width=True, type="primary"):
@@ -591,23 +690,17 @@ You can review stores below; submissions are only accepted during the window.
 
 📊 Summary:
 - 🟢 Online: {online}
-- 🔴 Offline: {offline}
+- 🔴 Offline: {offline}  
 - 👤 By: {st.session_state.admin_email}
-- 🕐 Slot: {current_hour_slot.strftime('%I:00 %p')} Manila
+- 🕐 Window: {(current_hour_slot - timedelta(minutes=10)).strftime('%I:%M %p')} - {(current_hour_slot + timedelta(minutes=50)).strftime('%I:%M %p')}
 
-(You can re-submit within the window; your latest submission safely replaces previous data.)
+✨ **State preserved:** The offline stores will remain marked as offline above.
                 """)
-                # Clear selections and reflect hour-completed immediately
-                st.session_state.va_offline_stores = set()
+                # DO NOT clear the offline state; it represents submitted state
+                # Clear only the store cache to keep IDs/names fresh if changed elsewhere
                 load_foodpanda_stores.clear()
-                # Instead of rerun (which can be jarring), mark as completed immediately
-                st.query_params()  # lightweight change to trigger re-render
-                # Show the banner right away on the same render
-                st.markdown("""
-<div style="background:#DCFCE7; border: 1px solid #16A34A; border-radius:8px; padding: .75rem; margin-top: .75rem;">
-✅ Submitted. This hour is now marked as <strong>completed</strong>.
-</div>
-                """, unsafe_allow_html=True)
+                time.sleep(0.5)
+                st.rerun()
             else:
                 st.error("❌ Failed to save. Please try again.")
 

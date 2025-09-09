@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (FIXED)
-✅ Professional login page design
+CocoPan Watchtower - CLIENT DASHBOARD (SIMPLIFIED)
+✅ Simple login page - no fancy backgrounds
+✅ Just the form and basic styling
 ✅ Foodpanda status persistence until next hour
 ✅ Reports starting September 10
-✅ Proper client email alerts
 """
 
 import os
@@ -203,180 +203,36 @@ def load_authorized_emails():
         return ["juanlopolicarpio@gmail.com"]
 
 # ======================================================================
-#                           BEAUTIFUL STYLES
+#                           SIMPLE STYLES
 # ======================================================================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     #MainMenu, footer, .stDeployButton, header {visibility: hidden;}
     .main { 
         font-family: 'Inter', sans-serif; 
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #F8FAFC;
         color: #1E293B; 
-        min-height: 100vh; 
-        padding: 0 !important;
+        padding: 2rem;
     }
     
-    /* LOGIN PAGE STYLES */
+    /* SIMPLE LOGIN */
     .login-container {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px;
-    }
-    
-    .login-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 24px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        overflow: hidden;
-        width: 100%;
-        max-width: 480px;
-        animation: slideUp 0.6s ease-out;
-    }
-    
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .login-header {
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-        padding: 40px 40px 30px 40px;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .login-header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        animation: shimmer 3s linear infinite;
-    }
-    
-    @keyframes shimmer {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        max-width: 400px;
+        margin: 4rem auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
     .login-title {
-        color: #ffffff;
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin: 0 0 8px 0;
-        position: relative;
-        z-index: 1;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .login-subtitle {
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 1.1rem;
-        font-weight: 400;
-        margin: 0;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .login-body {
-        padding: 40px;
-    }
-    
-    .login-form-title {
-        color: #1e293b;
         font-size: 1.5rem;
         font-weight: 700;
-        margin: 0 0 8px 0;
+        color: #1E293B;
         text-align: center;
-    }
-    
-    .login-form-subtitle {
-        color: #64748b;
-        font-size: 1rem;
-        margin: 0 0 32px 0;
-        text-align: center;
-    }
-    
-    .stTextInput > div > div > input {
-        border: 2px solid #e2e8f0 !important;
-        border-radius: 12px !important;
-        padding: 16px 20px !important;
-        font-size: 1.1rem !important;
-        font-weight: 500 !important;
-        background: #f8fafc !important;
-        transition: all 0.3s ease !important;
-        height: 60px !important;
-    }
-    
-    .stTextInput > div > div > input:focus {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
-        background: #ffffff !important;
-    }
-    
-    .stTextInput > label {
-        font-weight: 600 !important;
-        color: #374151 !important;
-        font-size: 1rem !important;
-        margin-bottom: 8px !important;
-    }
-    
-    .stButton > button {
-        width: 100% !important;
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 12px !important;
-        padding: 16px 24px !important;
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.4) !important;
-        min-height: 60px !important;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 25px 0 rgba(59, 130, 246, 0.5) !important;
-    }
-    
-    .login-footer {
-        text-align: center;
-        margin-top: 24px;
-        padding-top: 24px;
-        border-top: 1px solid #e5e7eb;
-    }
-    
-    .login-help {
-        color: #6b7280;
-        font-size: 0.9rem;
-        line-height: 1.6;
-    }
-    
-    .login-support {
-        color: #3b82f6;
-        font-weight: 600;
-        text-decoration: none;
-    }
-    
-    /* MAIN APP STYLES */
-    .main-app { 
-        background: #F8FAFC !important;
-        min-height: 100vh;
-        padding: 1.5rem;
-        max-width: 1400px;
-        margin: 0 auto;
+        margin: 0 0 1.5rem 0;
     }
 
     .header-section { 
@@ -535,21 +391,9 @@ st.markdown("""
     }
 
     @media (max-width: 768px) {
-        .login-card { 
-            margin: 10px;
-            max-width: calc(100vw - 20px);
-        }
-        
-        .login-header, .login-body { 
-            padding: 30px 20px; 
-        }
-        
-        .login-title { 
-            font-size: 2rem; 
-        }
-        
-        .main-app > div { 
-            padding: 1rem; 
+        .login-container { 
+            margin: 2rem auto;
+            padding: 1.5rem;
         }
     }
 </style>
@@ -792,7 +636,7 @@ def get_last_check_time(latest_status):
         return config.get_current_time()
 
 # ======================================================================
-#                         AUTH FLOW (BEAUTIFUL LOGIN UI)
+#                         SIMPLE AUTH FLOW
 # ======================================================================
 def check_email_authentication() -> bool:
     authorized_emails = load_authorized_emails()
@@ -826,28 +670,20 @@ def check_email_authentication() -> bool:
     if st.session_state.client_authenticated and st.session_state.client_email:
         return True
 
-    # ---- BEAUTIFUL LOGIN UI ----
+    # ---- SIMPLE LOGIN UI ----
     st.markdown("""
     <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1 class="login-title">🏢 CocoPan</h1>
-                <div class="login-subtitle">Operations Monitoring Platform</div>
-            </div>
-            <div class="login-body">
-                <div class="login-form-title">Welcome Back</div>
-                <div class="login-form-subtitle">Enter your authorized email to access the dashboard</div>
+        <div class="login-title">CocoPan Watchtower</div>
+    </div>
     """, unsafe_allow_html=True)
 
-    with st.form("beautiful_auth_form", clear_on_submit=False):
+    with st.form("auth_form", clear_on_submit=False):
         email = st.text_input(
-            "Email Address",
-            placeholder="your.email@company.com",
-            help="Enter your authorized email address",
-            key="auth_email"
+            "Authorized Email Address",
+            placeholder="your.email@company.com"
         )
         
-        submitted = st.form_submit_button("Access Dashboard")
+        submitted = st.form_submit_button("Access Dashboard", use_container_width=True)
         
         if submitted:
             e = email.strip().lower()
@@ -856,23 +692,10 @@ def check_email_authentication() -> bool:
                 cookies.set(COOKIE_NAME, token, max_age_days=TOKEN_TTL_DAYS)
                 st.session_state.client_authenticated = True
                 st.session_state.client_email = e
-                st.success("✅ Authentication successful! Redirecting...")
-                time.sleep(1)
+                st.success("✅ Access granted")
                 st.rerun()
             else:
-                st.error("❌ Email not authorized. Please contact your administrator.")
-
-    st.markdown("""
-                <div class="login-footer">
-                    <div class="login-help">
-                        Need access? Contact your administrator<br>
-                        <a href="mailto:admin@cocopan.com" class="login-support">admin@cocopan.com</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+                st.error("❌ Email not authorized")
 
     return False
 
@@ -882,9 +705,6 @@ def check_email_authentication() -> bool:
 def main():
     if not check_email_authentication():
         return
-
-    # Add main app wrapper for proper styling
-    st.markdown('<div class="main-app">', unsafe_allow_html=True)
 
     # Sidebar user info
     with st.sidebar:
@@ -1312,8 +1132,6 @@ def main():
                         with ic3:
                             if stores_no_data > 0:
                                 st.markdown(f"**📊 No Data:** {stores_no_data} stores (no activity in period)")
-
-    st.markdown('</div>', unsafe_allow_html=True)  # Close main-app div
 
 if __name__ == "__main__":
     try:
