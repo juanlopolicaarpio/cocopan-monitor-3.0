@@ -601,7 +601,7 @@ You can review stores below; submissions are only accepted during the window.
                 st.session_state.va_offline_stores = set()
                 load_foodpanda_stores.clear()
                 # Instead of rerun (which can be jarring), mark as completed immediately
-                st.experimental_set_query_params()  # lightweight change to trigger re-render
+                st.query_params()  # lightweight change to trigger re-render
                 # Show the banner right away on the same render
                 st.markdown("""
 <div style="background:#DCFCE7; border: 1px solid #16A34A; border-radius:8px; padding: .75rem; margin-top: .75rem;">

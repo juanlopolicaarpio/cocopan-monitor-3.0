@@ -11,14 +11,40 @@
     },
     
     "alert_triggers": {
-      "manual_verification_needed": {
-        "enabled": true,
-        "min_stores_threshold": 1,
-        "statuses": ["BLOCKED", "UNKNOWN", "ERROR"],
-        "cooldown_minutes": 30,
-        "include_direct_links": true
-      },
-      
+        "manual_verification_needed": {
+          "enabled": true,
+          "min_stores_threshold": 1,
+          "statuses": ["BLOCKED", "UNKNOWN", "ERROR"],
+          "cooldown_minutes": 30,
+          "include_direct_links": true
+        },
+        
+        "high_error_rate": {
+          "enabled": true,
+          "error_percentage_threshold": 25,
+          "cooldown_minutes": 120
+        },
+        
+        "bot_detection_spike": {
+          "enabled": true,
+          "blocked_stores_threshold": 3,
+          "cooldown_minutes": 30
+        },
+        
+        "system_health": {
+          "enabled": true,
+          "max_cycle_time_minutes": 10,
+          "database_error_threshold": 5,
+          "cooldown_minutes": 180
+        },
+        
+        "va_reminder": {
+          "enabled": true,
+          "cooldown_minutes": 55,
+          "reminder_hours": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+          "dashboard_url": "https://cocopan-admin.railway.app"
+        },
+            
       "high_error_rate": {
         "enabled": true,
         "error_percentage_threshold": 25,

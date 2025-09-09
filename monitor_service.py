@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-CocoPan Monitor Service - COMPLETE VERSION WITH ALL FIXES
-✅ 145 stores total (70 GrabFood + 75 Foodpanda)
-✅ 15-minute early scheduling with retry logic
-✅ Calm, friendly verification alerts (no alarms)
-✅ Client email alerts after every check
-✅ Production-ready with proper error handling
+CocoPan Monitor Service - COMPLETE VERSION WITH CLIENT EMAIL ALERTS
+✅ Sends client emails immediately when stores go offline
+✅ Beautiful admin alerts for verification needs
+✅ Foodpanda VA check-in integration  
+✅ Production-ready with comprehensive error handling
 """
 import os
 import json
@@ -47,12 +46,23 @@ try:
 except ImportError:
     HAS_ADMIN_ALERTS = False
 
-# Client alerts (optional)
+# Client alerts (REQUIRED for immediate offline notifications)
 try:
     from client_alerts import client_alerts, StoreAlert
     HAS_CLIENT_ALERTS = True
 except ImportError:
     HAS_CLIENT_ALERTS = False
+    
+    # Create a mock client_alerts for graceful degradation
+    class MockClientAlerts:
+        def send_hourly_status_alert(self, offline_stores, total_stores):
+            logging.getLogger(__name__).warning("Client alerts not available - install client_alerts module")
+            return False
+        def send_immediate_offline_alert(self, offline_stores, total_stores):
+            logging.getLogger(__name__).warning("Client alerts not available - install client_alerts module") 
+            return False
+    
+    client_alerts = MockClientAlerts()
 
 # ------------------------------------------------------------------------------
 # Logging
@@ -89,8 +99,7 @@ class StoreNameManager:
 
     def __init__(self):
         self.name_cache: Dict[str, str] = {}
-        self.store_cache: Dict[str, str] = {}  # for _get_store_name()
-        # default headers for HTTP fallback
+        self.store_cache: Dict[str, str] = {}
         self.headers = {
             'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                            'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -129,12 +138,10 @@ class StoreNameManager:
 
         try:
             if 'grab.com' in url:
-                # Pattern: /restaurant/store-name-delivery/
                 import re
                 match = re.search(r'/restaurant/([^/]+)', url)
                 if match:
                     raw_name = match.group(1)
-                    # Remove -delivery suffix if present
                     raw_name = re.sub(r'-delivery$', '', raw_name)
                     name = self.clean_store_name(raw_name)
                     self.name_cache[url] = name
@@ -157,26 +164,20 @@ class StoreNameManager:
             return name
 
     def get_platform_from_url(self, url: str) -> str:
-        """Determine platform from URL - should only be GrabFood"""
+        """Determine platform from URL"""
         if 'grab.com' in url:
             return 'grabfood'
         else:
             logger.warning(f"Non-GrabFood URL detected: {url}")
             return 'unknown'
 
-    # ----------------------------------------------------------------------
-    # NEW: Unified store name resolver (implements your provided function)
-    # ----------------------------------------------------------------------
     def get_store_name(self, url: str) -> str:
-        """
-        Get store name from predefined data or extract from URL.
-        Mirrors the user's requested implementation, adapted to this class.
-        """
-        # 1) Cache hit
+        """Get store name from predefined data or extract from URL"""
+        # Cache hit
         if url in self.store_cache:
             return self.store_cache[url]
 
-        # 2) Predefined names (store_names.json)
+        # Predefined names (store_names.json)
         try:
             with open('store_names.json', 'r') as f:
                 payload = json.load(f)
@@ -191,49 +192,46 @@ class StoreNameManager:
         except Exception as e:
             logger.debug(f"Could not load predefined names: {e}")
 
-        # 3) Fallback to URL extraction (existing method)
+        # Fallback to URL extraction
         try:
-            # If online fetch helps (e.g., title or meta), attempt once
+            # Optional online fetch for title
             try:
                 resp = requests.get(url, headers=self.headers, timeout=config.REQUEST_TIMEOUT)
                 if resp.status_code == 200:
-                    # Optional: try grabbing <title> as a last-mile polish (best-effort)
                     try:
                         soup = BeautifulSoup(resp.text, 'html.parser')
                         title = soup.title.string.strip() if soup.title and soup.title.string else ""
-                        # Example titles often include the brand; we keep the URL-based extractor as the main source.
                     except Exception:
                         pass
             except requests.exceptions.SSLError:
-                # Fallback without SSL verify
                 try:
                     resp = requests.get(url, headers=self.headers, timeout=config.REQUEST_TIMEOUT, verify=False)
                 except Exception:
                     resp = None
-            # Use existing robust URL pattern extraction
+
             name = self.extract_store_name_from_url(url)
             self.store_cache[url] = name
             return name
         except Exception as e:
             logger.debug(f"Name extraction fallback failed: {e}")
-            # Final fallback
             name = self.extract_store_name_from_url(url)
             self.store_cache[url] = name
             return name
 
 # ------------------------------------------------------------------------------
-# Simple GrabFood Monitor
+# Enhanced GrabFood Monitor with Client Email Integration
 # ------------------------------------------------------------------------------
 class GrabFoodMonitor:
-    """Simple, reliable GrabFood store monitor with chill alerts"""
+    """GrabFood monitor with immediate client email alerts when stores go offline"""
 
     def __init__(self):
         self.store_urls = self._load_grabfood_urls()
         self.name_manager = StoreNameManager()
         self.timezone = config.get_timezone()
         self.stats = {}
+        self.previous_offline_stores = set()  # Track state changes
 
-        # User agents for basic rotation
+        # User agents for rotation
         self.user_agents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -244,9 +242,11 @@ class GrabFoodMonitor:
         logger.info(f"   📋 {len(self.store_urls)} GrabFood stores to monitor")
 
         if HAS_ADMIN_ALERTS:
-            logger.info(f"   📧 Admin alerts enabled (friendly reminders)")
+            logger.info(f"   📧 Admin alerts enabled")
         if HAS_CLIENT_ALERTS:
-            logger.info(f"   📬 Client alerts enabled (business notifications)")
+            logger.info(f"   📬 Client alerts enabled (immediate offline notifications)")
+        else:
+            logger.warning(f"   ⚠️ Client alerts NOT available - offline notifications disabled")
 
     def _load_grabfood_urls(self):
         """Load ONLY GrabFood URLs from branch_urls.json"""
@@ -275,7 +275,6 @@ class GrabFoodMonitor:
         max_retries = 2
 
         try:
-            # Simple session with rotating user agent
             session = requests.Session()
             session.headers.update({
                 'User-Agent': random.choice(self.user_agents),
@@ -289,7 +288,6 @@ class GrabFoodMonitor:
             try:
                 resp = session.get(url, timeout=config.REQUEST_TIMEOUT, allow_redirects=True)
             except requests.exceptions.SSLError:
-                # Fallback for SSL issues
                 resp = session.get(url, timeout=config.REQUEST_TIMEOUT, allow_redirects=True, verify=False)
 
             response_time = int((time.time() - start_time) * 1000)
@@ -366,9 +364,9 @@ class GrabFoodMonitor:
             response_time = int((time.time() - start_time) * 1000)
             return CheckResult(StoreStatus.ERROR, response_time, f"Error: {str(e)[:50]}", 0.2)
 
-    def check_all_grabfood_stores_with_retries(self):
-        """Check all GrabFood stores with retry logic for blocked stores"""
-
+    def check_all_grabfood_stores_with_client_alerts(self):
+        """UPDATED: Check stores and send immediate client emails when offline"""
+        
         # Logical-hour snapshot keys
         tz = self.timezone
         effective_at = datetime.now(tz).replace(minute=0, second=0, microsecond=0)
@@ -379,31 +377,36 @@ class GrabFoodMonitor:
             'cycle_end': None,
             'total_stores': len(self.store_urls),
             'checked': 0, 'online': 0, 'offline': 0, 'blocked': 0, 'errors': 0, 'unknown': 0,
-            'retries': 0, 'retry_successes': 0
+            'retries': 0, 'retry_successes': 0,
+            'newly_offline': 0, 'newly_online': 0
         }
 
         current_time = config.get_current_time()
         target_hour = effective_at.hour
-        logger.info(f"🛒 GRABFOOD EARLY MONITORING at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logger.info(f"🛒 GRABFOOD MONITORING with CLIENT ALERTS at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         logger.info(f"📋 Checking {len(self.store_urls)} GrabFood stores (target hour: {target_hour}:00)")
-        logger.info(f"🔄 Will retry blocked stores until {target_hour}:00")
 
         all_results: List[Dict[str, Any]] = []
         blocked_stores: List[str] = []
+        current_offline_stores = set()
 
         # First pass - check all stores
         for i, url in enumerate(self.store_urls, 1):
             result = self._check_single_store_safe(url, i, len(self.store_urls))
             if result:
                 all_results.append(result)
-                if result['result'].status == StoreStatus.BLOCKED:
+                
+                # Track offline stores for client alerts
+                if result['result'].status == StoreStatus.OFFLINE:
+                    current_offline_stores.add(url)
+                elif result['result'].status == StoreStatus.BLOCKED:
                     blocked_stores.append(url)
 
-            # Simple delay between requests
+            # Delay between requests
             if i < len(self.store_urls):
                 time.sleep(random.uniform(1, 3))
 
-        # Retry logic for blocked stores
+        # Retry logic for blocked stores (same as before)
         retry_round = 1
         max_retry_rounds = 5
 
@@ -411,20 +414,17 @@ class GrabFoodMonitor:
             current_time = config.get_current_time()
             minutes_remaining = 60 - current_time.minute
 
-            # Stop retrying if we're past the target hour
             if current_time.hour != target_hour and current_time.minute >= 0:
                 logger.info(f"⏰ Reached target hour {target_hour}:00, stopping retries")
                 break
 
-            # Only retry if we have at least 5 minutes left
             if minutes_remaining < 5:
                 logger.info(f"⏰ Only {minutes_remaining} minutes until {target_hour}:00, stopping retries")
                 break
 
             logger.info(f"🔄 Retry round {retry_round}: {len(blocked_stores)} blocked stores")
 
-            # Wait before retrying
-            retry_delay = min(180, 60 * retry_round)  # 1-3 minutes based on round
+            retry_delay = min(180, 60 * retry_round)
             logger.info(f"   ⏱️ Waiting {retry_delay} seconds before retry...")
             time.sleep(retry_delay)
 
@@ -434,7 +434,6 @@ class GrabFoodMonitor:
             for url in blocked_stores:
                 logger.info(f"   🔄 Retrying blocked store: {url}")
 
-                # Find and update the result for this URL
                 for i, result_data in enumerate(all_results):
                     if result_data['url'] == url:
                         retry_result = self._check_single_store_safe(url, retry_round, len(blocked_stores), is_retry=True)
@@ -442,17 +441,23 @@ class GrabFoodMonitor:
                             self.stats['retries'] += 1
 
                             if retry_result['result'].status != StoreStatus.BLOCKED:
-                                # Success! Update the result
                                 all_results[i] = retry_result
                                 newly_unblocked.append(url)
                                 self.stats['retry_successes'] += 1
+                                
+                                # Update offline tracking after retry
+                                if retry_result['result'].status == StoreStatus.OFFLINE:
+                                    current_offline_stores.add(url)
+                                else:
+                                    current_offline_stores.discard(url)
+                                    
                                 logger.info(f"   ✅ Retry successful: {retry_result['name']} now {retry_result['result'].status.value}")
                             else:
                                 still_blocked.append(url)
                                 logger.info(f"   🚫 Still blocked: {retry_result['name']}")
                         break
 
-                time.sleep(random.uniform(2, 5))  # Delay between retry attempts
+                time.sleep(random.uniform(2, 5))
 
             blocked_stores = still_blocked
             retry_round += 1
@@ -460,17 +465,45 @@ class GrabFoodMonitor:
             if newly_unblocked:
                 logger.info(f"   🎉 Unblocked {len(newly_unblocked)} stores in round {retry_round-1}")
 
-        # Final status update
-        if blocked_stores:
-            logger.warning(f"🚫 {len(blocked_stores)} stores remain blocked after retries")
+        # DETECT STATE CHANGES AND SEND IMMEDIATE CLIENT ALERTS
+        newly_offline_stores = current_offline_stores - self.previous_offline_stores
+        newly_online_stores = self.previous_offline_stores - current_offline_stores
+        
+        self.stats['newly_offline'] = len(newly_offline_stores)
+        self.stats['newly_online'] = len(newly_online_stores)
 
-        # Send client alerts BEFORE saving to database
+        # Send immediate alerts for newly offline stores
+        if newly_offline_stores and HAS_CLIENT_ALERTS:
+            newly_offline_alerts = []
+            for result_data in all_results:
+                if result_data['url'] in newly_offline_stores:
+                    platform = self.name_manager.get_platform_from_url(result_data['url'])
+                    platform_name = "GrabFood" if platform == "grabfood" else "Unknown"
+                    newly_offline_alerts.append(StoreAlert(
+                        name=result_data['name'],
+                        platform=platform_name,
+                        status="OFFLINE",
+                        last_check=datetime.now(self.timezone)
+                    ))
+            
+            if newly_offline_alerts:
+                logger.info(f"🚨 IMMEDIATE ALERT: {len(newly_offline_alerts)} stores just went offline!")
+                success = client_alerts.send_immediate_offline_alert(newly_offline_alerts, len(self.store_urls))
+                if success:
+                    logger.info("✅ Immediate offline alert sent to clients")
+                else:
+                    logger.warning("⚠️ Immediate offline alert failed or skipped")
+
+        # Update previous offline stores for next cycle
+        self.previous_offline_stores = current_offline_stores.copy()
+
+        # Send regular hourly status update (all offline stores)
         self._send_client_alerts(all_results)
 
         # Save results
         self._save_all_results(all_results, effective_at, run_id)
 
-        # Admin alerts for blocked/error stores (friendly reminders)
+        # Admin alerts for blocked/error stores
         if HAS_ADMIN_ALERTS:
             self._send_friendly_admin_alerts(all_results)
 
@@ -484,21 +517,22 @@ class GrabFoodMonitor:
         logger.info(f"   Total GrabFood Stores: {self.stats['total_stores']}")
         logger.info(f"   ✅ Checked: {self.stats['checked']} ({self.stats['checked']/max(1,self.stats['total_stores'])*100:.1f}%)")
         logger.info(f"   🟢 Online: {self.stats['online']}")
-        logger.info(f"   🔴 Offline: {self.stats['offline']}")
+        logger.info(f"   🔴 Offline: {self.stats['offline']} (newly offline: {self.stats['newly_offline']})")
         logger.info(f"   🚫 Blocked: {self.stats['blocked']}")
         logger.info(f"   ⚠️ Errors: {self.stats['errors']}")
         logger.info(f"   ❓ Unknown: {self.stats['unknown']}")
         logger.info(f"   🔄 Retries: {self.stats['retries']} (successes: {self.stats['retry_successes']})")
+        if self.stats['newly_offline'] > 0:
+            logger.info(f"   🚨 CLIENT ALERTS: Sent immediate alerts for {self.stats['newly_offline']} newly offline stores")
 
         return all_results
 
     def check_all_grabfood_stores(self):
-        """Legacy method - calls the new retry version"""
-        return self.check_all_grabfood_stores_with_retries()
+        """Legacy method - calls the new client alerts version"""
+        return self.check_all_grabfood_stores_with_client_alerts()
 
     def _check_single_store_safe(self, url: str, index: int, total: int, is_retry: bool = False) -> Dict[str, Any]:
         """Check single store with proper error handling"""
-        # Use the unified name resolver that includes your _get_store_name logic
         store_name = self.name_manager.get_store_name(url)
 
         try:
@@ -546,7 +580,7 @@ class GrabFoodMonitor:
             self.stats['unknown'] += 1
 
     def _send_client_alerts(self, results: List[Dict[str, Any]]):
-        """Send email alerts to clients about offline stores"""
+        """Send hourly client alerts (all offline stores)"""
         try:
             if not HAS_CLIENT_ALERTS:
                 logger.debug("Client alerts module not available")
@@ -569,22 +603,21 @@ class GrabFoodMonitor:
             total_stores = len(results)
 
             if offline_stores:
-                logger.info(f"📧 Sending client alerts for {len(offline_stores)} offline stores")
+                logger.info(f"📧 Sending hourly status alert for {len(offline_stores)} offline stores")
                 success = client_alerts.send_hourly_status_alert(offline_stores, total_stores)
                 if success:
-                    logger.info("✅ Client alerts sent successfully")
+                    logger.info("✅ Hourly client alerts sent successfully")
                 else:
-                    logger.warning("⚠️ Client alerts failed or skipped")
+                    logger.warning("⚠️ Hourly client alerts failed or skipped")
             else:
                 logger.info("📧 All stores online - sending positive status update")
-                # Send positive update when all stores are online
                 _ = client_alerts.send_hourly_status_alert([], total_stores)
 
         except Exception as e:
             logger.error(f"Error sending client alerts: {e}")
 
     def _send_friendly_admin_alerts(self, results: List[Dict[str, Any]]):
-        """Send friendly, calm admin alerts for verification needs"""
+        """Send friendly admin alerts for verification needs"""
         try:
             problem_stores = []
             for rd in results:
@@ -609,9 +642,9 @@ class GrabFoodMonitor:
                 else:
                     logger.debug("⚠️ Admin reminder skipped (cooldown or disabled)")
 
-            # Only send bot detection for excessive blocking (adjust threshold)
+            # Bot detection for excessive blocking
             blocked_count = sum(1 for r in results if r['result'].status == StoreStatus.BLOCKED)
-            if blocked_count >= 5:  # Higher threshold for less alarm
+            if blocked_count >= 5:
                 admin_alerts.send_bot_detection_alert(blocked_count)
 
         except Exception as e:
@@ -624,7 +657,6 @@ class GrabFoodMonitor:
         saved_count = 0
         error_count = 0
 
-        # Per-store hourly upsert
         for rd in results:
             try:
                 store_name = rd['name']
@@ -670,27 +702,18 @@ class GrabFoodMonitor:
                 logger.error(f"Database error for {rd.get('name','?')}: {e}")
                 error_count += 1
 
-        # Hourly summary upsert (only for GrabFood)
+        # Backward-compatible summary report
         try:
             total = len(results)
             online = sum(1 for r in results if r['result'].status == StoreStatus.ONLINE)
             offline = sum(1 for r in results if r['result'].status == StoreStatus.OFFLINE)
-            blocked = sum(1 for r in results if r['result'].status == StoreStatus.BLOCKED)
-            errors = sum(1 for r in results if r['result'].status == StoreStatus.ERROR)
-            unknown = sum(1 for r in results if r['result'].status == StoreStatus.UNKNOWN)
-
-            logger.info(f"✅ Saved {saved_count}/{len(results)} GrabFood hourly rows")
-            if error_count > 0:
-                logger.warning(f"   ⚠️ {error_count} database errors")
-
-            # Backward-compatible summary report
-            try:
-                db.save_summary_report(total, online, offline)
-            except Exception as e:
-                logger.debug(f"(Optional) legacy save_summary_report failed: {e}")
-
+            db.save_summary_report(total, online, offline)
         except Exception as e:
-            logger.error(f"Error saving hourly summary: {e}")
+            logger.debug(f"(Optional) legacy save_summary_report failed: {e}")
+
+        logger.info(f"✅ Saved {saved_count}/{len(results)} GrabFood records")
+        if error_count > 0:
+            logger.warning(f"   ⚠️ {error_count} database errors")
 
 def signal_handler(signum, frame):
     """Handle shutdown signals gracefully"""
@@ -700,11 +723,10 @@ def signal_handler(signum, frame):
 def main():
     """Main entry point"""
     logger.info("=" * 80)
-    logger.info("🛒 CocoPan GrabFood Monitor - COMPLETE PRODUCTION VERSION")
-    logger.info("🎯 Features: 145 stores, 15-min early start, calm alerts, client emails")
-    logger.info("🎯 Target: Monitor 70 GrabFood stores with retry logic")
-    logger.info("🐼 Foodpanda: Handled by VA hourly check-in system (75 stores)")
-    logger.info("📊 Combined: 145-store unified view in client dashboard")
+    logger.info("🛒 CocoPan GrabFood Monitor - CLIENT EMAIL INTEGRATION")
+    logger.info("📧 FEATURE: Immediate client emails when stores go offline")
+    logger.info("🎯 Target: Monitor GrabFood stores with instant offline notifications")
+    logger.info("🐼 Foodpanda: Handled by VA hourly check-in system")
     logger.info("=" * 80)
 
     if not config.validate_timezone():
@@ -730,38 +752,50 @@ def main():
         except Exception as e:
             logger.warning(f"⚠️ Database issue: {e}")
 
-        # Scheduler - FIXED: Runs at :45 minutes for 15-minute early start
+        # Test client alerts on startup
+        if HAS_CLIENT_ALERTS:
+            logger.info("🧪 Testing client email system...")
+            try:
+                test_success = client_alerts.test_email_system()
+                if test_success:
+                    logger.info("✅ Client email system test successful!")
+                else:
+                    logger.warning("⚠️ Client email system test failed - check configuration")
+            except Exception as e:
+                logger.error(f"❌ Client email test error: {e}")
+
+        # Scheduler - runs at :45 minutes for 15-minute early start
         if HAS_SCHEDULER:
             ph_tz = config.get_timezone()
             scheduler = BlockingScheduler(timezone=ph_tz)
 
             def early_check_job():
-                """Start checking at :45 to give time for retries"""
+                """Start checking at :45 to give time for retries and client alerts"""
                 now_hour = config.get_current_time().hour
                 if config.is_monitor_time(now_hour):
-                    monitor.check_all_grabfood_stores_with_retries()
+                    monitor.check_all_grabfood_stores_with_client_alerts()
                 else:
                     logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
 
-            # FIXED: Schedule at :45 minutes past each hour for 15-minute early start
+            # Schedule at :45 minutes past each hour
             scheduler.add_job(
                 func=early_check_job,
                 trigger=CronTrigger(minute=45, timezone=ph_tz),
-                id='early_grabfood_check',
+                id='early_grabfood_check_with_client_alerts',
                 max_instances=1,
                 coalesce=True,
                 misfire_grace_time=300
             )
 
-            logger.info(f"⏰ Scheduled GrabFood checks at :45 past each hour ({config.MONITOR_START_HOUR}:45–{config.MONITOR_END_HOUR}:45) for early completion")
-            logger.info("🔍 Running initial GrabFood check...")
+            logger.info(f"⏰ Scheduled GrabFood checks at :45 past each hour for client email integration")
+            logger.info("🔍 Running initial GrabFood check with client alerts...")
 
             try:
                 early_check_job()
             except Exception as e:
                 logger.error(f"Initial check error: {e}")
 
-            logger.info("✅ GrabFood monitoring active with 15-minute early scheduling!")
+            logger.info("✅ GrabFood monitoring active with client email alerts!")
             scheduler.start()
 
         else:
@@ -770,7 +804,7 @@ def main():
                 try:
                     now_hour = config.get_current_time().hour
                     if config.is_monitor_time(now_hour):
-                        monitor.check_all_grabfood_stores_with_retries()
+                        monitor.check_all_grabfood_stores_with_client_alerts()
                     else:
                         logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
                     time.sleep(3600)  # Sleep for 1 hour

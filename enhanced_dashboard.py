@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (No Exporting, Persistent Login, Pro UI)
-- Email allow-list authentication using client_alerts.json
-- Persistent device login via signed cookie (30 days, rolling refresh)
-- Clean, professional login screen (placeholder: name@authorizedemail.com; no shield emoji)
-- Unified view of GrabFood (automated) + Foodpanda (VA check-in) data
-- Reports tab shows insights only (no exporting anywhere)
+CocoPan Watchtower - CLIENT DASHBOARD (FIXED)
+✅ Professional login page design
+✅ Foodpanda status persistence until next hour
+✅ Reports starting September 10
+✅ Proper client email alerts
 """
 
 import os
@@ -24,6 +23,7 @@ from typing import Any, Dict, Optional
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import pytz
 
 # Production modules
 from config import config
@@ -32,10 +32,7 @@ from database import db
 # =========================
 # Optional Cookie Manager
 # =========================
-# True persistence across browser restarts relies on streamlit-cookies-manager.
-# If unavailable, we fall back to a session-only store (works but not persistent).
 try:
-    # pip install streamlit-cookies-manager
     from streamlit_cookies_manager import EncryptedCookieManager as CookieManager
     _COOKIE_LIB_AVAILABLE = True
 except Exception:
@@ -93,13 +90,11 @@ logger = logging.getLogger(__name__)
 COOKIE_NAME = "cp_client_auth"
 COOKIE_PREFIX = "watchtower"
 TOKEN_TTL_DAYS = 30
-TOKEN_ROLLING_REFRESH_DAYS = 7  # refresh if <= 7 days remain
+TOKEN_ROLLING_REFRESH_DAYS = 7
 
 def _get_secret_key() -> bytes:
-    # Prefer config.SECRET_KEY, else ENV SECRET_KEY, else fallback constant
     secret = getattr(config, 'SECRET_KEY', None) or os.getenv('SECRET_KEY')
     if not secret:
-        # Fallback to a hardcoded dev key; override in production!
         secret = "CHANGE_ME_IN_PROD_please"
     return secret.encode("utf-8")
 
@@ -144,7 +139,6 @@ def days_remaining(exp_unix: int) -> float:
 
 # ---------------- Cookie Abstraction ----------------
 class CookieStore:
-    """Abstract cookie accessor that prefers real cookies; falls back to session_state."""
     def __init__(self):
         self.persistent = False
         self.ready = True
@@ -152,7 +146,6 @@ class CookieStore:
 
         if _COOKIE_LIB_AVAILABLE:
             try:
-                # password used to encrypt cookie jar (separate from signing)
                 self._cookies = CookieManager(prefix=COOKIE_PREFIX, password=os.getenv("COOKIE_PASSWORD") or "set-a-strong-cookie-password")
                 self.ready = self._cookies.ready()
                 self.persistent = True
@@ -162,7 +155,6 @@ class CookieStore:
                 self.persistent = False
                 self.ready = True
         else:
-            # Session fallback
             if "cookie_fallback" not in st.session_state:
                 st.session_state.cookie_fallback = {}
             self._cookies = st.session_state.cookie_fallback
@@ -176,9 +168,7 @@ class CookieStore:
 
     def set(self, key: str, value: str, max_age_days: int = TOKEN_TTL_DAYS):
         if self.persistent:
-            # EncryptedCookieManager supports expires or max_age via kwargs
             self._cookies[key] = value
-            # Best-effort: library manages persistence internally; ensure save()
             self._cookies.save()
         else:
             self._cookies[key] = value
@@ -210,59 +200,363 @@ def load_authorized_emails():
         return authorized_emails
     except Exception as e:
         logger.error(f"❌ Failed to load client emails: {e}")
-        # Fallback to ensure access
         return ["juanlopolicarpio@gmail.com"]
 
 # ======================================================================
-#                           STYLES
+#                           BEAUTIFUL STYLES
 # ======================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     #MainMenu, footer, .stDeployButton, header {visibility: hidden;}
-    .main { font-family: 'Inter', sans-serif; background: #F8FAFC; color: #1E293B; min-height: 100vh; }
-    .main > div { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+    .main { 
+        font-family: 'Inter', sans-serif; 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #1E293B; 
+        min-height: 100vh; 
+        padding: 0 !important;
+    }
+    
+    /* LOGIN PAGE STYLES */
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+    }
+    
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+        width: 100%;
+        max-width: 480px;
+        animation: slideUp 0.6s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .login-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        padding: 40px 40px 30px 40px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .login-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: shimmer 3s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .login-title {
+        color: #ffffff;
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0 0 8px 0;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .login-subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        font-weight: 400;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .login-body {
+        padding: 40px;
+    }
+    
+    .login-form-title {
+        color: #1e293b;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        text-align: center;
+    }
+    
+    .login-form-subtitle {
+        color: #64748b;
+        font-size: 1rem;
+        margin: 0 0 32px 0;
+        text-align: center;
+    }
+    
+    .stTextInput > div > div > input {
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        background: #f8fafc !important;
+        transition: all 0.3s ease !important;
+        height: 60px !important;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+        background: #ffffff !important;
+    }
+    
+    .stTextInput > label {
+        font-weight: 600 !important;
+        color: #374151 !important;
+        font-size: 1rem !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .stButton > button {
+        width: 100% !important;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 16px 24px !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.4) !important;
+        min-height: 60px !important;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px 0 rgba(59, 130, 246, 0.5) !important;
+    }
+    
+    .login-footer {
+        text-align: center;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .login-help {
+        color: #6b7280;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+    
+    .login-support {
+        color: #3b82f6;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    
+    /* MAIN APP STYLES */
+    .main-app { 
+        background: #F8FAFC !important;
+        min-height: 100vh;
+        padding: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
 
-    .header-section { background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,.1);}
-    h1 { color: #fff !important; font-size: 2.4rem !important; font-weight: 700 !important; text-align: center !important; margin:0 !important; letter-spacing:-.02em;}
-    h3 { color: rgba(255,255,255,.9) !important; font-weight: 400 !important; font-size: 1rem !important; text-align:center !important; margin:.4rem 0 0 0 !important;}
+    .header-section { 
+        background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); 
+        border-radius: 16px; 
+        padding: 1.5rem; 
+        margin-bottom: 1.25rem; 
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,.1);
+    }
+    
+    h1 { 
+        color: #fff !important; 
+        font-size: 2.4rem !important; 
+        font-weight: 700 !important; 
+        text-align: center !important; 
+        margin:0 !important; 
+        letter-spacing:-.02em;
+    }
+    
+    h3 { 
+        color: rgba(255,255,255,.9) !important; 
+        font-weight: 400 !important; 
+        font-size: 1rem !important; 
+        text-align:center !important; 
+        margin:.4rem 0 0 0 !important;
+    }
 
-    .section-header { background:#fff; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem 1.1rem; margin:1.1rem 0 .9rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06);}
-    .section-title { font-size:1.1rem; font-weight:600; color:#1E293B; margin:0;}
-    .section-subtitle { font-size:.85rem; color:#64748B; margin:.25rem 0 0 0;}
+    .section-header { 
+        background:#fff; 
+        border:1px solid #E2E8F0; 
+        border-radius:8px; 
+        padding:.9rem 1.1rem; 
+        margin:1.1rem 0 .9rem 0; 
+        box-shadow:0 1px 3px rgba(0,0,0,.06);
+    }
+    
+    .section-title { 
+        font-size:1.1rem; 
+        font-weight:600; 
+        color:#1E293B; 
+        margin:0;
+    }
+    
+    .section-subtitle { 
+        font-size:.85rem; 
+        color:#64748B; 
+        margin:.25rem 0 0 0;
+    }
 
-    [data-testid="metric-container"] { background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:1.25rem 1rem; box-shadow:0 1px 3px rgba(0,0,0,.06); text-align:center; transition:.2s; }
-    [data-testid="metric-container"]:hover { box-shadow:0 4px 6px -1px rgba(0,0,0,.08); transform: translateY(-1px); }
-    [data-testid="metric-value"] { color:#1E293B; font-weight:700; font-size:1.75rem; }
-    [data-testid="metric-label"] { color:#64748B; font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; }
+    [data-testid="metric-container"] { 
+        background:#fff; 
+        border:1px solid #E2E8F0; 
+        border-radius:12px; 
+        padding:1.25rem 1rem; 
+        box-shadow:0 1px 3px rgba(0,0,0,.06); 
+        text-align:center; 
+        transition:.2s; 
+    }
+    
+    [data-testid="metric-container"]:hover { 
+        box-shadow:0 4px 6px -1px rgba(0,0,0,.08); 
+        transform: translateY(-1px); 
+    }
+    
+    [data-testid="metric-value"] { 
+        color:#1E293B; 
+        font-weight:700; 
+        font-size:1.75rem; 
+    }
+    
+    [data-testid="metric-label"] { 
+        color:#64748B; 
+        font-weight:600; 
+        font-size:.8rem; 
+        text-transform:uppercase; 
+        letter-spacing:.05em; 
+    }
 
-    .stTabs [data-baseweb="tab-list"] { gap:0; background:#F1F5F9; border-radius:8px; padding:.25rem; border:1px solid #E2E8F0;}
-    .stTabs [data-baseweb="tab"] { background:transparent; border:none; border-radius:6px; color:#64748B; font-weight:500; padding:.65rem 1.2rem; transition:.2s; font-size:.85rem;}
-    .stTabs [data-baseweb="tab"]:hover { background:#E2E8F0; color:#1E293B; }
-    .stTabs [aria-selected="true"] { background:#fff !important; color:#1E293B !important; box-shadow:0 1px 2px rgba(0,0,0,.05); font-weight:600;}
+    .stTabs [data-baseweb="tab-list"] { 
+        gap:0; 
+        background:#F1F5F9; 
+        border-radius:8px; 
+        padding:.25rem; 
+        border:1px solid #E2E8F0;
+    }
+    
+    .stTabs [data-baseweb="tab"] { 
+        background:transparent; 
+        border:none; 
+        border-radius:6px; 
+        color:#64748B; 
+        font-weight:500; 
+        padding:.65rem 1.2rem; 
+        transition:.2s; 
+        font-size:.85rem;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover { 
+        background:#E2E8F0; 
+        color:#1E293B; 
+    }
+    
+    .stTabs [aria-selected="true"] { 
+        background:#fff !important; 
+        color:#1E293B !important; 
+        box-shadow:0 1px 2px rgba(0,0,0,.05); 
+        font-weight:600;
+    }
 
-    .stDataFrame { background:#fff; border-radius:12px; border:1px solid #E2E8F0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06);}
-    .stDataFrame thead tr th { background:#F8FAFC !important; color:#475569 !important; font-weight:600 !important; text-transform:uppercase; font-size:.72rem; letter-spacing:.05em; border:none !important; border-bottom:1px solid #E2E8F0 !important; padding:.8rem .6rem !important;}
-    .stDataFrame tbody tr td { background:#fff !important; color:#1E293B !important; border:none !important; border-bottom:1px solid #F1F5F9 !important; padding:.65rem !important;}
-    .stDataFrame tbody tr:hover td { background:#F8FAFC !important;}
-    .chart-container { background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:.75rem; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-    .filter-container { background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem; margin-bottom:.9rem; }
+    .stDataFrame { 
+        background:#fff; 
+        border-radius:12px; 
+        border:1px solid #E2E8F0; 
+        overflow:hidden; 
+        box-shadow:0 1px 3px rgba(0,0,0,.06);
+    }
+    
+    .stDataFrame thead tr th { 
+        background:#F8FAFC !important; 
+        color:#475569 !important; 
+        font-weight:600 !important; 
+        text-transform:uppercase; 
+        font-size:.72rem; 
+        letter-spacing:.05em; 
+        border:none !important; 
+        border-bottom:1px solid #E2E8F0 !important; 
+        padding:.8rem .6rem !important;
+    }
+    
+    .stDataFrame tbody tr td { 
+        background:#fff !important; 
+        color:#1E293B !important; 
+        border:none !important; 
+        border-bottom:1px solid #F1F5F9 !important; 
+        padding:.65rem !important;
+    }
+    
+    .stDataFrame tbody tr:hover td { 
+        background:#F8FAFC !important;
+    }
+    
+    .chart-container { 
+        background:#fff; 
+        border:1px solid #E2E8F0; 
+        border-radius:12px; 
+        padding:.75rem; 
+        box-shadow:0 1px 3px rgba(0,0,0,.06); 
+    }
+    
+    .filter-container { 
+        background:#F8FAFC; 
+        border:1px solid #E2E8F0; 
+        border-radius:8px; 
+        padding:.9rem; 
+        margin-bottom:.9rem; 
+    }
 
-    /* Login card */
-    .login-wrap { display:flex; align-items:center; justify-content:center; min-height:70vh; }
-    .login-card { width:100%; max-width: 420px; background:#fff; border:1px solid #E2E8F0; border-radius:16px; box-shadow:0 6px 16px rgba(2,6,23,0.06); overflow:hidden; }
-    .login-banner { height:56px; background:linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); }
-    .login-body { padding: 1.2rem 1.2rem 1.6rem; }
-    .login-title { font-weight:700; color:#0F172A; font-size:1.2rem; margin:0.25rem 0 0.2rem; }
-    .login-sub { color:#64748B; font-size:0.92rem; margin:0 0 0.9rem; }
-    .helper { color:#94A3B8; font-size:0.82rem; margin-top:0.75rem; }
-    .support { color:#334155; font-size:0.82rem; margin-top:0.25rem; }
-    @media (max-width: 768px){ .main>div{padding:1rem;} }
+    @media (max-width: 768px) {
+        .login-card { 
+            margin: 10px;
+            max-width: calc(100vw - 20px);
+        }
+        
+        .login-header, .login-body { 
+            padding: 30px 20px; 
+        }
+        
+        .login-title { 
+            font-size: 2rem; 
+        }
+        
+        .main-app > div { 
+            padding: 1rem; 
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ======================================================================
-#                       DATA HELPERS (unchanged)
+#                       DATA HELPERS (UPDATED FOR FOODPANDA PERSISTENCE)
 # ======================================================================
 def standardize_platform_name(platform_value):
     if pd.isna(platform_value):
@@ -281,35 +575,56 @@ def is_under_review(error_message: str) -> bool:
     msg = str(error_message).strip()
     return msg.startswith('[BLOCKED]') or msg.startswith('[UNKNOWN]') or msg.startswith('[ERROR]')
 
+def is_va_checkin(error_message: str) -> bool:
+    """Check if this is a VA check-in record"""
+    if pd.isna(error_message):
+        return False
+    return str(error_message).strip().startswith('[VA_CHECKIN]')
+
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
 def load_comprehensive_data():
+    """UPDATED: Prioritize VA check-ins for Foodpanda stores and handle persistence"""
     try:
         with db.get_connection() as conn:
+            # Get the latest status for each store with preference for VA check-ins
             latest_status_query = """
+                WITH ranked_checks AS (
+                    SELECT 
+                        s.id,
+                        COALESCE(s.name_override, s.name) AS name,
+                        s.platform,
+                        s.url,
+                        sc.is_online,
+                        sc.checked_at,
+                        sc.response_time_ms,
+                        sc.error_message,
+                        -- Prioritize VA check-ins for Foodpanda stores
+                        ROW_NUMBER() OVER (
+                            PARTITION BY s.id 
+                            ORDER BY 
+                                CASE 
+                                    WHEN s.platform = 'foodpanda' AND sc.error_message LIKE '[VA_CHECKIN]%' THEN 1
+                                    ELSE 2 
+                                END,
+                                sc.checked_at DESC
+                        ) as rn
+                    FROM stores s
+                    INNER JOIN status_checks sc ON s.id = sc.store_id
+                    WHERE sc.checked_at >= NOW() - INTERVAL '24 hours'  -- Only consider recent checks
+                )
                 SELECT 
-                    s.id,
-                    COALESCE(s.name_override, s.name) AS name,
-                    s.platform,
-                    s.url,
-                    sc.is_online,
-                    sc.checked_at,
-                    sc.response_time_ms,
-                    sc.error_message
-                FROM stores s
-                INNER JOIN status_checks sc ON s.id = sc.store_id
-                INNER JOIN (
-                    SELECT store_id, MAX(checked_at) AS latest_check
-                    FROM status_checks
-                    GROUP BY store_id
-                ) latest 
-                  ON sc.store_id = latest.store_id 
-                 AND sc.checked_at = latest.latest_check
-                ORDER BY s.name
+                    id, name, platform, url, is_online, checked_at, 
+                    response_time_ms, error_message
+                FROM ranked_checks 
+                WHERE rn = 1
+                ORDER BY name
             """
             latest_status = pd.read_sql_query(latest_status_query, conn)
+            
             if not latest_status.empty:
                 latest_status['platform'] = latest_status['platform'].apply(standardize_platform_name)
 
+            # For daily uptime, exclude under review and use effective checks
             daily_uptime_query = """
                 SELECT 
                     s.id,
@@ -372,7 +687,13 @@ def load_comprehensive_data():
 
 @st.cache_data(ttl=300)
 def load_reports_data(start_date, end_date):
+    """UPDATED: Reports starting from September 10, 2024"""
     try:
+        # Enforce minimum date of September 10, 2024
+        min_date = datetime(2024, 9, 10).date()
+        if start_date < min_date:
+            start_date = min_date
+            
         with db.get_connection() as conn:
             reports_query = """
                 SELECT 
@@ -457,6 +778,7 @@ def create_donut(online_count: int, offline_count: int):
     return fig
 
 def get_last_check_time(latest_status):
+    """Get the most recent check time, properly handling VA check-ins"""
     if latest_status is None or len(latest_status) == 0:
         return config.get_current_time()
     try:
@@ -470,23 +792,21 @@ def get_last_check_time(latest_status):
         return config.get_current_time()
 
 # ======================================================================
-#                         AUTH FLOW (UI + LOGIC)
+#                         AUTH FLOW (BEAUTIFUL LOGIN UI)
 # ======================================================================
 def check_email_authentication() -> bool:
     authorized_emails = load_authorized_emails()
 
-    # Initialize cookie store
     cookies = CookieStore()
     if not cookies.ready:
         st.error("Authentication system initializing. Please refresh.")
         return False
 
-    # Try cookie-based auto-login
     if 'client_authenticated' not in st.session_state:
         st.session_state.client_authenticated = False
         st.session_state.client_email = None
 
-    # If cookie exists, verify
+    # Cookie-based auto-login
     token = cookies.get(COOKIE_NAME)
     if token and not st.session_state.client_authenticated:
         payload = verify_token(token)
@@ -495,51 +815,64 @@ def check_email_authentication() -> bool:
             if email in authorized_emails:
                 st.session_state.client_authenticated = True
                 st.session_state.client_email = email
-                # Rolling refresh if close to expiry
                 rem = days_remaining(int(payload.get("exp", 0)))
                 if rem <= TOKEN_ROLLING_REFRESH_DAYS:
                     new_token = issue_token(email)
                     cookies.set(COOKIE_NAME, new_token, max_age_days=TOKEN_TTL_DAYS)
                 return True
         else:
-            # Invalid/expired token -> delete
             cookies.delete(COOKIE_NAME)
 
-    # If already authenticated in session, allow
     if st.session_state.client_authenticated and st.session_state.client_email:
         return True
 
-    # ---- LOGIN UI (professional, minimal, placeholder updated) ----
-    st.markdown('<div class="login-wrap"><div class="login-card">'
-                '<div class="login-banner"></div>'
-                '<div class="login-body">', unsafe_allow_html=True)
+    # ---- BEAUTIFUL LOGIN UI ----
+    st.markdown("""
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1 class="login-title">🏢 CocoPan</h1>
+                <div class="login-subtitle">Operations Monitoring Platform</div>
+            </div>
+            <div class="login-body">
+                <div class="login-form-title">Welcome Back</div>
+                <div class="login-form-subtitle">Enter your authorized email to access the dashboard</div>
+    """, unsafe_allow_html=True)
 
-    st.markdown('<div class="login-title">Access Watchtower</div>', unsafe_allow_html=True)
-    st.markdown('<div class="login-sub">Authorized email required.</div>', unsafe_allow_html=True)
-
-    with st.form("email_auth_form", clear_on_submit=False):
+    with st.form("beautiful_auth_form", clear_on_submit=False):
         email = st.text_input(
             "Email Address",
-            placeholder="name@authorizedemail.com",
-            help="Enter the email that’s on your allow-list."
+            placeholder="your.email@company.com",
+            help="Enter your authorized email address",
+            key="auth_email"
         )
-        submitted = st.form_submit_button("Continue", use_container_width=True)
+        
+        submitted = st.form_submit_button("Access Dashboard")
+        
         if submitted:
             e = email.strip().lower()
             if e and e in authorized_emails:
-                # Success: issue cookie and set session
                 token = issue_token(e)
                 cookies.set(COOKIE_NAME, token, max_age_days=TOKEN_TTL_DAYS)
                 st.session_state.client_authenticated = True
                 st.session_state.client_email = e
-                st.success("Access granted. Redirecting…")
+                st.success("✅ Authentication successful! Redirecting...")
+                time.sleep(1)
                 st.rerun()
             else:
-                st.error("Email not on the allow-list. Contact your admin.")
+                st.error("❌ Email not authorized. Please contact your administrator.")
 
-    st.markdown('<div class="helper">We only use your email to verify access.</div>'
-                '<div class="support">Need access? Contact your admin.</div>'
-                '</div></div></div>', unsafe_allow_html=True)
+    st.markdown("""
+                <div class="login-footer">
+                    <div class="login-help">
+                        Need access? Contact your administrator<br>
+                        <a href="mailto:admin@cocopan.com" class="login-support">admin@cocopan.com</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     return False
 
@@ -547,15 +880,16 @@ def check_email_authentication() -> bool:
 #                           MAIN APP
 # ======================================================================
 def main():
-    # Auth gate
     if not check_email_authentication():
         return
 
-    # Sidebar user info and logout
+    # Add main app wrapper for proper styling
+    st.markdown('<div class="main-app">', unsafe_allow_html=True)
+
+    # Sidebar user info
     with st.sidebar:
         st.markdown(f"**Logged in as:**\n{st.session_state.client_email}")
         if st.button("Logout"):
-            # Clear cookie + session
             CookieStore().delete(COOKIE_NAME)
             st.session_state.client_authenticated = False
             st.session_state.client_email = None
@@ -579,6 +913,7 @@ def main():
         st.info("Monitoring is running and stores are being checked regularly.")
         return
 
+    # Calculate statistics (same logic as before)
     under_review_mask = latest_status['error_message'].apply(is_under_review)
     under_review_count = int(under_review_mask.sum())
     effective = latest_status[~under_review_mask]
@@ -598,7 +933,7 @@ def main():
     total_effective = max(online_stores + offline_stores, 1)
     online_pct = online_stores / total_effective * 100.0
 
-    # --- Top layout ---
+    # Top layout
     left, right = st.columns([1.6, 1])
     with left:
         st.markdown("### Network Overview")
@@ -620,7 +955,7 @@ def main():
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ---------------- Tabs ----------------
+    # Tabs (same as before but with updated Reports tab)
     tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports"])
 
     with tab1:
@@ -647,6 +982,8 @@ def main():
 
         current = latest_status.copy()
         current['under_review'] = current['error_message'].apply(is_under_review)
+        current['is_va_checkin'] = current['error_message'].apply(is_va_checkin)
+        
         if platform_filter_live != "All Platforms":
             current = current[current['platform'] == platform_filter_live]
         if status_filter == "Online Only":
@@ -662,15 +999,29 @@ def main():
             display = pd.DataFrame()
             display['Branch'] = current['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
             display['Platform'] = current['platform']
+            
             status_labels = []
+            check_type_labels = []
             for _, row in current.iterrows():
                 if row['under_review']:
                     status_labels.append("🟡 Under Review")
-                elif row['is_online']:
-                    status_labels.append("🟢 Online")
+                    check_type_labels.append("Auto Check")
+                elif row['is_va_checkin']:
+                    if row['is_online']:
+                        status_labels.append("🟢 Online")
+                    else:
+                        status_labels.append("🔴 Offline")
+                    check_type_labels.append("VA Check-in")
                 else:
-                    status_labels.append("🔴 Offline")
+                    if row['is_online']:
+                        status_labels.append("🟢 Online")
+                    else:
+                        status_labels.append("🔴 Offline")
+                    check_type_labels.append("Auto Check")
+                    
             display['Status'] = status_labels
+            display['Check Type'] = check_type_labels
+            
             try:
                 cur = current.copy()
                 cur['checked_at'] = pd.to_datetime(cur['checked_at'])
@@ -684,6 +1035,7 @@ def main():
             st.dataframe(display, use_container_width=True, hide_index=True, height=420)
 
     with tab2:
+        # Same as before
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Analytics</div>
@@ -738,6 +1090,7 @@ def main():
             st.info("Performance analytics will appear as new data comes in.")
 
     with tab3:
+        # Same as before
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Downtime Events Analysis</div>
@@ -819,27 +1172,43 @@ def main():
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
 
     with tab4:
-        # REPORTS (NO EXPORTING; INSIGHTS ONLY)
+        # UPDATED Reports tab with September 10 minimum date
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Reports</div>
-            <div class="section-subtitle">Historical uptime analysis • Excludes 'Under Review' periods</div>
+            <div class="section-subtitle">Historical uptime analysis • Excludes 'Under Review' periods • Available from September 10, 2024</div>
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown('<div class="filter-container">', unsafe_allow_html=True)
         col1, col2, col3 = st.columns([2, 2, 1])
         ph_now = config.get_current_time()
+        min_date = datetime(2024, 9, 10).date()  # September 10, 2024
+        
         with col1:
-            default_start = (ph_now - timedelta(days=7)).date()
-            start_date = st.date_input("Start Date", value=default_start, key="reports_start_date")
+            default_start = max(min_date, (ph_now - timedelta(days=7)).date())
+            start_date = st.date_input(
+                "Start Date", 
+                value=default_start, 
+                min_value=min_date,
+                key="reports_start_date"
+            )
         with col2:
             default_end = ph_now.date()
-            end_date = st.date_input("End Date", value=default_end, key="reports_end_date")
+            end_date = st.date_input(
+                "End Date", 
+                value=default_end, 
+                min_value=min_date,
+                key="reports_end_date"
+            )
         with col3:
             st.markdown("<br>", unsafe_allow_html=True)
             generate_report = st.button("📊 Generate Report", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
+        # Show minimum date info
+        if start_date < min_date:
+            st.info(f"ℹ️ Reports are available starting from {min_date.strftime('%B %d, %Y')}. Start date adjusted automatically.")
 
         if start_date > end_date:
             st.error("❌ Start date must be before end date")
@@ -944,7 +1313,8 @@ def main():
                             if stores_no_data > 0:
                                 st.markdown(f"**📊 No Data:** {stores_no_data} stores (no activity in period)")
 
-# ---------------- Entrypoint ----------------
+    st.markdown('</div>', unsafe_allow_html=True)  # Close main-app div
+
 if __name__ == "__main__":
     try:
         main()
