@@ -1,234 +1,220 @@
 #!/usr/bin/env python3
 """
-CocoPan Admin Dashboard - Enhanced with EMAIL AUTH & VA HOURLY CHECK-IN
+CocoPan Admin Dashboard - Email Auth + VA Hourly Check-in (Idempotent)
 - Email-only authentication using admin_alerts.json
-- NEW: VA Hourly Check-in tab with hour-slot tracking (7–10 PM Manila)
-- Existing admin verification functionality (unchanged)
+- VA Hourly Check-in tab (7–10 PM Manila) with hour-slot tracking
+- Idempotent submissions: one VA row per (store, hour_slot) no matter how many clicks
+- “Already submitted” indicator for the current hour
+- Health server hardened for Railway/Streamlit reruns
 - Mobile-first design maintained
 """
-import streamlit as st
-import pandas as pd
+# ===== Standard libs =====
 import os
+import re
 import time
-import logging
 import json
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
-
-# Third-party
-import pytz
-import re  # <-- used by search normalization
-
-# Import production modules
-from config import config
-from database import db
-
-# Health check endpoint for Railway
+import logging
 import threading
 import http.server
 import socketserver
-from urllib.parse import urlparse
+from datetime import datetime, timedelta
+from typing import List
+
+# ===== Third-party =====
+import pytz
+import pandas as pd
+import streamlit as st
+
+# ===== Initialize logging BEFORE anything else (used by background threads) =====
+logging.basicConfig(level=getattr(logging, os.getenv("LOG_LEVEL", "INFO")))
+logger = logging.getLogger(__name__)
+
+# ===== App modules =====
+from config import config
+from database import db
+
+# ------------------------------------------------------------------------------
+# Health check endpoint (hardened)
+# ------------------------------------------------------------------------------
+_HEALTH_THREAD_STARTED = False
+_HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8504"))
 
 def create_health_server():
-    """Create a simple health check server"""
+    """Tiny HTTP health server; safe across Streamlit reruns."""
     class HealthHandler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == '/healthz':
+            if self.path == "/healthz":
                 try:
-                    # Quick database check
                     db.get_database_stats()
                     self.send_response(200)
-                    self.send_header('Content-type', 'text/plain')
+                    self.send_header("Content-type", "text/plain")
                     self.end_headers()
-                    self.wfile.write(b'OK - Admin Dashboard Healthy')
+                    self.wfile.write(b"OK - Admin Dashboard Healthy")
                 except Exception as e:
                     self.send_response(500)
-                    self.send_header('Content-type', 'text/plain')
+                    self.send_header("Content-type", "text/plain")
                     self.end_headers()
-                    self.wfile.write(f'ERROR - {str(e)}'.encode())
+                    self.wfile.write(f"ERROR - {e}".encode())
             else:
                 self.send_response(404)
                 self.end_headers()
-        
-        def log_message(self, format, *args):
-            # Suppress health check logs
+
+        def log_message(self, *args, **kwargs):
+            # Silence base HTTP server logs
             pass
-    
+
+    class ReusableTCPServer(socketserver.TCPServer):
+        allow_reuse_address = True
+
     try:
-        port = 8504  # Different port for health checks
-        with socketserver.TCPServer(("", port), HealthHandler) as httpd:
+        with ReusableTCPServer(("", _HEALTH_PORT), HealthHandler) as httpd:
+            logger.info(f"Health server listening on :{_HEALTH_PORT}")
             httpd.serve_forever()
-    except Exception as e:
-        logger.debug(f"Health server error: {e}")
+    except OSError as e:
+        # Address already in use — just log and exit thread gracefully
+        if getattr(e, "errno", None) == 98:
+            logger.warning(f"Health server not started; port :{_HEALTH_PORT} already in use")
+            return
+        logger.exception("Health server OSError")
+    except Exception:
+        logger.exception("Health server unexpected error")
 
-# Start health check server in background
-if os.getenv('RAILWAY_ENVIRONMENT') == 'production':
-    health_thread = threading.Thread(target=create_health_server, daemon=True)
-    health_thread.start()
+if os.getenv("RAILWAY_ENVIRONMENT") == "production" and not _HEALTH_THREAD_STARTED:
+    try:
+        t = threading.Thread(target=create_health_server, daemon=True, name="healthz-server")
+        t.start()
+        _HEALTH_THREAD_STARTED = True
+    except Exception:
+        logger.exception("Failed to start health server thread")
 
-# Set page config for mobile-first experience
+# ------------------------------------------------------------------------------
+# Streamlit page config
+# ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="CocoPan Admin",
     page_icon="🔧",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
-# Setup logging
-logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
-logger = logging.getLogger(__name__)
-
-# ---------------------------
-# EMAIL AUTHENTICATION
-# ---------------------------
+# ------------------------------------------------------------------------------
+# Email Authentication
+# ------------------------------------------------------------------------------
 def load_authorized_admin_emails():
     """Load authorized admin emails from admin_alerts.json"""
     try:
-        with open('admin_alerts.json', 'r') as f:
+        with open("admin_alerts.json", "r") as f:
             data = json.load(f)
-            
-        # Extract admin emails
-        admin_team = data.get('admin_team', {})
-        if admin_team.get('enabled', False):
-            emails = admin_team.get('emails', [])
+
+        admin_team = data.get("admin_team", {})
+        if admin_team.get("enabled", False):
+            emails = admin_team.get("emails", [])
             authorized_emails = [email.strip() for email in emails if email.strip()]
             logger.info(f"✅ Loaded {len(authorized_emails)} authorized admin emails")
             return authorized_emails
         else:
             logger.warning("⚠️ Admin team disabled in config")
             return ["juanlopolicarpio@gmail.com"]  # Fallback
-            
     except Exception as e:
         logger.error(f"❌ Failed to load admin emails: {e}")
-        # Fallback to ensure system works
         return ["juanlopolicarpio@gmail.com"]
 
 def check_admin_email_authentication():
-    """Check if admin user is authenticated via email"""
+    """Simple email gate"""
     authorized_emails = load_authorized_admin_emails()
-    
-    if 'admin_authenticated' not in st.session_state:
+
+    if "admin_authenticated" not in st.session_state:
         st.session_state.admin_authenticated = False
         st.session_state.admin_email = None
-    
+
     if not st.session_state.admin_authenticated:
-        # Show email authentication form
         st.markdown("""
-        <div style="max-width: 400px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="text-align: center; color: #1E293B; margin-bottom: 1.5rem;">
-                🔧 CocoPan Admin Access
-            </h2>
-            <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem;">
-                Enter your authorized admin email address
-            </p>
+        <div style="max-width: 420px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="text-align: center; color: #1E293B; margin-bottom: 1rem;">🔧 CocoPan Admin Access</h2>
+            <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem;">Enter your authorized admin email address</p>
         </div>
         """, unsafe_allow_html=True)
-        
+
         with st.form("admin_email_auth_form"):
             email = st.text_input(
-                "Admin Email Address", 
+                "Admin Email Address",
                 placeholder="admin@cocopan.com",
-                help="Enter your authorized admin email address"
+                help="Enter your authorized admin email address",
             )
             submit = st.form_submit_button("Access Admin Dashboard", use_container_width=True)
-            
+
             if submit:
                 email = email.strip().lower()
-                
-                if email in [auth_email.lower() for auth_email in authorized_emails]:
+                if email in [a.lower() for a in authorized_emails]:
                     st.session_state.admin_authenticated = True
                     st.session_state.admin_email = email
                     logger.info(f"✅ Admin authenticated: {email}")
-                    st.success("✅ Admin access granted! Redirecting...")
+                    st.success("✅ Admin access granted! Redirecting…")
                     st.rerun()
                 else:
-                    st.error("❌ Email not authorized for admin access. Please contact the system administrator.")
-                    logger.warning(f"❌ Unauthorized admin access attempt: {email}")
-        
+                    st.error("❌ Email not authorized for admin access.")
+                    logger.warning(f"Unauthorized admin attempt: {email}")
         return False
-    
+
     return True
 
-# ---------------------------
-# FOODPANDA STORE LOADING
-# ---------------------------
+# ------------------------------------------------------------------------------
+# Store loading (Foodpanda only for VA tab)
+# ------------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def load_foodpanda_stores():
-    """Load all Foodpanda stores from branch_urls.json"""
+    """Load Foodpanda stores from branch_urls.json and/or DB (get_or_create)."""
+    stores = []
     try:
-        with open('branch_urls.json', 'r') as f:
+        with open("branch_urls.json", "r") as f:
             data = json.load(f)
-        
-        urls = data.get('urls', [])
-        foodpanda_stores = []
-        
+        urls = data.get("urls", [])
+
         for url in urls:
-            if 'foodpanda' in url:  # Both foodpanda.ph and foodpanda.page.link
-                # Try to get existing store from database
-                try:
-                    with db.get_connection() as conn:
-                        cursor = conn.cursor()
-                        cursor.execute("SELECT id, name FROM stores WHERE url = %s", (url,))
-                        result = cursor.fetchone()
-                        
-                        if result:
-                            store_id, store_name = result[0], result[1]
-                        else:
-                            # Create store if it doesn't exist
-                            store_name = extract_store_name_from_url(url)
-                            store_id = db.get_or_create_store(store_name, url)
-                        
-                        foodpanda_stores.append({
-                            'id': store_id,
-                            'name': store_name,
-                            'url': url
-                        })
-                except Exception as e:
-                    logger.error(f"Error processing store {url}: {e}")
-                    # Add with extracted name as fallback
-                    store_name = extract_store_name_from_url(url)
-                    foodpanda_stores.append({
-                        'id': None,
-                        'name': store_name,
-                        'url': url
-                    })
-        
-        logger.info(f"📋 Loaded {len(foodpanda_stores)} Foodpanda stores for VA check-in")
-        return foodpanda_stores
-        
+            if "foodpanda" not in url:
+                continue
+            try:
+                with db.get_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute("SELECT id, name FROM stores WHERE url = %s", (url,))
+                    row = cur.fetchone()
+                    if row:
+                        store_id, store_name = row[0], row[1]
+                    else:
+                        store_name = extract_store_name_from_url(url)
+                        store_id = db.get_or_create_store(store_name, url)
+                    stores.append({"id": store_id, "name": store_name, "url": url})
+            except Exception as e:
+                logger.error(f"Error ensuring store in DB for {url}: {e}")
+                stores.append({"id": None, "name": extract_store_name_from_url(url), "url": url})
+
+        logger.info(f"📋 Loaded {len(stores)} Foodpanda stores")
+        return stores
     except Exception as e:
-        logger.error(f"❌ Failed to load Foodpanda stores: {e}")
-        return []
+        logger.error(f"❌ Failed to load Foodpanda stores list: {e}")
+        return stores
 
 def extract_store_name_from_url(url: str) -> str:
-    """Extract store name from URL (simplified version)"""
+    """Best-effort store name from foodpanda URL."""
     try:
-        if 'foodpanda.ph' in url:
-            # Pattern: /restaurant/code/store-name
-            import re
-            match = re.search(r'/restaurant/[^/]+/([^/?]+)', url)
-            if match:
-                raw_name = match.group(1)
-                name = raw_name.replace('-', ' ').replace('_', ' ').title()
-                if not name.lower().startswith('cocopan'):
-                    name = f"Cocopan {name}"
-                return name
-        elif 'foodpanda.page.link' in url:
-            # For redirect URLs, create a name from the URL ID
-            url_id = url.split('/')[-1][:8] if '/' in url else 'unknown'
-            return f"Cocopan Foodpanda {url_id.upper()}"
-        
+        if "foodpanda.ph" in url:
+            m = re.search(r"/restaurant/[^/]+/([^/?#]+)", url)
+            if m:
+                raw = m.group(1)
+                name = raw.replace("-", " ").replace("_", " ").title()
+                return name if name.lower().startswith("cocopan") else f"Cocopan {name}"
+        elif "foodpanda.page.link" in url:
+            uid = url.split("/")[-1][:8] if "/" in url else "store"
+            return f"Cocopan Foodpanda {uid.upper()}"
         return "Cocopan Foodpanda Store"
-        
     except Exception:
         return "Cocopan Foodpanda Store"
 
-# ---------------------------
-# EXISTING ADMIN ACTIONS
-# ---------------------------
-@st.cache_data(ttl=60)  # Cache for 1 minute
+# ------------------------------------------------------------------------------
+# Existing admin actions (verification tab)
+# ------------------------------------------------------------------------------
+@st.cache_data(ttl=60)
 def load_stores_needing_attention() -> pd.DataFrame:
-    """Load stores that need manual verification (existing functionality)"""
     try:
         return db.get_stores_needing_attention()
     except Exception as e:
@@ -236,488 +222,411 @@ def load_stores_needing_attention() -> pd.DataFrame:
         return pd.DataFrame()
 
 def mark_store_status(store_id: int, store_name: str, is_online: bool, platform: str) -> bool:
-    """Mark store as online/offline - saves as regular status check (existing functionality)"""
     try:
-        success = db.save_status_check(
+        ok = db.save_status_check(
             store_id=store_id,
             is_online=is_online,
-            response_time_ms=1200,  # Reasonable fake response time
-            error_message=None      # No error message for manual verification
+            response_time_ms=1200,
+            error_message=None,
         )
-        
-        if success:
-            status_text = "online" if is_online else "offline"
-            logger.info(f"✅ Admin marked {store_name} as {status_text}")
-            
-            # Clear cache to force refresh
+        if ok:
+            logger.info(f"✅ Admin marked {store_name} as {'online' if is_online else 'offline'}")
             load_stores_needing_attention.clear()
-            
             return True
-        else:
-            logger.error(f"❌ Failed to save status for {store_name}")
-            return False
-            
+        logger.error(f"❌ Failed to save status for {store_name}")
+        return False
     except Exception as e:
         logger.error(f"Error marking store status: {e}")
         return False
 
 def format_platform_emoji(platform: str) -> str:
-    """Get platform emoji"""
-    if 'grab' in platform.lower():
+    p = platform.lower() if platform else ""
+    if "grab" in p:
         return "🛒"
-    elif 'foodpanda' in platform.lower() or 'panda' in platform.lower():
+    if "panda" in p:
         return "🍔"
-    else:
-        return "🏪"
+    return "🏪"
 
 def format_time_ago(checked_at) -> str:
-    """Format time ago string"""
     try:
         if pd.isna(checked_at):
             return "Unknown"
-        
-        checked_time = pd.to_datetime(checked_at)
-        now = datetime.now()
-        
-        # Handle timezone-aware datetime
-        if checked_time.tz is not None:
-            now = now.replace(tzinfo=checked_time.tz)
-        
-        diff = now - checked_time
-        
+        checked = pd.to_datetime(checked_at)
+        now = datetime.now(tz=checked.tz) if getattr(checked, "tzinfo", None) else datetime.now()
+        diff = now - checked
         if diff.days > 0:
             return f"{diff.days}d ago"
-        elif diff.seconds > 3600:
-            hours = diff.seconds // 3600
-            return f"{hours}h ago"
-        elif diff.seconds > 60:
-            minutes = diff.seconds // 60
-            return f"{minutes}m ago"
-        else:
-            return "Just now"
+        if diff.seconds >= 3600:
+            return f"{diff.seconds // 3600}h ago"
+        if diff.seconds >= 60:
+            return f"{diff.seconds // 60}m ago"
+        return "Just now"
     except:
         return "Unknown"
 
-# ---------------------------
-# ENHANCED VA CHECK-IN (NEW)
-# ---------------------------
+# ------------------------------------------------------------------------------
+# VA Check-in: schedule & helpers
+# ------------------------------------------------------------------------------
 def get_va_checkin_schedule():
-    """Get the VA check-in schedule (7–10 PM Manila)"""
-    return {
-        'start_hour': 7,  # 7 PM
-        'end_hour': 22,    # 10 PM
-        'timezone': 'Asia/Manila',
-        'reminder_minutes_before': 5
-    }
+    """7–10 PM Manila window."""
+    return {"start_hour": 7, "end_hour": 22, "timezone": "Asia/Manila"}
 
 def get_current_manila_time():
-    """Get current Manila time"""
-    manila_tz = pytz.timezone('Asia/Manila')
-    return datetime.now(manila_tz)
+    return datetime.now(pytz.timezone("Asia/Manila"))
 
 def get_current_hour_slot():
-    """Get current hour slot for check-in (e.g., 2025-09-09 20:00:00+08:00)"""
     now = get_current_manila_time()
     return now.replace(minute=0, second=0, microsecond=0)
 
 def is_checkin_time():
-    """Check if it's currently check-in time (7–10 PM Manila inclusive)"""
-    schedule = get_va_checkin_schedule()
-    current_hour = get_current_manila_time().hour
-    return schedule['start_hour'] <= current_hour <= schedule['end_hour']
+    sched = get_va_checkin_schedule()
+    h = get_current_manila_time().hour
+    return sched["start_hour"] <= h <= sched["end_hour"]
 
-def _format_hour_label(hour_24: int, tz_name: str) -> str:
-    """Format a 24h hour into 12h label in the given timezone."""
-    tz = pytz.timezone(tz_name)
-    now = datetime.now(tz).replace(hour=hour_24, minute=0, second=0, microsecond=0)
-    return now.strftime('%I:%M %p').lstrip('0')
+def _fmt_hour(h24: int) -> str:
+    tz = pytz.timezone("Asia/Manila")
+    dt = datetime.now(tz).replace(hour=h24, minute=0, second=0, microsecond=0)
+    return dt.strftime("%I:%M %p").lstrip("0")
 
 def get_next_checkin_time():
-    """Get next check-in time (Manila)"""
-    schedule = get_va_checkin_schedule()
+    sched = get_va_checkin_schedule()
     now = get_current_manila_time()
-    current_hour = now.hour
-    
-    # If before window, next is start today
-    if current_hour < schedule['start_hour']:
-        next_checkin = now.replace(hour=schedule['start_hour'], minute=0, second=0, microsecond=0)
-    # If during window, next is next hour (or start tomorrow if at end)
-    elif current_hour <= schedule['end_hour']:
-        if current_hour == schedule['end_hour']:
-            next_checkin = (now + timedelta(days=1)).replace(hour=schedule['start_hour'], minute=0, second=0, microsecond=0)
-        else:
-            next_checkin = now.replace(hour=current_hour + 1, minute=0, second=0, microsecond=0)
-    else:
-        # After window, next is start tomorrow
-        next_checkin = (now + timedelta(days=1)).replace(hour=schedule['start_hour'], minute=0, second=0, microsecond=0)
-    
-    return next_checkin
+    h = now.hour
+    if h < sched["start_hour"]:
+        return now.replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
+    if h <= sched["end_hour"]:
+        return (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0) if h < sched["end_hour"] \
+               else (now + timedelta(days=1)).replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
+    return (now + timedelta(days=1)).replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
 
-def check_if_hour_already_completed(hour_slot):
-    """Check if VA check-in already completed for this hour"""
+def check_if_hour_already_completed(hour_slot: datetime) -> bool:
+    """True if any VA row exists in this hour slot."""
     try:
         with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Look for VA check-in entries in this hour slot
-            cursor.execute("""
-                SELECT COUNT(*) FROM status_checks 
-                WHERE error_message LIKE '[VA_CHECKIN]%%' 
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT 1
+                FROM status_checks
+                WHERE error_message LIKE '[VA_CHECKIN]%%'
                   AND checked_at >= %s
-                  AND checked_at < %s + INTERVAL '1 hour'
+                  AND checked_at <  %s + INTERVAL '1 hour'
+                LIMIT 1
             """, (hour_slot, hour_slot))
-            
-            count = cursor.fetchone()[0]
-            return count > 0
-            
+            return cur.fetchone() is not None
     except Exception as e:
-        logger.error(f"Error checking completed hours: {e}")
+        logger.error(f"Error checking hour completion: {e}")
         return False
 
-def get_completed_hours_today():
-    """Get list of hours already completed today (Manila hours as ints)"""
+def get_completed_hours_today() -> List[int]:
+    """List of Manila hours (ints) already completed today."""
     try:
         with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT DISTINCT EXTRACT(HOUR FROM checked_at AT TIME ZONE 'Asia/Manila') AS hour
-                FROM status_checks 
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT DISTINCT EXTRACT(HOUR FROM checked_at AT TIME ZONE 'Asia/Manila')::int AS h
+                FROM status_checks
                 WHERE error_message LIKE '[VA_CHECKIN]%%'
                   AND DATE(checked_at AT TIME ZONE 'Asia/Manila') = CURRENT_DATE
-                ORDER BY hour
+                ORDER BY h
             """)
-            hours = [int(row[0]) for row in cursor.fetchall()]
-            return hours
+            return [int(r[0]) for r in cur.fetchall()]
     except Exception as e:
         logger.error(f"Error getting completed hours: {e}")
         return []
 
+# ------------------------------------------------------------------------------
+# Idempotent VA save (SPAM-PROOF)
+# ------------------------------------------------------------------------------
 def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hour_slot: datetime) -> bool:
-    """Enhanced VA check-in save with hour tracking (sets checked_at to the hour slot)"""
+    """
+    Idempotent save: we DELETE any prior VA row for (store, hour_slot) before insert.
+    This guarantees at most one row per store per hour, regardless of button spam.
+    """
     try:
-        success_count = 0
-        error_count = 0
-        
-        # Get all Foodpanda stores
-        foodpanda_stores = load_foodpanda_stores()
-        
-        for store in foodpanda_stores:
-            store_id = store['id']
-            if store_id is None:
+        stores = load_foodpanda_stores()
+        success_count, error_count = 0, 0
+
+        for store in stores:
+            store_id = store["id"]
+            if not store_id:
                 continue
-                
+
             try:
-                # Determine if store is offline based on VA selection
                 is_online = store_id not in offline_store_ids
-                
-                # Create error message to mark this as VA check-in with hour info
-                hour_str = hour_slot.strftime('%Y-%m-%d %H:00')
-                if is_online:
-                    error_message = f"[VA_CHECKIN] {hour_str} - Store online via {admin_email}"
-                else:
-                    error_message = f"[VA_CHECKIN] {hour_str} - Store offline via {admin_email}"
-                
-                # Save to database (initial insert with current timestamp)
-                success = db.save_status_check(
+                hour_str = hour_slot.strftime("%Y-%m-%d %H:00")
+                msg = f"[VA_CHECKIN] {hour_str} - Store {'online' if is_online else 'offline'} via {admin_email}"
+
+                # Idempotency: wipe any VA row for this store/hour
+                with db.get_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute("""
+                        DELETE FROM status_checks
+                        WHERE store_id = %s
+                          AND error_message LIKE '[VA_CHECKIN]%%'
+                          AND checked_at >= %s
+                          AND checked_at <  %s + INTERVAL '1 hour'
+                    """, (store_id, hour_slot, hour_slot))
+                    conn.commit()
+
+                # Insert fresh
+                ok = db.save_status_check(
                     store_id=store_id,
                     is_online=is_online,
-                    response_time_ms=1000,  # Fake response time
-                    error_message=error_message
+                    response_time_ms=1000,
+                    error_message=msg,
                 )
-                
-                # Update the timestamp to the exact hour slot for precise tracking
-                if success:
+
+                # Snap timestamp to hour_slot (so UI/queries align perfectly)
+                if ok:
                     with db.get_connection() as conn:
-                        cursor = conn.cursor()
-                        cursor.execute("""
-                            UPDATE status_checks 
-                               SET checked_at = %s 
+                        cur = conn.cursor()
+                        cur.execute("""
+                            UPDATE status_checks
+                               SET checked_at = %s
                              WHERE id = (
-                                   SELECT id FROM status_checks 
-                                    WHERE store_id = %s 
-                                 ORDER BY checked_at DESC 
+                                   SELECT id FROM status_checks
+                                    WHERE store_id = %s
+                                 ORDER BY checked_at DESC
                                     LIMIT 1
                              )
                         """, (hour_slot, store_id))
                         conn.commit()
-                    
                     success_count += 1
                 else:
                     error_count += 1
-                    
+
             except Exception as e:
-                logger.error(f"Error saving VA check-in for store {store_id}: {e}")
+                logger.error(f"Error saving VA for store {store_id}: {e}")
                 error_count += 1
-        
-        logger.info(f"✅ VA Check-in for {hour_slot.strftime('%H:00')} saved: {success_count} stores, {error_count} errors")
+
+        logger.info(f"✅ VA Check-in for {hour_slot:%H:00} saved: {success_count} ok / {error_count} err")
         return error_count == 0
-        
     except Exception as e:
-        logger.error(f"❌ Failed to save enhanced VA check-in: {e}")
+        logger.error(f"❌ save_va_checkin_enhanced fatal: {e}")
         return False
 
+# ------------------------------------------------------------------------------
+# VA Check-in UI Tab
+# ------------------------------------------------------------------------------
 def enhanced_va_checkin_tab():
-    """Enhanced VA Check-in tab with hour tracking UI"""
     current_time = get_current_manila_time()
     current_hour_slot = get_current_hour_slot()
     schedule = get_va_checkin_schedule()
-    
+
     st.markdown(f"""
     <div class="section-header" style="background:#fff; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem 1.1rem; margin:1.1rem 0 .9rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06);">
         <div style="font-size:1.1rem; font-weight:600; color:#1E293B; margin:0;">🐼 VA Hourly Check-in</div>
         <div style="font-size:.85rem; color:#64748B; margin:.25rem 0 0 0;">Foodpanda Store Status • {current_time.strftime('%I:%M %p')} Manila Time</div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # --- NEW: Show status but DO NOT hide stores outside check-in hours
+
+    # Inform outside-hours but keep the stores visible
     if not is_checkin_time():
-        next_checkin = get_next_checkin_time()
-        time_until = next_checkin - current_time
-        hours_until = int(time_until.total_seconds() // 3600)
-        minutes_until = int((time_until.total_seconds() % 3600) // 60)
-        
+        next_check = get_next_checkin_time()
+        delta = next_check - current_time
         st.info(f"""
 ⏰ **Outside Check-in Hours**
 
-Check-in hours: {_format_hour_label(schedule['start_hour'], schedule['timezone'])} - {_format_hour_label(schedule['end_hour'], schedule['timezone'])} Manila Time  
-Next check-in window: {next_checkin.strftime('%I:%M %p')} (in {hours_until}h {minutes_until}m)
+Window: {_fmt_hour(schedule['start_hour'])} – {_fmt_hour(schedule['end_hour'])} Manila  
+Next window: {next_check.strftime('%I:%M %p')} (in {int(delta.total_seconds()//3600)}h {int((delta.total_seconds()%3600)//60)}m)
 
-You can review stores below, but submissions are only accepted during check-in hours.
+You can review stores below; submissions are only accepted during the window.
         """)
-        # NOTE: No return here — continue to show the store list.
 
-    # Check if current hour already completed (only relevant if within hours)
-    hour_completed = check_if_hour_already_completed(current_hour_slot) if is_checkin_time() else False
-    completed_hours = get_completed_hours_today() if is_checkin_time() else []
+    # Calculate hour completion (always show state, even outside the window)
+    hour_completed = check_if_hour_already_completed(current_hour_slot)
+    completed_hours = get_completed_hours_today()
 
-    if hour_completed and is_checkin_time():
-        next_hour = current_hour_slot + timedelta(hours=1)
-        if next_hour.hour <= schedule['end_hour']:
-            wait_until = next_hour - timedelta(minutes=5)  # Show 5 minutes before
-            time_until = wait_until - current_time
-            minutes_until = max(0, int(time_until.total_seconds() // 60))
-            
-            st.success(f"""
-✅ **{current_hour_slot.strftime('%I:00 %p')} Check-in Already Completed!**
-
-Next check-in: {next_hour.strftime('%I:00 %p')}  
-Available in: {minutes_until} minutes
-            """)
-        else:
-            st.success(f"""
-✅ **{current_hour_slot.strftime('%I:00 %p')} Check-in Completed!**
-
-All check-ins done for today. Next check-in: Tomorrow {_format_hour_label(schedule['start_hour'], schedule['timezone'])}
-            """)
-        
-        # Show today's completion status
-        st.markdown("### 📊 Today's Check-in Status")
-        start_h, end_h = schedule['start_hour'], schedule['end_hour']
-        hours_range = list(range(start_h, end_h + 1))
-        cols = st.columns(len(hours_range))
-        for i, hour in enumerate(hours_range):
-            status = "✅ Done" if hour in completed_hours else "⏳ Pending"
-            cols[i].metric(_format_hour_label(hour, schedule['timezone']), status)
-        # Even if completed, still show stores below for reference (no return)
-
-    # Current hour interface header (informational)
+    # Header strip for the current hour
     st.markdown(f"""
-    <div style="background: #FEF3E2; border: 1px solid #F59E0B; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
-        <h4 style="margin: 0 0 0.5rem 0; color: #92400E;">🕐 {current_hour_slot.strftime('%I:00 %p')} Slot</h4>
-        <p style="margin: 0; color: #92400E;">Review Foodpanda stores below. Submissions open {_format_hour_label(schedule['start_hour'], schedule['timezone'])}–{_format_hour_label(schedule['end_hour'], schedule['timezone'])} Manila.</p>
+    <div style="background: {'#DCFCE7' if hour_completed else '#FEF3E2'}; border: 1px solid {'#16A34A' if hour_completed else '#F59E0B'}; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+        <h4 style="margin: 0 0 0.4rem 0; color: {'#166534' if hour_completed else '#92400E'};">
+            🕐 {current_hour_slot.strftime('%I:00 %p')} Hour Slot
+        </h4>
+        <p style="margin: 0; color: {'#166534' if hour_completed else '#92400E'};">
+            {"✅ Already submitted for this hour. You may re-submit (it will safely replace the previous data)." if is_checkin_time() else ("✅ Already submitted for this hour." if hour_completed else "Review stores below.")}
+        </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Load Foodpanda stores and session state
-    foodpanda_stores = load_foodpanda_stores()
-    if not foodpanda_stores:
+
+    # Load stores
+    stores = load_foodpanda_stores()
+    if not stores:
         st.error("❌ Failed to load Foodpanda stores. Please refresh the page.")
         return
-    
-    if 'va_offline_stores' not in st.session_state:
+
+    # Session state for selections
+    if "va_offline_stores" not in st.session_state:
         st.session_state.va_offline_stores = set()
-    if 'va_checkin_submitted' not in st.session_state:
-        st.session_state.va_checkin_submitted = False
-    
-    # Status summary
-    total_stores = len(foodpanda_stores)
-    offline_count = len(st.session_state.va_offline_stores)
-    online_count = total_stores - offline_count
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("🟢 Online", online_count, "Will stay online")
-    with col2:
-        st.metric("🔴 Marked Offline", offline_count, "Marked by VA")
-    with col3:
-        st.metric("📊 Total Foodpanda", total_stores, "All stores")
-    
+
+    # Summary
+    total = len(stores)
+    offline = len(st.session_state.va_offline_stores)
+    online = total - offline
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("🟢 Online", online, "Will stay online")
+    with c2:
+        st.metric("🔴 Marked Offline", offline, "Marked by VA")
+    with c3:
+        st.metric("📊 Total Foodpanda", total, "All stores")
+
     st.markdown("---")
-    
-    # -------------------------------
-    # Search & mark (PREFIX-AWARE, IGNORING "COCOPAN" FOR MATCHING)
-    # -------------------------------
+
+    # Search & mark — ignores "Cocopan" prefix for matching
     st.markdown("### 🔍 Search & Mark Stores")
 
     BRAND_PREFIX_RE = re.compile(r'^\s*cocopan[\s\-:]+', re.IGNORECASE)
-
-    def _normalize_for_search(name: str) -> str:
-        """
-        Lowercase, strip leading 'Cocopan[ -:]', collapse spaces.
-        Example: 'Cocopan - Altura Santa Mesa' -> 'altura santa mesa'
-        """
-        n = BRAND_PREFIX_RE.sub('', name or '')
-        n = re.sub(r'\s+', ' ', n).strip().lower()
+    def norm_name(name: str) -> str:
+        n = BRAND_PREFIX_RE.sub("", name or "")
+        n = re.sub(r"\s+", " ", n).strip().lower()
         return n
 
-    def _match_rank(name: str, q: str) -> int:
-        """
-        Rank matches on the name with brand removed.
-        0: startswith query
-        1: any word startswith query
-        2: substring anywhere
-        3: no match
-        """
-        key = _normalize_for_search(name)
-        ql = (q or '').strip().lower()
+    def rank(name: str, q: str) -> int:
+        k = norm_name(name)
+        ql = (q or "").strip().lower()
         if not ql:
             return 2
-        if key.startswith(ql):
+        if k.startswith(ql):
             return 0
-        for w in key.split():
-            if w.startswith(ql):
-                return 1
-        if ql in key:
+        if any(w.startswith(ql) for w in k.split()):
+            return 1
+        if ql in k:
             return 2
         return 3
 
     q = st.text_input(
-        "Search for store name (prefix-friendly, ignores 'Cocopan'):",
+        "Search (prefix-friendly, 'Cocopan' ignored):",
         placeholder="Type: m → ma → may… (matches 'Cocopan Maysilo')",
-        help="Search treats names as if the 'Cocopan' prefix weren’t there."
+        help="Searching treats the 'Cocopan' prefix as invisible.",
     )
 
-    SHOW_ALL_WHEN_EMPTY = True  # set False to limit to first 10 when empty
-
     if q:
-        ranked = []
-        for s in foodpanda_stores:
-            r = _match_rank(s['name'], q)
-            if r < 3:
-                ranked.append((r, _normalize_for_search(s['name']), s))
-        ranked.sort(key=lambda t: (t[0], t[1]))
-        filtered_stores = [t[2] for t in ranked]
-        st.info(f"Found {len(filtered_stores)} matches for “{q}”. Prefix matches shown first.")
+        ranked = [(rank(s["name"], q), norm_name(s["name"]), s) for s in stores]
+        filtered = [t[2] for t in sorted([r for r in ranked if r[0] < 3], key=lambda x: (x[0], x[1]))]
+        st.info(f"Found {len(filtered)} matches for “{q}”. Prefix matches first.")
     else:
-        filtered_stores = foodpanda_stores if SHOW_ALL_WHEN_EMPTY else foodpanda_stores[:10]
-        if SHOW_ALL_WHEN_EMPTY:
-            st.info(f"Showing all {len(filtered_stores)} stores. Type to filter.")
+        filtered = stores
+        st.info(f"Showing all {len(filtered)} stores. Type to filter.")
 
-    if not filtered_stores:
-        st.warning(f"No stores match “{q}”. Try a shorter prefix.")
+    if not filtered:
+        st.warning(f"No stores match “{q}”. Try a shorter prefix or a different term.")
 
-    # Render each (keep your existing card/buttons)
-    if filtered_stores:
-        for store in filtered_stores:
-            store_id = store['id']
-            store_name = store['name']
-            store_url = store['url']
-            if store_id is None:
-                continue
-            
-            display_name = store_name.replace('Cocopan - ', '').replace('Cocopan ', '')
-            is_marked_offline = store_id in st.session_state.va_offline_stores
-            
-            st.markdown(f"""
-            <div class="foodpanda-store" style="background: {'#FEE2E2' if is_marked_offline else '#F0FDF4'}; border: 1px solid {'#EF4444' if is_marked_offline else '#22C55E'}; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
-                <div style="flex: 1;">
-                    <strong>{display_name}</strong><br>
-                    <small style="color: #64748B;">Status: {'🔴 MARKED OFFLINE' if is_marked_offline else '🟢 ONLINE'}</small>
-                </div>
+    # Render list
+    for s in filtered:
+        sid, sname, surl = s["id"], s["name"], s["url"]
+        if not sid:
+            continue
+        display_name = sname.replace("Cocopan - ", "").replace("Cocopan ", "")
+        is_offline = sid in st.session_state.va_offline_stores
+
+        st.markdown(f"""
+        <div style="background:{'#FEE2E2' if is_offline else '#F0FDF4'}; border:1px solid {'#EF4444' if is_offline else '#22C55E'}; border-radius:8px; padding:1rem; margin-bottom:.5rem; display:flex; align-items:center; gap:.75rem;">
+            <div style="flex:1;">
+                <strong>{display_name}</strong><br>
+                <small style="color:#64748B;">Status: {'🔴 MARKED OFFLINE' if is_offline else '🟢 ONLINE'}</small>
             </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        c1, c2, c3 = st.columns([2, 1, 1])
+        with c1:
+            st.markdown(f"""
+            <a href="{surl}" target="_blank" style="display:inline-block; padding:.45rem .8rem; background:#3B82F6; color:#fff; text-decoration:none; border-radius:6px; font-size:.85rem; text-align:center;">
+                🔗 Check Store
+            </a>
             """, unsafe_allow_html=True)
-            
-            c1, c2, c3 = st.columns([2, 1, 1])
-            with c1:
-                st.markdown(f"""
-                <a href="{store_url}" target="_blank" style="display: inline-block; padding: 0.4rem 0.8rem; background: #3B82F6; color: white; text-decoration: none; border-radius: 6px; font-size: 0.8rem; text-align: center;">
-                    🔗 Check Store
-                </a>
-                """, unsafe_allow_html=True)
-            with c2:
-                if is_marked_offline:
-                    if st.button("✅ Mark ONLINE", key=f"online_{store_id}", use_container_width=True):
-                        st.session_state.va_offline_stores.discard(store_id)
-                        st.success(f"✅ {display_name} marked as ONLINE")
-                        st.rerun()
-                else:
-                    st.write("")
-            with c3:
-                if not is_marked_offline:
-                    if st.button("🔴 Mark OFFLINE", key=f"offline_{store_id}", use_container_width=True, type="primary"):
-                        st.session_state.va_offline_stores.add(store_id)
-                        st.success(f"🔴 {display_name} marked as OFFLINE")
-                        st.rerun()
-                else:
-                    st.write("OFFLINE ✓")
-            st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Currently marked offline list
+        with c2:
+            if is_offline:
+                if st.button("✅ Mark ONLINE", key=f"online_{sid}", use_container_width=True):
+                    st.session_state.va_offline_stores.discard(sid)
+                    st.success(f"✅ {display_name} marked as ONLINE")
+                    st.rerun()
+        with c3:
+            if not is_offline:
+                if st.button("🔴 Mark OFFLINE", key=f"offline_{sid}", use_container_width=True, type="primary"):
+                    st.session_state.va_offline_stores.add(sid)
+                    st.success(f"🔴 {display_name} marked as OFFLINE")
+                    st.rerun()
+            else:
+                st.write("OFFLINE ✓")
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # Selected offline list
     if st.session_state.va_offline_stores:
         st.markdown("### 📋 Currently Marked Offline")
-        offline_names = []
-        for s in foodpanda_stores:
-            if s['id'] in st.session_state.va_offline_stores:
-                offline_names.append(s['name'].replace('Cocopan - ', '').replace('Cocopan ', ''))
-        for i, name in enumerate(offline_names, 1):
-            st.write(f"{i}. 🔴 {name}")
-    
-    # --- Submit section with time validation (button disabled outside hours)
+        idx = 1
+        for s in stores:
+            if s["id"] in st.session_state.va_offline_stores:
+                st.write(f"{idx}. 🔴 {s['name'].replace('Cocopan - ', '').replace('Cocopan ', '')}")
+                idx += 1
+
+    # Submit section (idempotent; shows submitted state)
     st.markdown("---")
     st.markdown("### 📤 Submit Hourly Check-in")
 
+    if offline == 0:
+        st.info("ℹ️ No stores marked as offline. All Foodpanda stores will be saved as ONLINE.")
+    else:
+        st.warning(f"⚠️ {offline} stores will be marked as OFFLINE. {online} stores will remain ONLINE.")
+
+    # If this hour is already submitted, show that — but allow re-submit inside the window (safe replace)
+    if hour_completed:
+        st.success("✅ This hour has already been submitted.")
+    else:
+        st.info("⏳ Not submitted yet for this hour.")
+
+    # Button enablement by window
     if not is_checkin_time():
-        st.warning(f"⚠️ Submissions are only accepted during check-in hours ({_format_hour_label(schedule['start_hour'], schedule['timezone'])} - {_format_hour_label(schedule['end_hour'], schedule['timezone'])} Manila Time)")
         st.button("📤 Submit Check-in (Outside Hours)", use_container_width=True, disabled=True)
     else:
-        if offline_count == 0:
-            st.info("ℹ️ No stores marked as offline. All Foodpanda stores will be saved as ONLINE.")
-        else:
-            st.warning(f"⚠️ {offline_count} stores will be marked as OFFLINE. {online_count} stores will remain ONLINE.")
-        
-        if st.button(f"📤 Submit Check-in for {current_hour_slot.strftime('%I:00 %p')}", use_container_width=True, type="primary"):
-            offline_store_ids = list(st.session_state.va_offline_stores)
-            success = save_va_checkin_enhanced(offline_store_ids, st.session_state.admin_email, current_hour_slot)
-            if success:
+        btn_label = ("🔁 Re-submit for " if hour_completed else "📤 Submit Check-in for ") + current_hour_slot.strftime("%I:00 %p")
+        if st.button(btn_label, use_container_width=True, type="primary"):
+            offline_ids = list(st.session_state.va_offline_stores)
+            ok = save_va_checkin_enhanced(offline_ids, st.session_state.admin_email, current_hour_slot)
+            if ok:
                 st.success(f"""
-✅ **{current_hour_slot.strftime('%I:00 %p')} Check-in Submitted Successfully!**
+✅ **{current_hour_slot.strftime('%I:00 %p')} Check-in Saved**
 
-📊 **Summary:**
-- 🟢 Online: {online_count} stores
-- 🔴 Offline: {offline_count} stores
-- 👤 Submitted by: {st.session_state.admin_email}
-- 🕐 Time Slot: {current_hour_slot.strftime('%I:00 %p')} Manila Time
+📊 Summary:
+- 🟢 Online: {online}
+- 🔴 Offline: {offline}
+- 👤 By: {st.session_state.admin_email}
+- 🕐 Slot: {current_hour_slot.strftime('%I:00 %p')} Manila
 
-Next check-in will be available at {(current_hour_slot + timedelta(hours=1) - timedelta(minutes=5)).strftime('%I:%M %p')}
+(You can re-submit within the window; your latest submission safely replaces previous data.)
                 """)
-                # Clear selections and refresh
+                # Clear selections and reflect hour-completed immediately
                 st.session_state.va_offline_stores = set()
                 load_foodpanda_stores.clear()
-                st.rerun()
+                # Instead of rerun (which can be jarring), mark as completed immediately
+                st.experimental_set_query_params()  # lightweight change to trigger re-render
+                # Show the banner right away on the same render
+                st.markdown("""
+<div style="background:#DCFCE7; border: 1px solid #16A34A; border-radius:8px; padding: .75rem; margin-top: .75rem;">
+✅ Submitted. This hour is now marked as <strong>completed</strong>.
+</div>
+                """, unsafe_allow_html=True)
             else:
-                st.error("❌ Failed to submit check-in. Please try again.")
+                st.error("❌ Failed to save. Please try again.")
 
-# ---------------------------
-# STYLES
-# ---------------------------
-# MOBILE-FIRST CSS (unchanged, plus classes used by enhanced tab)
+    # Today’s status (for all window hours)
+    st.markdown("### 📊 Today’s Check-in Status")
+    start_h, end_h = schedule["start_hour"], schedule["end_hour"]
+    hours_range = list(range(start_h, end_h + 1))
+    cols = st.columns(len(hours_range))
+    for i, h in enumerate(hours_range):
+        status = "✅ Done" if h in completed_hours else "⏳ Pending"
+        cols[i].metric(_fmt_hour(h), status)
+
+# ------------------------------------------------------------------------------
+# Styles
+# ------------------------------------------------------------------------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stDeployButton {display: none;}
-    header {visibility: hidden;}
+    #MainMenu, footer, header, .stDeployButton {visibility: hidden;}
     .main { font-family: 'Inter', sans-serif; background: #F8FAFC; color: #1E293B; padding: 1rem !important; }
     .admin-header { background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; text-align: center; color: white; }
     .admin-title { font-size: 1.8rem; font-weight: 700; margin: 0; }
@@ -726,157 +635,134 @@ st.markdown("""
     .store-name { font-size: 1.1rem; font-weight: 600; color: #1E293B; margin-bottom: 0.5rem; }
     .store-meta { font-size: 0.85rem; color: #64748B; margin-bottom: 1rem; }
     .store-platform { display: inline-block; background: #E0F2FE; color: #0C4A6E; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; margin-right: 0.5rem; }
-    .action-buttons { display: flex; gap: 0.75rem; margin-top: 1rem; }
-    .btn-check { flex: 1; background: white; color: white; border: none; border-radius: 8px; padding: 0.75rem; font-weight: 500; font-size: 0.9rem; cursor: pointer; text-decoration: none; text-align: center; display: block; transition: all 0.2s; }
-    .btn-check:hover { background: #2563EB; transform: translateY(-1px); }
-    .btn-online, .btn-offline { flex: 1; border: none; border-radius: 8px; padding: 0.75rem; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; min-height: 48px; }
-    .btn-online { background: #10B981; color: white; }
-    .btn-online:hover { background: #059669; transform: translateY(-1px); }
-    .btn-offline { background: #EF4444; color: white; }
-    .btn-offline:hover { background: #DC2626; transform: translateY(-1px); }
-    .progress-container { background: #E2E8F0; border-radius: 8px; height: 8px; margin: 1rem 0; overflow: hidden; }
-    .progress-bar { background: linear-gradient(90deg, #10B981, #059669); height: 100%; transition: width 0.3s ease; }
-    .progress-text { text-align: center; font-size: 0.9rem; color: #64748B; margin: 0.5rem 0; }
-    .success-message { background: #D1FAE5; color: #065F46; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #10B981; }
-    .error-message { background: #FEE2E2; color: #991B1B; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #EF4444; }
-    .va-checkin-container { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .block-container { padding-top: 1rem; padding-bottom: 1rem; }
     .stButton > button { width: 100%; border-radius: 8px; border: none; font-weight: 600; font-size: 0.9rem; padding: 0.75rem; transition: all 0.2s; min-height: 48px; }
-    .stButton > button:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    .stButton > button:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
     @media (max-width: 768px) {
         .admin-title { font-size: 1.5rem; }
         .store-card { padding: 1rem; }
-        .action-buttons { flex-direction: column; }
-        .btn-check, .btn-online, .btn-offline { min-height: 52px; font-size: 1rem; }
+        .stButton > button { min-height: 52px; font-size: 1rem; }
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------
-# MAIN
-# ---------------------------
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
 def main():
-    """Main admin dashboard with tabs"""
-    # Auth
     if not check_admin_email_authentication():
         return
-    
-    # Sidebar
+
     with st.sidebar:
         st.markdown(f"**Admin logged in as:**\n{st.session_state.admin_email}")
         if st.button("Logout"):
             st.session_state.admin_authenticated = False
             st.session_state.admin_email = None
             st.rerun()
-    
-    current_time = config.get_current_time()
-    
-    # Header
+
+    now = config.get_current_time()
     st.markdown(f"""
     <div class="admin-header">
         <div class="admin-title">🔧 CocoPan Admin Dashboard</div>
-        <div class="admin-subtitle">Operations Management • {current_time.strftime('%I:%M %p')} Manila Time</div>
+        <div class="admin-subtitle">Operations Management • {now.strftime('%I:%M %p')} Manila Time</div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Tabs
+
     tab1, tab2 = st.tabs(["🔧 Store Verification", "🐼 VA Hourly Check-in"])
-    
-    # TAB 1: Store Verification (existing)
+
+    # Tab 1: existing manual verification
     with tab1:
-        stores_df = load_stores_needing_attention()
+        df = load_stores_needing_attention()
         st.markdown(f"""
         <div class="section-header" style="background:#fff; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem 1.1rem; margin:1.1rem 0 .9rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06);">
             <div style="font-size:1.1rem; font-weight:600; color:#1E293B; margin:0;">Manual Verification Required</div>
-            <div style="font-size:.85rem; color:#64748B; margin:.25rem 0 0 0;">{len(stores_df)} stores need attention • Updated {current_time.strftime('%I:%M %p')} Manila Time</div>
+            <div style="font-size:.85rem; color:#64748B; margin:.25rem 0 0 0;">{len(df)} stores need attention • Updated {now.strftime('%I:%M %p')} Manila Time</div>
         </div>
         """, unsafe_allow_html=True)
-        
-        if stores_df.empty:
+
+        if df.empty:
             st.markdown("""
-            <div class="success-message">
-                <h3 style="margin: 0 0 0.5rem 0;">✅ All Clear!</h3>
-                <p style="margin: 0;">No stores currently need manual verification. All systems operating normally.</p>
+            <div style="background:#D1FAE5; color:#065F46; padding:1rem; border-radius:8px; border-left:4px solid #10B981;">
+                <strong>✅ All Clear!</strong> No stores currently need manual verification.
             </div>
             """, unsafe_allow_html=True)
             if st.button("🔄 Check for New Issues", use_container_width=True):
                 load_stores_needing_attention.clear()
                 st.rerun()
         else:
-            if 'completed_stores' not in st.session_state:
+            if "completed_stores" not in st.session_state:
                 st.session_state.completed_stores = set()
-            total_stores = len(stores_df)
-            completed_count = len(st.session_state.completed_stores)
-            progress = completed_count / total_stores if total_stores > 0 else 0
-            
+            total = len(df)
+            done = len(st.session_state.completed_stores)
+            pct = (done / total) * 100 if total else 0.0
+
             st.markdown(f"""
-            <div class="progress-container"><div class="progress-bar" style="width: {progress * 100:.1f}%;"></div></div>
-            <div class="progress-text">Progress: {completed_count}/{total_stores} completed</div>
+            <div style="background:#E2E8F0; border-radius:8px; height:8px; overflow:hidden; margin:.5rem 0 1rem 0;">
+                <div style="background:linear-gradient(90deg,#10B981,#059669); height:100%; width:{pct:.1f}%"></div>
+            </div>
+            <div style="text-align:center; color:#64748B; margin-bottom:1rem;">Progress: {done}/{total} completed</div>
             """, unsafe_allow_html=True)
-            
-            for idx, store in stores_df.iterrows():
-                store_id = store['id']
-                store_name = store['name']
-                platform = store.get('platform', 'unknown')
-                url = store['url']
-                checked_at = store.get('checked_at')
-                if store_id in st.session_state.completed_stores:
+
+            for idx, row in df.iterrows():
+                sid = row["id"]
+                sname = row["name"]
+                platform = (row.get("platform") or "unknown")
+                url = row["url"]
+                checked_at = row.get("checked_at")
+
+                if sid in st.session_state.completed_stores:
                     continue
-                
-                platform_emoji = format_platform_emoji(platform)
-                time_ago = format_time_ago(checked_at)
-                card_number = idx + 1
+
                 st.markdown(f"""
                 <div class="store-card">
-                    <div class="store-name">{store_name} [{card_number}/{total_stores}]</div>
+                    <div class="store-name">{sname} [{idx + 1}/{total}]</div>
                     <div class="store-meta">
-                        <span class="store-platform">{platform_emoji} {platform.title()}</span>
-                        <span>Last checked: {time_ago}</span>
+                        <span class="store-platform">{format_platform_emoji(platform)} {platform.title()}</span>
+                        <span>Last checked: {format_time_ago(checked_at)}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                
+
                 c1, c2, c3 = st.columns([2, 1, 1])
                 with c1:
                     st.markdown(f"""
-                    <a href="{url}" target="_blank" class="btn-check" style="background: #3B82F6; color: white; text-decoration: none; display: block; text-align: center; padding: 0.75rem; border-radius: 8px;">
+                    <a href="{url}" target="_blank" style="display:block; text-align:center; padding:.75rem; background:#3B82F6; color:white; border-radius:8px; text-decoration:none;">
                         🔗 Check Store
                     </a>
                     """, unsafe_allow_html=True)
                 with c2:
-                    if st.button("✅ Online", key=f"online_{store_id}", use_container_width=True):
-                        if mark_store_status(store_id, store_name, True, platform):
-                            st.session_state.completed_stores.add(store_id)
-                            st.success(f"✅ {store_name} marked as **Online**")
-                            time.sleep(1)
+                    if st.button("✅ Online", key=f"v_online_{sid}", use_container_width=True):
+                        if mark_store_status(sid, sname, True, platform):
+                            st.session_state.completed_stores.add(sid)
+                            st.success(f"✅ {sname} marked Online")
+                            time.sleep(0.6)
                             st.rerun()
                         else:
-                            st.error("❌ Failed to update store status. Please try again.")
+                            st.error("Update failed. Try again.")
                 with c3:
-                    if st.button("❌ Offline", key=f"offline_{store_id}", use_container_width=True):
-                        if mark_store_status(store_id, store_name, False, platform):
-                            st.session_state.completed_stores.add(store_id)
-                            st.success(f"❌ {store_name} marked as **Offline**")
-                            time.sleep(1)
+                    if st.button("❌ Offline", key=f"v_offline_{sid}", use_container_width=True):
+                        if mark_store_status(sid, sname, False, platform):
+                            st.session_state.completed_stores.add(sid)
+                            st.success(f"❌ {sname} marked Offline")
+                            time.sleep(0.6)
                             st.rerun()
                         else:
-                            st.error("❌ Failed to update store status. Please try again.")
+                            st.error("Update failed. Try again.")
                 st.markdown("<br>", unsafe_allow_html=True)
-            
-            remaining = total_stores - completed_count
-            if remaining > 0:
-                st.info(f"📋 {remaining} stores remaining for verification")
+
+            remain = total - done
+            if remain > 0:
+                st.info(f"📋 {remain} stores remaining")
             else:
-                st.success("🎉 All stores verified! Great work!")
+                st.success("🎉 All stores verified!")
                 if st.button("🔄 Check for New Issues", use_container_width=True, key="refresh_verification"):
                     st.session_state.completed_stores.clear()
                     load_stores_needing_attention.clear()
                     st.rerun()
-    
-    # TAB 2: Enhanced VA Hourly Check-in
+
+    # Tab 2: VA hourly
     with tab2:
         enhanced_va_checkin_tab()
-    
+
     # Global refresh
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -891,4 +777,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         st.error(f"❌ System Error: {e}")
-        logger.error(f"Admin dashboard error: {e}")
+        logger.exception("Admin dashboard error")

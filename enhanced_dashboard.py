@@ -1,38 +1,53 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD with EMAIL AUTH & CSV EXPORT
-- Email-only authentication using client_alerts.json
-- CSV export with metadata for reports
+CocoPan Watchtower - CLIENT DASHBOARD (No Exporting, Persistent Login, Pro UI)
+- Email allow-list authentication using client_alerts.json
+- Persistent device login via signed cookie (30 days, rolling refresh)
+- Clean, professional login screen (placeholder: name@authorizedemail.com; no shield emoji)
 - Unified view of GrabFood (automated) + Foodpanda (VA check-in) data
-- DESIGN UNCHANGED - only enhanced functionality
+- Reports tab shows insights only (no exporting anywhere)
 """
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-import logging
-import json
-import io
-import csv
+
 import os
-
-# Import our production modules
-from config import config
-from database import db
-
-# Health check endpoint for Railway
+import json
+import time
+import hmac
+import base64
+import hashlib
+import logging
 import threading
 import http.server
 import socketserver
-from urllib.parse import urlparse
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional
 
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+
+# Production modules
+from config import config
+from database import db
+
+# =========================
+# Optional Cookie Manager
+# =========================
+# True persistence across browser restarts relies on streamlit-cookies-manager.
+# If unavailable, we fall back to a session-only store (works but not persistent).
+try:
+    # pip install streamlit-cookies-manager
+    from streamlit_cookies_manager import EncryptedCookieManager as CookieManager
+    _COOKIE_LIB_AVAILABLE = True
+except Exception:
+    CookieManager = None
+    _COOKIE_LIB_AVAILABLE = False
+
+# ---------------- Health Check Server (Railway) ----------------
 def create_health_server():
-    """Create a simple health check server"""
     class HealthHandler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path == '/healthz':
                 try:
-                    # Quick database check
                     db.get_database_stats()
                     self.send_response(200)
                     self.send_header('Content-type', 'text/plain')
@@ -46,24 +61,21 @@ def create_health_server():
             else:
                 self.send_response(404)
                 self.end_headers()
-        
         def log_message(self, format, *args):
-            # Suppress health check logs
             pass
-    
+
     try:
-        port = 8503  # Different port for health checks
+        port = 8503
         with socketserver.TCPServer(("", port), HealthHandler) as httpd:
             httpd.serve_forever()
     except Exception as e:
+        logger = logging.getLogger(__name__)
         logger.debug(f"Health server error: {e}")
 
-# Start health check server in background
 if os.getenv('RAILWAY_ENVIRONMENT') == 'production':
-    health_thread = threading.Thread(target=create_health_server, daemon=True)
-    health_thread.start()
+    threading.Thread(target=create_health_server, daemon=True).start()
 
-# Set page config
+# ---------------- Streamlit Page Config ----------------
 st.set_page_config(
     page_title="CocoPan Watchtower",
     page_icon="🏢",
@@ -71,82 +83,139 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Setup logging
+# ---------------- Logging ----------------
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
-# ----------- EMAIL AUTHENTICATION -----------
+# ======================================================================
+#                            AUTH HELPERS
+# ======================================================================
+COOKIE_NAME = "cp_client_auth"
+COOKIE_PREFIX = "watchtower"
+TOKEN_TTL_DAYS = 30
+TOKEN_ROLLING_REFRESH_DAYS = 7  # refresh if <= 7 days remain
+
+def _get_secret_key() -> bytes:
+    # Prefer config.SECRET_KEY, else ENV SECRET_KEY, else fallback constant
+    secret = getattr(config, 'SECRET_KEY', None) or os.getenv('SECRET_KEY')
+    if not secret:
+        # Fallback to a hardcoded dev key; override in production!
+        secret = "CHANGE_ME_IN_PROD_please"
+    return secret.encode("utf-8")
+
+def _b64url_encode(b: bytes) -> str:
+    return base64.urlsafe_b64encode(b).decode('utf-8').rstrip("=")
+
+def _b64url_decode(s: str) -> bytes:
+    pad = "=" * (-len(s) % 4)
+    return base64.urlsafe_b64decode(s + pad)
+
+def _sign(payload_b64: str) -> str:
+    sig = hmac.new(_get_secret_key(), payload_b64.encode('utf-8'), hashlib.sha256).digest()
+    return _b64url_encode(sig)
+
+def issue_token(email: str, ttl_days: int = TOKEN_TTL_DAYS) -> str:
+    now = int(time.time())
+    exp = now + int(ttl_days * 24 * 3600)
+    payload = {"email": email, "iat": now, "exp": exp}
+    payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    payload_b64 = _b64url_encode(payload_json)
+    sig_b64 = _sign(payload_b64)
+    return f"{payload_b64}.{sig_b64}"
+
+def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    try:
+        parts = token.split(".")
+        if len(parts) != 2:
+            return None
+        payload_b64, sig_b64 = parts
+        expected_sig = _sign(payload_b64)
+        if not hmac.compare_digest(sig_b64, expected_sig):
+            return None
+        payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
+        if int(payload.get("exp", 0)) < int(time.time()):
+            return None
+        return payload
+    except Exception:
+        return None
+
+def days_remaining(exp_unix: int) -> float:
+    return max(0.0, (exp_unix - int(time.time())) / 86400.0)
+
+# ---------------- Cookie Abstraction ----------------
+class CookieStore:
+    """Abstract cookie accessor that prefers real cookies; falls back to session_state."""
+    def __init__(self):
+        self.persistent = False
+        self.ready = True
+        self._cookies = None
+
+        if _COOKIE_LIB_AVAILABLE:
+            try:
+                # password used to encrypt cookie jar (separate from signing)
+                self._cookies = CookieManager(prefix=COOKIE_PREFIX, password=os.getenv("COOKIE_PASSWORD") or "set-a-strong-cookie-password")
+                self.ready = self._cookies.ready()
+                self.persistent = True
+            except Exception as e:
+                logger.warning(f"Cookie manager unavailable, using session fallback: {e}")
+                self._cookies = None
+                self.persistent = False
+                self.ready = True
+        else:
+            # Session fallback
+            if "cookie_fallback" not in st.session_state:
+                st.session_state.cookie_fallback = {}
+            self._cookies = st.session_state.cookie_fallback
+            self.persistent = False
+            self.ready = True
+
+    def get(self, key: str) -> Optional[str]:
+        if self.persistent:
+            return self._cookies.get(key)
+        return self._cookies.get(key)
+
+    def set(self, key: str, value: str, max_age_days: int = TOKEN_TTL_DAYS):
+        if self.persistent:
+            # EncryptedCookieManager supports expires or max_age via kwargs
+            self._cookies[key] = value
+            # Best-effort: library manages persistence internally; ensure save()
+            self._cookies.save()
+        else:
+            self._cookies[key] = value
+
+    def delete(self, key: str):
+        if self.persistent:
+            try:
+                if key in self._cookies:
+                    del self._cookies[key]
+                    self._cookies.save()
+            except Exception:
+                pass
+        else:
+            if key in self._cookies:
+                del self._cookies[key]
+
+# ---------------- Allow-list Loader ----------------
 def load_authorized_emails():
-    """Load authorized client emails from client_alerts.json"""
     try:
         with open('client_alerts.json', 'r') as f:
             data = json.load(f)
-            
-        # Extract all client emails from all client groups
         authorized_emails = []
-        clients = data.get('clients', {})
-        
-        for client_group in clients.values():
-            if client_group.get('enabled', False):
-                emails = client_group.get('emails', [])
-                # Filter out empty strings
-                authorized_emails.extend([email.strip() for email in emails if email.strip()])
-        
+        for group in data.get('clients', {}).values():
+            if group.get('enabled', False):
+                emails = [e.strip() for e in group.get('emails', []) if str(e).strip()]
+                authorized_emails.extend(emails)
+        authorized_emails = sorted(set([e.lower() for e in authorized_emails]))
         logger.info(f"✅ Loaded {len(authorized_emails)} authorized client emails")
         return authorized_emails
-        
     except Exception as e:
         logger.error(f"❌ Failed to load client emails: {e}")
-        # Fallback to ensure system works
+        # Fallback to ensure access
         return ["juanlopolicarpio@gmail.com"]
 
-def check_email_authentication():
-    """Check if user is authenticated via email"""
-    authorized_emails = load_authorized_emails()
-    
-    if 'client_authenticated' not in st.session_state:
-        st.session_state.client_authenticated = False
-        st.session_state.client_email = None
-    
-    if not st.session_state.client_authenticated:
-        # Show email authentication form
-        st.markdown("""
-        <div style="max-width: 400px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="text-align: center; color: #1E293B; margin-bottom: 1.5rem;">
-                🏢 CocoPan Watchtower Access
-            </h2>
-            <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem;">
-                Enter your authorized email address to access the dashboard
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        with st.form("email_auth_form"):
-            email = st.text_input(
-                "Email Address", 
-                placeholder="your.email@company.com",
-                help="Enter your authorized email address"
-            )
-            submit = st.form_submit_button("Access Dashboard", use_container_width=True)
-            
-            if submit:
-                email = email.strip().lower()
-                
-                if email in [auth_email.lower() for auth_email in authorized_emails]:
-                    st.session_state.client_authenticated = True
-                    st.session_state.client_email = email
-                    logger.info(f"✅ Client authenticated: {email}")
-                    st.success("✅ Access granted! Redirecting...")
-                    st.rerun()
-                else:
-                    st.error("❌ Email not authorized. Please contact your administrator.")
-                    logger.warning(f"❌ Unauthorized access attempt: {email}")
-        
-        return False
-    
-    return True
-
-# ----------- STYLES (unchanged) -----------
+# ======================================================================
+#                           STYLES
+# ======================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -176,19 +245,25 @@ st.markdown("""
     .stDataFrame thead tr th { background:#F8FAFC !important; color:#475569 !important; font-weight:600 !important; text-transform:uppercase; font-size:.72rem; letter-spacing:.05em; border:none !important; border-bottom:1px solid #E2E8F0 !important; padding:.8rem .6rem !important;}
     .stDataFrame tbody tr td { background:#fff !important; color:#1E293B !important; border:none !important; border-bottom:1px solid #F1F5F9 !important; padding:.65rem !important;}
     .stDataFrame tbody tr:hover td { background:#F8FAFC !important;}
-
     .chart-container { background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:.75rem; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-
     .filter-container { background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem; margin-bottom:.9rem; }
-    
-    .csv-download-container { background: #EBF8FF; border: 1px solid #3B82F6; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
-    .csv-download-button { background: #3B82F6 !important; color: white !important; border: none !important; }
-    
-    @media (max-width: 768px){ h1{font-size:1.9rem !important;} .main>div{padding:1rem;} }
+
+    /* Login card */
+    .login-wrap { display:flex; align-items:center; justify-content:center; min-height:70vh; }
+    .login-card { width:100%; max-width: 420px; background:#fff; border:1px solid #E2E8F0; border-radius:16px; box-shadow:0 6px 16px rgba(2,6,23,0.06); overflow:hidden; }
+    .login-banner { height:56px; background:linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); }
+    .login-body { padding: 1.2rem 1.2rem 1.6rem; }
+    .login-title { font-weight:700; color:#0F172A; font-size:1.2rem; margin:0.25rem 0 0.2rem; }
+    .login-sub { color:#64748B; font-size:0.92rem; margin:0 0 0.9rem; }
+    .helper { color:#94A3B8; font-size:0.82rem; margin-top:0.75rem; }
+    .support { color:#334155; font-size:0.82rem; margin-top:0.25rem; }
+    @media (max-width: 768px){ .main>div{padding:1rem;} }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------- HELPERS (unchanged) -----------
+# ======================================================================
+#                       DATA HELPERS (unchanged)
+# ======================================================================
 def standardize_platform_name(platform_value):
     if pd.isna(platform_value):
         return "Unknown"
@@ -201,7 +276,6 @@ def standardize_platform_name(platform_value):
         return "Unknown"
 
 def is_under_review(error_message: str) -> bool:
-    """True if this row should be shown as 'Stores Under Review' (neither online nor offline)."""
     if pd.isna(error_message):
         return False
     msg = str(error_message).strip()
@@ -209,7 +283,6 @@ def is_under_review(error_message: str) -> bool:
 
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
 def load_comprehensive_data():
-    """Load unified data (GrabFood automated + Foodpanda VA check-ins)"""
     try:
         with db.get_connection() as conn:
             latest_status_query = """
@@ -234,25 +307,21 @@ def load_comprehensive_data():
                 ORDER BY s.name
             """
             latest_status = pd.read_sql_query(latest_status_query, conn)
-
             if not latest_status.empty:
                 latest_status['platform'] = latest_status['platform'].apply(standardize_platform_name)
 
-            # Daily uptime (Manila "today") excluding under-review on BOTH sides
             daily_uptime_query = """
                 SELECT 
                     s.id,
                     COALESCE(s.name_override, s.name) AS name,
                     s.platform,
 
-                    -- effective checks exclude 'under review'
                     COUNT(sc.id) FILTER (
                       WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
                              OR  sc.error_message LIKE '[UNKNOWN]%%'
                              OR  sc.error_message LIKE '[ERROR]%%')
                     ) AS effective_checks,
 
-                    -- online/offline also exclude under-review
                     SUM(CASE WHEN sc.is_online = true AND NOT (
                               sc.error_message LIKE '[BLOCKED]%%'
                            OR sc.error_message LIKE '[UNKNOWN]%%'
@@ -301,9 +370,8 @@ def load_comprehensive_data():
         logger.error(f"Error loading data: {e}")
         return None, None, str(e)
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_data(ttl=300)
 def load_reports_data(start_date, end_date):
-    """Load uptime data for specified date range, excluding under-review on BOTH sides."""
     try:
         with db.get_connection() as conn:
             reports_query = """
@@ -315,20 +383,17 @@ def load_reports_data(start_date, end_date):
 
                     COUNT(sc.id) AS total_checks,
 
-                    -- counts for display (raw)
                     SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) AS online_checks,
                     SUM(CASE WHEN sc.error_message LIKE '[BLOCKED]%%' 
                           OR  sc.error_message LIKE '[UNKNOWN]%%' 
                           OR  sc.error_message LIKE '[ERROR]%%' THEN 1 ELSE 0 END) AS under_review_checks,
 
-                    -- effective denominator excludes under-review checks
                     COUNT(sc.id) FILTER (
                       WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
                              OR  sc.error_message LIKE '[UNKNOWN]%%'
                              OR  sc.error_message LIKE '[ERROR]%%')
                     ) AS effective_checks,
 
-                    -- effective numerator excludes under-review checks
                     SUM(CASE WHEN sc.is_online = true AND NOT (
                               sc.error_message LIKE '[BLOCKED]%%'
                            OR sc.error_message LIKE '[UNKNOWN]%%'
@@ -369,100 +434,26 @@ def load_reports_data(start_date, end_date):
             if not reports_data.empty:
                 reports_data['platform'] = reports_data['platform'].apply(standardize_platform_name)
             return reports_data, None
-
     except Exception as e:
         logger.error(f"Error loading reports data: {e}")
         return None, str(e)
 
-# ----------- CSV EXPORT FUNCTIONALITY -----------
-#def create_csv_download(data, start_date, end_date, platform_filter, user_email):
-    """Create CSV file with metadata for download"""
-    try:
-        # Create a string buffer
-        output = io.StringIO()
-        
-        # Write metadata header
-        output.write("# CocoPan Watchtower - Store Uptime Report\n")
-        output.write(f"# Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} Manila Time\n")
-        output.write(f"# Generated by: {user_email}\n")
-        output.write(f"# Date Range: {start_date} to {end_date}\n")
-        output.write(f"# Platform Filter: {platform_filter}\n")
-        output.write(f"# Total Stores: {len(data)}\n")
-        output.write("#\n")
-        output.write("# Legend:\n")
-        output.write("# - Uptime % calculated excluding 'Under Review' periods\n")
-        output.write("# - Under Review = Technical issues (BLOCKED/ERROR/UNKNOWN)\n")
-        output.write("# - Effective Checks = Total checks minus Under Review periods\n")
-        output.write("#\n\n")
-        
-        # Prepare data for CSV
-        csv_data = []
-        for _, row in data.iterrows():
-            csv_row = {
-                'Store Name': row['name'].replace('Cocopan - ', '').replace('Cocopan ', ''),
-                'Platform': row['platform'],
-                'Uptime Percentage': f"{row['uptime_percentage']:.1f}%" if pd.notna(row['uptime_percentage']) else "No Data",
-                'Total Checks': row['total_checks'],
-                'Effective Checks': row['effective_checks'],
-                'Online Checks': row['effective_online_checks'],
-                'Under Review Checks': row['under_review_checks'],
-                'Store URL': row['url']
-            }
-            csv_data.append(csv_row)
-        
-        # Write CSV data
-        if csv_data:
-            writer = csv.DictWriter(output, fieldnames=csv_data[0].keys())
-            writer.writeheader()
-            writer.writerows(csv_data)
-        
-        # Get the CSV content
-        csv_content = output.getvalue()
-        output.close()
-        
-        return csv_content
-        
-    except Exception as e:
-        logger.error(f"Error creating CSV: {e}")
-        return None
-
 def create_donut(online_count: int, offline_count: int):
-    """Donut with only percentage text inside (no caption)."""
     total = max(online_count + offline_count, 1)
     uptime_pct = online_count / total * 100.0
-
     fig = go.Figure(data=[go.Pie(
         labels=['Online', 'Offline'],
         values=[online_count, offline_count],
         hole=0.65,
-        marker=dict(
-            colors=['#059669', '#EF4444'],
-            line=dict(width=2, color='#FFFFFF')
-        ),
+        marker=dict(colors=['#059669', '#EF4444'], line=dict(width=2, color='#FFFFFF')),
         textinfo='none',
         hovertemplate='<b>%{label}</b><br>%{value} stores (%{percent})<extra></extra>',
         showlegend=True
     )])
-
-    fig.add_annotation(
-        text=f"<b style='font-size:28px'>{uptime_pct:.0f}%</b>",
-        x=0.5, y=0.5, showarrow=False, font=dict(family="Inter")
-    )
-
-    fig.update_layout(
-        height=250,
-        margin=dict(t=12, b=12, l=12, r=12),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.08,
-            xanchor="center",
-            x=0.5,
-            font=dict(size=10)
-        )
-    )
+    fig.add_annotation(text=f"<b style='font-size:28px'>{uptime_pct:.0f}%</b>", x=0.5, y=0.5, showarrow=False, font=dict(family="Inter"))
+    fig.update_layout(height=250, margin=dict(t=12,b=12,l=12,r=12),
+                      paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                      legend=dict(orientation="h", yanchor="bottom", y=-0.08, xanchor="center", x=0.5, font=dict(size=10)))
     return fig
 
 def get_last_check_time(latest_status):
@@ -478,20 +469,98 @@ def get_last_check_time(latest_status):
     except Exception:
         return config.get_current_time()
 
-# ----------- MAIN APP -----------
+# ======================================================================
+#                         AUTH FLOW (UI + LOGIC)
+# ======================================================================
+def check_email_authentication() -> bool:
+    authorized_emails = load_authorized_emails()
+
+    # Initialize cookie store
+    cookies = CookieStore()
+    if not cookies.ready:
+        st.error("Authentication system initializing. Please refresh.")
+        return False
+
+    # Try cookie-based auto-login
+    if 'client_authenticated' not in st.session_state:
+        st.session_state.client_authenticated = False
+        st.session_state.client_email = None
+
+    # If cookie exists, verify
+    token = cookies.get(COOKIE_NAME)
+    if token and not st.session_state.client_authenticated:
+        payload = verify_token(token)
+        if payload:
+            email = str(payload.get("email", "")).lower()
+            if email in authorized_emails:
+                st.session_state.client_authenticated = True
+                st.session_state.client_email = email
+                # Rolling refresh if close to expiry
+                rem = days_remaining(int(payload.get("exp", 0)))
+                if rem <= TOKEN_ROLLING_REFRESH_DAYS:
+                    new_token = issue_token(email)
+                    cookies.set(COOKIE_NAME, new_token, max_age_days=TOKEN_TTL_DAYS)
+                return True
+        else:
+            # Invalid/expired token -> delete
+            cookies.delete(COOKIE_NAME)
+
+    # If already authenticated in session, allow
+    if st.session_state.client_authenticated and st.session_state.client_email:
+        return True
+
+    # ---- LOGIN UI (professional, minimal, placeholder updated) ----
+    st.markdown('<div class="login-wrap"><div class="login-card">'
+                '<div class="login-banner"></div>'
+                '<div class="login-body">', unsafe_allow_html=True)
+
+    st.markdown('<div class="login-title">Access Watchtower</div>', unsafe_allow_html=True)
+    st.markdown('<div class="login-sub">Authorized email required.</div>', unsafe_allow_html=True)
+
+    with st.form("email_auth_form", clear_on_submit=False):
+        email = st.text_input(
+            "Email Address",
+            placeholder="name@authorizedemail.com",
+            help="Enter the email that’s on your allow-list."
+        )
+        submitted = st.form_submit_button("Continue", use_container_width=True)
+        if submitted:
+            e = email.strip().lower()
+            if e and e in authorized_emails:
+                # Success: issue cookie and set session
+                token = issue_token(e)
+                cookies.set(COOKIE_NAME, token, max_age_days=TOKEN_TTL_DAYS)
+                st.session_state.client_authenticated = True
+                st.session_state.client_email = e
+                st.success("Access granted. Redirecting…")
+                st.rerun()
+            else:
+                st.error("Email not on the allow-list. Contact your admin.")
+
+    st.markdown('<div class="helper">We only use your email to verify access.</div>'
+                '<div class="support">Need access? Contact your admin.</div>'
+                '</div></div></div>', unsafe_allow_html=True)
+
+    return False
+
+# ======================================================================
+#                           MAIN APP
+# ======================================================================
 def main():
-    # Check email authentication first
+    # Auth gate
     if not check_email_authentication():
         return
-    
-    # Show user info in sidebar
+
+    # Sidebar user info and logout
     with st.sidebar:
         st.markdown(f"**Logged in as:**\n{st.session_state.client_email}")
         if st.button("Logout"):
+            # Clear cookie + session
+            CookieStore().delete(COOKIE_NAME)
             st.session_state.client_authenticated = False
             st.session_state.client_email = None
             st.rerun()
-    
+
     latest_status, daily_uptime, error = load_comprehensive_data()
     last_check_time = get_last_check_time(latest_status)
 
@@ -510,11 +579,8 @@ def main():
         st.info("Monitoring is running and stores are being checked regularly.")
         return
 
-    # 'Stores Under Review' (neither online nor offline)
     under_review_mask = latest_status['error_message'].apply(is_under_review)
     under_review_count = int(under_review_mask.sum())
-
-    # Use only non-under-review rows for Online/Offline metrics & donut
     effective = latest_status[~under_review_mask]
 
     online_stores = int((effective['is_online'] == 1).sum())
@@ -532,13 +598,10 @@ def main():
     total_effective = max(online_stores + offline_stores, 1)
     online_pct = online_stores / total_effective * 100.0
 
-    # --- Compact top layout: metrics left, donut right ---
+    # --- Top layout ---
     left, right = st.columns([1.6, 1])
-
     with left:
         st.markdown("### Network Overview")
-
-        # Row 1: Online / Offline / Under Review
         m1, m2, m3 = st.columns(3)
         with m1:
             st.metric("Online Stores", f"{online_stores}", f"{online_pct:.0f}% uptime")
@@ -546,22 +609,19 @@ def main():
             st.metric("Offline Stores", f"{offline_stores}", "being monitored")
         with m3:
             st.metric("Stores Under Review", f"{under_review_count}", "routine checks")
-
-        # Row 2: Platform cards UNDER the metrics row
         p1, p2 = st.columns(2)
         with p1:
             st.metric("Grab stores", f"{grab_total}", f"{grab_offline} offline")
         with p2:
             st.metric("Foodpanda stores", f"{fp_total}", f"{fp_offline} offline")
-
     with right:
         st.markdown('<div class="chart-container">', unsafe_allow_html=True)
         fig = create_donut(online_stores, offline_stores)
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Tabs (with enhanced Reports tab)
-    tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports & Export"])
+    # ---------------- Tabs ----------------
+    tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports"])
 
     with tab1:
         st.markdown(f"""
@@ -571,7 +631,6 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        # Filters
         st.markdown('<div class="filter-container">', unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
@@ -586,12 +645,10 @@ def main():
             )
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Apply filters
         current = latest_status.copy()
         current['under_review'] = current['error_message'].apply(is_under_review)
         if platform_filter_live != "All Platforms":
             current = current[current['platform'] == platform_filter_live]
-
         if status_filter == "Online Only":
             current = current[(current['is_online'] == 1) & (~current['under_review'])]
         elif status_filter == "Offline Only":
@@ -605,7 +662,6 @@ def main():
             display = pd.DataFrame()
             display['Branch'] = current['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
             display['Platform'] = current['platform']
-
             status_labels = []
             for _, row in current.iterrows():
                 if row['under_review']:
@@ -615,8 +671,6 @@ def main():
                 else:
                     status_labels.append("🔴 Offline")
             display['Status'] = status_labels
-
-            # Last checked time in Manila
             try:
                 cur = current.copy()
                 cur['checked_at'] = pd.to_datetime(cur['checked_at'])
@@ -627,7 +681,6 @@ def main():
                 display['Last Checked'] = cur['checked_at'].dt.strftime('%I:%M %p')
             except Exception:
                 display['Last Checked'] = '—'
-
             st.dataframe(display, use_container_width=True, hide_index=True, height=420)
 
     with tab2:
@@ -766,72 +819,57 @@ def main():
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
 
     with tab4:
+        # REPORTS (NO EXPORTING; INSIGHTS ONLY)
         st.markdown(f"""
         <div class="section-header">
-            <div class="section-title">Store Uptime Reports & CSV Export</div>
-            <div class="section-subtitle">Historical uptime analysis with downloadable reports • Excludes Under Review periods</div>
+            <div class="section-title">Store Uptime Reports</div>
+            <div class="section-subtitle">Historical uptime analysis • Excludes 'Under Review' periods</div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Date range selector with default last 7 days (use Manila time)
         st.markdown('<div class="filter-container">', unsafe_allow_html=True)
         col1, col2, col3 = st.columns([2, 2, 1])
         ph_now = config.get_current_time()
-
         with col1:
             default_start = (ph_now - timedelta(days=7)).date()
-            start_date = st.date_input(
-                "Start Date",
-                value=default_start,
-                key="reports_start_date"
-            )
+            start_date = st.date_input("Start Date", value=default_start, key="reports_start_date")
         with col2:
             default_end = ph_now.date()
-            end_date = st.date_input(
-                "End Date", 
-                value=default_end,
-                key="reports_end_date"
-            )
+            end_date = st.date_input("End Date", value=default_end, key="reports_end_date")
         with col3:
-            st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+            st.markdown("<br>", unsafe_allow_html=True)
             generate_report = st.button("📊 Generate Report", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Validate date range
         if start_date > end_date:
             st.error("❌ Start date must be before end date")
         elif start_date == end_date == ph_now.date():
-            st.info("💡 Tip: Select a date range of at least 2-3 days for meaningful uptime analysis")
+            st.info("💡 Tip: Select a date range of at least 2–3 days for meaningful uptime analysis")
         else:
-            # Load and display reports data
-            reports_data, error = load_reports_data(start_date, end_date)
-            
-            if error:
-                st.error(f"Error loading reports data: {error}")
+            reports_data, rep_err = load_reports_data(start_date, end_date)
+            if rep_err:
+                st.error(f"Error loading reports data: {rep_err}")
             elif reports_data is None or reports_data.empty:
                 st.info("📭 No data available for the selected date range")
             else:
-                # Calculate summary stats
                 total_stores = len(reports_data)
                 stores_with_data = int((reports_data['effective_checks'] > 0).sum())
                 stores_no_data = total_stores - stores_with_data
                 avg_uptime = reports_data['uptime_percentage'].dropna().mean() if stores_with_data > 0 else 0.0
-                
-                # Summary metrics
+
                 st.markdown("### 📊 Report Summary")
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
+                c1, c2, c3, c4 = st.columns(4)
+                with c1:
                     st.metric("Date Range", f"{(end_date - start_date).days + 1} days")
-                with col2:
+                with c2:
                     st.metric("Stores with Data", f"{stores_with_data}/{total_stores}")
-                with col3:
+                with c3:
                     st.metric("Average Uptime", f"{avg_uptime:.1f}%" if stores_with_data > 0 else "N/A")
-                with col4:
+                with c4:
                     st.metric("Period", f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d')}")
 
-                # Platform filter and CSV download
                 st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-                r1, r2, r3 = st.columns([2, 2, 1])
+                r1, r2 = st.columns([2, 2])
                 with r1:
                     available_platforms = sorted(reports_data['platform'].dropna().unique())
                     platform_options = ["All Platforms"] + available_platforms
@@ -839,17 +877,16 @@ def main():
                 with r2:
                     sort_options = ["Uptime (High to Low)", "Uptime (Low to High)", "Store Name (A-Z)", "Platform"]
                     sort_order = st.selectbox("Sort by:", sort_options, key="reports_sort_order")
-                # Filter data
+                st.markdown('</div>', unsafe_allow_html=True)
+
                 filtered_data = reports_data.copy()
                 if platform_filter_reports != "All Platforms":
                     filtered_data = filtered_data[filtered_data['platform'] == platform_filter_reports]
 
-                # Prepare display data
                 display_data = pd.DataFrame()
                 display_data['Branch'] = filtered_data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
                 display_data['Platform'] = filtered_data['platform']
-                
-                # Format uptime with color coding
+
                 uptime_formatted = []
                 for _, row in filtered_data.iterrows():
                     if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
@@ -863,13 +900,12 @@ def main():
                         else:
                             uptime_formatted.append(f"🔴 {uptime:.1f}%")
                 display_data['Uptime'] = uptime_formatted
-                
-                # Sort data
+
                 if sort_order == "Uptime (High to Low)":
                     sort_values = []
                     for _, row in filtered_data.iterrows():
                         if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
-                            sort_values.append(-1)  # No data goes to end
+                            sort_values.append(-1)
                         else:
                             sort_values.append(float(row['uptime_percentage']))
                     display_data['sort_helper'] = sort_values
@@ -878,7 +914,7 @@ def main():
                     sort_values = []
                     for _, row in filtered_data.iterrows():
                         if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
-                            sort_values.append(999)  # No data goes to end
+                            sort_values.append(999)
                         else:
                             sort_values.append(float(row['uptime_percentage']))
                     display_data['sort_helper'] = sort_values
@@ -888,28 +924,27 @@ def main():
                 elif sort_order == "Platform":
                     display_data = display_data.sort_values(['Platform', 'Branch'])
 
-                # Display the table
                 st.markdown("### 📈 Store Uptime Report")
                 if len(display_data) == 0:
                     st.info(f"No stores found for {platform_filter_reports}")
                 else:
                     st.dataframe(display_data, use_container_width=True, hide_index=True, height=420)
-                    st.markdown("**Legend:** 🟢 Excellent (≥95%) • 🟡 Good (80-94%) • 🔴 Needs Attention (<80%) • 📊 No Data Available")
+                    st.markdown("**Legend:** 🟢 Excellent (≥95%) • 🟡 Good (80–94%) • 🔴 Needs Attention (<80%) • 📊 No Data Available")
 
-                    # Quick insights
                     if stores_with_data > 0:
                         high_performers = int(((filtered_data['uptime_percentage'] >= 95) & filtered_data['uptime_percentage'].notna()).sum())
                         low_performers = int(((filtered_data['uptime_percentage'] < 80) & filtered_data['uptime_percentage'].notna()).sum())
                         st.markdown("### 📋 Quick Insights")
-                        insight_col1, insight_col2, insight_col3 = st.columns(3)
-                        with insight_col1:
+                        ic1, ic2, ic3 = st.columns(3)
+                        with ic1:
                             st.markdown(f"**🟢 High Performers:** {high_performers} stores (≥95% uptime)")
-                        with insight_col2:
+                        with ic2:
                             st.markdown(f"**🔴 Need Attention:** {low_performers} stores (<80% uptime)")
-                        with insight_col3:
+                        with ic3:
                             if stores_no_data > 0:
                                 st.markdown(f"**📊 No Data:** {stores_no_data} stores (no activity in period)")
 
+# ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     try:
         main()
