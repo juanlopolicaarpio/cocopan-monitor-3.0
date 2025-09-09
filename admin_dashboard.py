@@ -2,7 +2,7 @@
 """
 CocoPan Admin Dashboard - Enhanced with EMAIL AUTH & VA HOURLY CHECK-IN
 - Email-only authentication using admin_alerts.json
-- NEW: VA Hourly Check-in tab with hour-slot tracking (7–10 AM Manila)
+- NEW: VA Hourly Check-in tab with hour-slot tracking (7–10 PM Manila)
 - Existing admin verification functionality (unchanged)
 - Mobile-first design maintained
 """
@@ -17,6 +17,7 @@ from typing import List, Dict, Any
 
 # Third-party
 import pytz
+import re  # <-- used by search normalization
 
 # Import production modules
 from config import config
@@ -301,10 +302,10 @@ def format_time_ago(checked_at) -> str:
 # ENHANCED VA CHECK-IN (NEW)
 # ---------------------------
 def get_va_checkin_schedule():
-    """Get the VA check-in schedule (7-10 AM Manila)"""
+    """Get the VA check-in schedule (7–10 PM Manila)"""
     return {
-        'start_hour': 7,
-        'end_hour': 22,
+        'start_hour': 19,  # 7 PM
+        'end_hour': 22,    # 10 PM
         'timezone': 'Asia/Manila',
         'reminder_minutes_before': 5
     }
@@ -315,15 +316,21 @@ def get_current_manila_time():
     return datetime.now(manila_tz)
 
 def get_current_hour_slot():
-    """Get current hour slot for check-in (e.g., 2025-09-09 08:00:00+08:00)"""
+    """Get current hour slot for check-in (e.g., 2025-09-09 20:00:00+08:00)"""
     now = get_current_manila_time()
     return now.replace(minute=0, second=0, microsecond=0)
 
 def is_checkin_time():
-    """Check if it's currently check-in time (7-10 AM Manila inclusive)"""
+    """Check if it's currently check-in time (7–10 PM Manila inclusive)"""
     schedule = get_va_checkin_schedule()
     current_hour = get_current_manila_time().hour
     return schedule['start_hour'] <= current_hour <= schedule['end_hour']
+
+def _format_hour_label(hour_24: int, tz_name: str) -> str:
+    """Format a 24h hour into 12h label in the given timezone."""
+    tz = pytz.timezone(tz_name)
+    now = datetime.now(tz).replace(hour=hour_24, minute=0, second=0, microsecond=0)
+    return now.strftime('%I:%M %p').lstrip('0')
 
 def get_next_checkin_time():
     """Get next check-in time (Manila)"""
@@ -331,19 +338,17 @@ def get_next_checkin_time():
     now = get_current_manila_time()
     current_hour = now.hour
     
-    # If before 7 AM, next is 7 AM today
+    # If before window, next is start today
     if current_hour < schedule['start_hour']:
         next_checkin = now.replace(hour=schedule['start_hour'], minute=0, second=0, microsecond=0)
-    # If during 7-10 AM, next is next hour (or 7 AM tomorrow if after 10)
+    # If during window, next is next hour (or start tomorrow if at end)
     elif current_hour <= schedule['end_hour']:
         if current_hour == schedule['end_hour']:
-            # After 10 AM, next is 7 AM tomorrow
             next_checkin = (now + timedelta(days=1)).replace(hour=schedule['start_hour'], minute=0, second=0, microsecond=0)
         else:
-            # Next hour today
             next_checkin = now.replace(hour=current_hour + 1, minute=0, second=0, microsecond=0)
     else:
-        # After 10 AM, next is 7 AM tomorrow
+        # After window, next is start tomorrow
         next_checkin = (now + timedelta(days=1)).replace(hour=schedule['start_hour'], minute=0, second=0, microsecond=0)
     
     return next_checkin
@@ -474,7 +479,7 @@ def enhanced_va_checkin_tab():
         st.info(f"""
 ⏰ **Outside Check-in Hours**
 
-Check-in hours: {schedule['start_hour']}:00 AM - {schedule['end_hour']}:00 AM Manila Time  
+Check-in hours: {_format_hour_label(schedule['start_hour'], schedule['timezone'])} - {_format_hour_label(schedule['end_hour'], schedule['timezone'])} Manila Time  
 Next check-in window: {next_checkin.strftime('%I:%M %p')} (in {hours_until}h {minutes_until}m)
 
 You can review stores below, but submissions are only accepted during check-in hours.
@@ -502,23 +507,24 @@ Available in: {minutes_until} minutes
             st.success(f"""
 ✅ **{current_hour_slot.strftime('%I:00 %p')} Check-in Completed!**
 
-All check-ins done for today. Next check-in: Tomorrow 7:00 AM
+All check-ins done for today. Next check-in: Tomorrow {_format_hour_label(schedule['start_hour'], schedule['timezone'])}
             """)
         
         # Show today's completion status
         st.markdown("### 📊 Today's Check-in Status")
-        col1, col2, col3, col4 = st.columns(4)
-        for i, hour in enumerate(range(7, 11)):
-            col = [col1, col2, col3, col4][i]
+        start_h, end_h = schedule['start_hour'], schedule['end_hour']
+        hours_range = list(range(start_h, end_h + 1))
+        cols = st.columns(len(hours_range))
+        for i, hour in enumerate(hours_range):
             status = "✅ Done" if hour in completed_hours else "⏳ Pending"
-            col.metric(f"{hour}:00 AM", status)
+            cols[i].metric(_format_hour_label(hour, schedule['timezone']), status)
         # Even if completed, still show stores below for reference (no return)
 
     # Current hour interface header (informational)
     st.markdown(f"""
     <div style="background: #FEF3E2; border: 1px solid #F59E0B; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
         <h4 style="margin: 0 0 0.5rem 0; color: #92400E;">🕐 {current_hour_slot.strftime('%I:00 %p')} Slot</h4>
-        <p style="margin: 0; color: #92400E;">Review Foodpanda stores below. Submissions open 7–10 AM Manila.</p>
+        <p style="margin: 0; color: #92400E;">Review Foodpanda stores below. Submissions open {_format_hour_label(schedule['start_hour'], schedule['timezone'])}–{_format_hour_label(schedule['end_hour'], schedule['timezone'])} Manila.</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -548,27 +554,70 @@ All check-ins done for today. Next check-in: Tomorrow 7:00 AM
     
     st.markdown("---")
     
-    # Search & mark
+    # -------------------------------
+    # Search & mark (PREFIX-AWARE, IGNORING "COCOPAN" FOR MATCHING)
+    # -------------------------------
     st.markdown("### 🔍 Search & Mark Stores")
-    search_term = st.text_input(
-        "Search for store name:",
-        placeholder="Type store name to search...",
-        help="Search for stores by name to quickly find them"
+
+    BRAND_PREFIX_RE = re.compile(r'^\s*cocopan[\s\-:]+', re.IGNORECASE)
+
+    def _normalize_for_search(name: str) -> str:
+        """
+        Lowercase, strip leading 'Cocopan[ -:]', collapse spaces.
+        Example: 'Cocopan - Altura Santa Mesa' -> 'altura santa mesa'
+        """
+        n = BRAND_PREFIX_RE.sub('', name or '')
+        n = re.sub(r'\s+', ' ', n).strip().lower()
+        return n
+
+    def _match_rank(name: str, q: str) -> int:
+        """
+        Rank matches on the name with brand removed.
+        0: startswith query
+        1: any word startswith query
+        2: substring anywhere
+        3: no match
+        """
+        key = _normalize_for_search(name)
+        ql = (q or '').strip().lower()
+        if not ql:
+            return 2
+        if key.startswith(ql):
+            return 0
+        for w in key.split():
+            if w.startswith(ql):
+                return 1
+        if ql in key:
+            return 2
+        return 3
+
+    q = st.text_input(
+        "Search for store name (prefix-friendly, ignores 'Cocopan'):",
+        placeholder="Type: m → ma → may… (matches 'Cocopan Maysilo')",
+        help="Search treats names as if the 'Cocopan' prefix weren’t there."
     )
-    if search_term:
-        filtered_stores = [s for s in foodpanda_stores if search_term.lower() in s['name'].lower()]
+
+    SHOW_ALL_WHEN_EMPTY = True  # set False to limit to first 10 when empty
+
+    if q:
+        ranked = []
+        for s in foodpanda_stores:
+            r = _match_rank(s['name'], q)
+            if r < 3:
+                ranked.append((r, _normalize_for_search(s['name']), s))
+        ranked.sort(key=lambda t: (t[0], t[1]))
+        filtered_stores = [t[2] for t in ranked]
+        st.info(f"Found {len(filtered_stores)} matches for “{q}”. Prefix matches shown first.")
     else:
-        filtered_stores = foodpanda_stores[:10]
-    
-    if search_term and not filtered_stores:
-        st.warning(f"No stores found matching '{search_term}'. Try a different search term.")
-    
+        filtered_stores = foodpanda_stores if SHOW_ALL_WHEN_EMPTY else foodpanda_stores[:10]
+        if SHOW_ALL_WHEN_EMPTY:
+            st.info(f"Showing all {len(filtered_stores)} stores. Type to filter.")
+
+    if not filtered_stores:
+        st.warning(f"No stores match “{q}”. Try a shorter prefix.")
+
+    # Render each (keep your existing card/buttons)
     if filtered_stores:
-        if search_term:
-            st.info(f"Found {len(filtered_stores)} stores matching '{search_term}'")
-        else:
-            st.info("Showing first 10 stores. Use search to find specific stores.")
-        
         for store in filtered_stores:
             store_id = store['id']
             store_name = store['name']
@@ -623,12 +672,12 @@ All check-ins done for today. Next check-in: Tomorrow 7:00 AM
         for i, name in enumerate(offline_names, 1):
             st.write(f"{i}. 🔴 {name}")
     
-    # --- NEW: Submit section with time validation (button disabled outside hours)
+    # --- Submit section with time validation (button disabled outside hours)
     st.markdown("---")
     st.markdown("### 📤 Submit Hourly Check-in")
 
     if not is_checkin_time():
-        st.warning("⚠️ Submissions are only accepted during check-in hours (7:00 AM - 10:00 AM Manila Time)")
+        st.warning(f"⚠️ Submissions are only accepted during check-in hours ({_format_hour_label(schedule['start_hour'], schedule['timezone'])} - {_format_hour_label(schedule['end_hour'], schedule['timezone'])} Manila Time)")
         st.button("📤 Submit Check-in (Outside Hours)", use_container_width=True, disabled=True)
     else:
         if offline_count == 0:
