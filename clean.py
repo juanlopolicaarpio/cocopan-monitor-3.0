@@ -1,200 +1,282 @@
 #!/usr/bin/env python3
 """
-CocoPan Production Database Cleanup
-WIPES ALL EXISTING DATA and prepares for fresh production deployment
+Fixed CocoPan Database Cleanup - Handles Duplicates
 """
+import json
 import logging
 import sys
+from typing import Dict, List, Optional, Set
 from database import db
 from config import config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def confirm_cleanup():
-    """Confirm with user before wiping data"""
-    print("🚨 PRODUCTION DATABASE CLEANUP")
-    print("=" * 50)
-    print("⚠️  WARNING: This will DELETE ALL existing data:")
-    print("   • All store status checks")
-    print("   • All summary reports") 
-    print("   • All hourly snapshots")
-    print("   • All VA check-in history")
-    print("   • BUT keeps the 66 store definitions")
-    print()
+def check_for_duplicates():
+    """Check for duplicate URLs in the data before processing"""
+    logger.info("Checking for duplicate URLs in store data...")
     
-    response = input("Are you ABSOLUTELY SURE you want to proceed? (type 'YES' to confirm): ")
-    return response.strip() == 'YES'
+    try:
+        with open('branch_urls.json') as f:
+            data = json.load(f)
+            urls = data.get('urls', [])
+        
+        # Find duplicates
+        seen = set()
+        duplicates = set()
+        
+        for url in urls:
+            clean_url = url.rstrip('?').rstrip('/')
+            if clean_url in seen:
+                duplicates.add(clean_url)
+                logger.warning(f"DUPLICATE URL found: {clean_url}")
+            seen.add(clean_url)
+        
+        if duplicates:
+            logger.error(f"Found {len(duplicates)} duplicate URLs:")
+            for dup in list(duplicates)[:5]:  # Show first 5
+                logger.error(f"  - {dup}")
+            
+            logger.info("Removing duplicates and creating clean URLs list...")
+            
+            # Create clean list
+            clean_urls = []
+            seen_clean = set()
+            
+            for url in urls:
+                clean_url = url.rstrip('?').rstrip('/')
+                if clean_url not in seen_clean:
+                    clean_urls.append(clean_url)
+                    seen_clean.add(clean_url)
+            
+            # Update branch_urls.json with clean list
+            clean_data = {
+                "urls": clean_urls,
+                "meta": {
+                    "total_stores": len(clean_urls),
+                    "duplicates_removed": len(urls) - len(clean_urls)
+                }
+            }
+            
+            with open('branch_urls.json', 'w') as f:
+                json.dump(clean_data, f, indent=2)
+            
+            logger.info(f"Cleaned URLs: {len(urls)} -> {len(clean_urls)}")
+            return clean_urls
+        else:
+            logger.info("No duplicates found")
+            return urls
+            
+    except Exception as e:
+        logger.error(f"Error checking duplicates: {e}")
+        return []
 
-def cleanup_all_data():
-    """Clean up all operational data but keep store definitions"""
+def force_cleanup_database():
+    """Force cleanup all database tables"""
+    logger.info("Force cleaning database...")
+    
     try:
         with db.get_connection() as conn:
             cursor = conn.cursor()
             
-            logger.info("🗑️ Cleaning up status_checks table...")
-            cursor.execute("DELETE FROM status_checks")
-            deleted_checks = cursor.rowcount
+            # Disable foreign key checks temporarily
+            cursor.execute("SET session_replication_role = replica;")
             
-            logger.info("🗑️ Cleaning up summary_reports table...")
-            cursor.execute("DELETE FROM summary_reports") 
-            deleted_reports = cursor.rowcount
+            # Delete in reverse dependency order
+            tables = ['status_checks', 'store_status_hourly', 'summary_reports', 
+                     'status_summary_hourly', 'stores']
             
-            logger.info("🗑️ Cleaning up store_status_hourly table...")
-            cursor.execute("DELETE FROM store_status_hourly")
-            deleted_hourly = cursor.rowcount
+            for table in tables:
+                try:
+                    cursor.execute(f"DELETE FROM {table}")
+                    deleted = cursor.rowcount
+                    logger.info(f"  {table}: deleted {deleted} records")
+                except Exception as e:
+                    logger.warning(f"  {table}: {e}")
             
-            logger.info("🗑️ Cleaning up status_summary_hourly table...")
-            cursor.execute("DELETE FROM status_summary_hourly")
-            deleted_summaries = cursor.rowcount
-            
-            # Reset any manual overrides
-            logger.info("🔄 Resetting store overrides...")
-            cursor.execute("UPDATE stores SET name_override = NULL, last_manual_check = NULL")
-            reset_stores = cursor.rowcount
+            # Re-enable foreign key checks
+            cursor.execute("SET session_replication_role = DEFAULT;")
             
             conn.commit()
-            
-            logger.info("✅ Cleanup completed:")
-            logger.info(f"   📊 Status checks deleted: {deleted_checks}")
-            logger.info(f"   📈 Summary reports deleted: {deleted_reports}")
-            logger.info(f"   ⏰ Hourly status records deleted: {deleted_hourly}")
-            logger.info(f"   📋 Hourly summaries deleted: {deleted_summaries}")
-            logger.info(f"   🏪 Store overrides reset: {reset_stores}")
-            
+            logger.info("Force cleanup completed")
             return True
             
     except Exception as e:
-        logger.error(f"❌ Cleanup failed: {e}")
+        logger.error(f"Force cleanup failed: {e}")
         return False
 
-def validate_production_readiness():
-    """Validate system is ready for production"""
-    logger.info("🔍 Validating production readiness...")
+def setup_unique_stores(urls, store_names_map):
+    """Set up stores ensuring no duplicates"""
+    logger.info(f"Setting up {len(urls)} unique stores...")
     
-    errors = []
-    warnings = []
+    created_count = 0
+    skipped_count = 0
     
     try:
-        # Check database connection
-        stats = db.get_database_stats()
-        logger.info(f"✅ Database connected: {stats['db_type']}")
-        
-        # Check store count
-        if stats['store_count'] != 66:
-            errors.append(f"Expected 66 stores, found {stats['store_count']}")
-        else:
-            logger.info("✅ Exactly 66 stores configured")
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
             
-        # Check platform distribution
-        platforms = stats['platforms']
-        grab_count = platforms.get('grabfood', 0)
-        foodpanda_count = platforms.get('foodpanda', 0)
-        
-        if grab_count == 0:
-            errors.append("No GrabFood stores found")
-        if foodpanda_count == 0:
-            errors.append("No Foodpanda stores found")
-            
-        logger.info(f"✅ Platform distribution: GrabFood={grab_count}, Foodpanda={foodpanda_count}")
-        
-        # Check configuration
-        config_errors = config.validate_config()
-        if config_errors:
-            errors.extend(config_errors)
-        else:
-            logger.info("✅ Configuration valid")
-            
-        # Check timezone
-        if not config.validate_timezone():
-            errors.append("Timezone validation failed")
-        else:
-            logger.info("✅ Manila timezone configured correctly")
-            
-        # Check required files
-        import os
-        required_files = [
-            'branch_urls.json',
-            'admin_alerts.json', 
-            'client_alerts.json'
-        ]
-        
-        for file in required_files:
-            if not os.path.exists(file):
-                errors.append(f"Required file missing: {file}")
-            else:
-                logger.info(f"✅ Found: {file}")
+            for url in urls:
+                try:
+                    # Get store info
+                    clean_url = url.rstrip('?').rstrip('/')
+                    
+                    if clean_url in store_names_map:
+                        store_name = store_names_map[clean_url].get('store_name', 'Cocopan Store')
+                        platform = store_names_map[clean_url].get('platform', 'unknown')
+                    else:
+                        # Fallback name
+                        if 'foodpanda' in url:
+                            store_name = f"Cocopan Foodpanda Store"
+                            platform = 'foodpanda'
+                        elif 'grab.com' in url:
+                            store_name = f"Cocopan GrabFood Store"
+                            platform = 'grabfood'
+                        else:
+                            store_name = "Cocopan Store"
+                            platform = 'unknown'
+                        
+                        logger.warning(f"No predefined name for: {clean_url}")
+                    
+                    # Check if already exists
+                    cursor.execute("SELECT id FROM stores WHERE url = %s", (clean_url,))
+                    if cursor.fetchone():
+                        skipped_count += 1
+                        continue
+                    
+                    # Insert new store
+                    cursor.execute(
+                        "INSERT INTO stores (name, url, platform) VALUES (%s, %s, %s)",
+                        (store_name, clean_url, platform)
+                    )
+                    created_count += 1
+                    
+                    if created_count <= 3:
+                        logger.info(f"  Created: {store_name}")
+                    elif created_count == 4:
+                        logger.info("  ...")
                 
-        # Check email configuration for alerts
-        if not config.SMTP_USERNAME or not config.SMTP_PASSWORD:
-            warnings.append("Email alerts not configured (SMTP credentials missing)")
-        else:
-            logger.info("✅ Email alerts configured")
+                except Exception as e:
+                    logger.error(f"Failed to create store for {url}: {e}")
+                    continue
             
-        return errors, warnings
-        
+            conn.commit()
+            logger.info(f"Store setup completed:")
+            logger.info(f"  Created: {created_count}")
+            logger.info(f"  Skipped: {skipped_count}")
+            
+            return created_count > 0
+            
     except Exception as e:
-        errors.append(f"Validation failed: {e}")
-        return errors, warnings
+        logger.error(f"Store setup failed: {e}")
+        return False
+
+def validate_database():
+    """Validate final database state"""
+    logger.info("Validating database...")
+    
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Check total count
+            cursor.execute("SELECT COUNT(*) FROM stores")
+            total_count = cursor.fetchone()[0]
+            
+            # Check platforms
+            cursor.execute("SELECT platform, COUNT(*) FROM stores GROUP BY platform")
+            platforms = dict(cursor.fetchall())
+            
+            logger.info(f"Database validation:")
+            logger.info(f"  Total stores: {total_count}")
+            logger.info(f"  Platforms: {platforms}")
+            
+            # Check for duplicates
+            cursor.execute("""
+                SELECT url, COUNT(*) as count 
+                FROM stores 
+                GROUP BY url 
+                HAVING COUNT(*) > 1
+            """)
+            duplicates = cursor.fetchall()
+            
+            if duplicates:
+                logger.error(f"Found {len(duplicates)} duplicate URLs in database!")
+                return False
+            
+            if total_count == 0:
+                logger.error("No stores in database!")
+                return False
+            
+            logger.info("Database validation passed")
+            return True
+            
+    except Exception as e:
+        logger.error(f"Validation failed: {e}")
+        return False
 
 def main():
-    """Main cleanup and validation"""
-    print("🥥 CocoPan Production Deployment Preparation")
-    print("=" * 60)
+    """Main process with duplicate handling"""
+    print("CocoPan Database Setup - Duplicate-Safe")
+    print("=" * 50)
     
-    # Step 1: Validation first
-    logger.info("Step 1: Pre-cleanup validation...")
-    errors, warnings = validate_production_readiness()
-    
-    if errors:
-        logger.error("❌ CRITICAL ERRORS found - fix before deploying:")
-        for error in errors:
-            logger.error(f"   • {error}")
+    # Check database connection
+    try:
+        stats = db.get_database_stats()
+        logger.info(f"Connected to {stats['db_type']} database")
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        logger.error("Check your DATABASE_URL")
         sys.exit(1)
-        
-    if warnings:
-        logger.warning("⚠️ WARNINGS found:")
-        for warning in warnings:
-            logger.warning(f"   • {warning}")
-        print()
+    
+    # Check required files
+    import os
+    required_files = ['branch_urls.json', 'store_names.json']
+    for file in required_files:
+        if not os.path.exists(file):
+            logger.error(f"{file} not found! Run convert_stores.py first.")
+            sys.exit(1)
+    
+    # Step 1: Check and clean duplicates
+    clean_urls = check_for_duplicates()
+    if not clean_urls:
+        logger.error("No URLs to process")
+        sys.exit(1)
+    
+    # Load store names
+    try:
+        with open('store_names.json') as f:
+            store_names_map = json.load(f)['store_names']
+    except Exception as e:
+        logger.error(f"Failed to load store names: {e}")
+        store_names_map = {}
     
     # Step 2: Confirm cleanup
-    if not confirm_cleanup():
-        logger.info("❌ Cleanup cancelled by user")
+    print(f"\nAbout to set up {len(clean_urls)} stores")
+    response = input("Continue? (y/n): ")
+    if response.lower() != 'y':
+        logger.info("Cancelled by user")
         sys.exit(0)
-        
-    # Step 3: Clean up data
-    logger.info("Step 2: Cleaning up existing data...")
-    if not cleanup_all_data():
-        logger.error("❌ Cleanup failed!")
-        sys.exit(1)
-        
-    # Step 4: Final validation
-    logger.info("Step 3: Post-cleanup validation...")
-    errors, warnings = validate_production_readiness()
     
-    if errors:
-        logger.error("❌ Post-cleanup validation failed:")
-        for error in errors:
-            logger.error(f"   • {error}")
+    # Step 3: Force cleanup
+    if not force_cleanup_database():
+        logger.error("Database cleanup failed")
         sys.exit(1)
     
-    # Success!
-    print()
-    print("🎉 PRODUCTION READY!")
-    print("=" * 60)
-    print("✅ Database cleaned and validated")
-    print("✅ 66 stores configured correctly")
-    print("✅ Configuration validated")
-    print("✅ All required files present")
-    if warnings:
-        print("⚠️ Minor warnings (won't block deployment):")
-        for warning in warnings:
-            print(f"   • {warning}")
-    print()
-    print("🚀 Ready to deploy with:")
-    print("   docker-compose up -d")
-    print()
+    # Step 4: Setup stores
+    if not setup_unique_stores(clean_urls, store_names_map):
+        logger.error("Store setup failed")
+        sys.exit(1)
+    
+    # Step 5: Validate
+    if not validate_database():
+        logger.error("Database validation failed")
+        sys.exit(1)
+    
+    print("\nSUCCESS!")
+    print("=" * 50)
+    print("Database setup completed successfully")
+    print("Ready for monitor service deployment")
 
 if __name__ == "__main__":
     main()

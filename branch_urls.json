@@ -47,6 +47,7 @@
     "https://food.grab.com/ph/en/restaurant/cocopan-pedro-gil-delivery/2-C4E2FAJECANYCT",
     "https://food.grab.com/ph/en/restaurant/cocopan-pio-valenzuela-delivery/2-C6TATUVFRAJBLX",
     "https://r.grab.com/g/6-20250906_094314_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6MCSA4EPBWAC6",
+    "Can't find it on the web or on mobile",
     "https://r.grab.com/g/6-20250906_123531_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6TATPA2V8KAGA",
     "https://r.grab.com/g/6-20250906_124145_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C66BGTUAWEUFEA",
     "https://r.grab.com/g/6-20250906_123719_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6UYGKT2ECDXTT",
@@ -69,7 +70,6 @@
     "https://r.grab.com/g/6-20250906_125409_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6MEHBN2EX51EA",
     "https://r.grab.com/g/6-20250906_130627_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C7K2LTJDNE2VAE",
     "https://r.grab.com/g/6-20250906_142614_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C7LDVGEVEPDTGN",
-
     "https://www.foodpanda.ph/restaurant/m90j/cocopan-aglipay",
     "https://www.foodpanda.ph/restaurant/bnn1/cocopan-anonas",
     "https://www.foodpanda.ph/restaurant/i51s/cocopan-altura",
@@ -106,7 +106,7 @@
     "https://www.foodpanda.ph/restaurant/uy49/cocopan-loreto",
     "https://www.foodpanda.ph/restaurant/w75z/cocopan-merville",
     "https://www.foodpanda.ph/restaurant/e00z/cocopan-meycauayan-bulacan",
-    "https://www.foodpanda.ph/restaurant/rusp/cocopan-moonwalk",
+    "foodpanda.ph/restaurant/rusp/cocopan-moonwalk",
     "https://www.foodpanda.ph/restaurant/g09p/cocopan-maypajo",
     "https://www.foodpanda.ph/restaurant/wgmi/cocopan-mindanao-avenue-tandang-sora",
     "https://www.foodpanda.ph/restaurant/aizh/cocopan-munoz",
@@ -137,12 +137,16 @@
     "https://www.foodpanda.ph/restaurant/poyk/cocopan-santa-quiteria-caloocan",
     "https://www.foodpanda.ph/restaurant/ej9u/cocopan-taytay",
     "https://www.foodpanda.ph/restaurant/n1ch/cocopan-tejeros",
-    "https://www.foodpanda.ph/restaurant/qe3o/cocopan-trabajo-market",
+    "foodpanda.ph/restaurant/qe3o/cocopan-trabajo-market",
     "https://www.foodpanda.ph/restaurant/oxjw/cocopan-talon-uno",
     "https://www.foodpanda.ph/restaurant/a4t9/cocopan-villongco",
     "https://www.foodpanda.ph/restaurant/ruya/cocopan-wakas-bocaue",
     "https://www.foodpanda.ph/restaurant/ta5r/cocopan-zapote-bacoor",
     "https://www.foodpanda.ph/restaurant/jaxy/cocopan-polo-valenzuela",
     "https://www.foodpanda.ph/restaurant/wtd9/cocopan-pacita-complex"
-  ]
+  ],
+  "meta": {
+    "total_stores": 144,
+    "duplicates_removed": 1
+  }
 }

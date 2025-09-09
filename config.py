@@ -19,7 +19,7 @@ class Config:
     # Database Configuration
     DATABASE_URL = os.getenv(
         'DATABASE_URL', 
-        'postgresql://cocopan:cocopan123@localhost:5432/cocopan_monitor'
+        'postgresql://postgres:sNsZAtfCjQjascvdokGMJkVzBQwnwCmA@switchyard.proxy.rlwy.net:50401/railway'
     )
     
     # For local development with SQLite fallback

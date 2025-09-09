@@ -1,0 +1,936 @@
+{
+  "store_names": {
+    "https://food.grab.com/ph/en/restaurant/cocopan-maysilo-delivery/2-C6TATTL2UF2UDA": {
+      "id": 1,
+      "store_name": "COCOPAN MAYSILO",
+      "name_on_platform": "Maysilo",
+      "location": "Mandaluyong",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN": {
+      "id": 2,
+      "store_name": "COCOPAN ANONAS",
+      "name_on_platform": "Anonas",
+      "location": "Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6": {
+      "id": 3,
+      "store_name": "COCOPAN ALTURA STA. MESA",
+      "name_on_platform": "Altura Santa Mesa",
+      "location": "Santa Mesa",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-bf-holy-spirit-delivery/2-C6V2PEAEEE5DEN": {
+      "id": 4,
+      "store_name": "COCOPAN BF HOLY SPIRIT",
+      "name_on_platform": "BF Holy Spirit",
+      "location": "Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-vicas-camarin-delivery/2-C6TATLDTTE4BT2": {
+      "id": 5,
+      "store_name": "COCOPAN BICAS",
+      "name_on_platform": "Vicas Camarin",
+      "location": "Caloocan City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-caa-delivery/2-C7EUVP2UDB3BRJ": {
+      "id": 6,
+      "store_name": "COCOPAN CAA",
+      "name_on_platform": "CAA",
+      "location": "Las Pinas",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-congressional-delivery/2-C7E1CYCVHALWE2": {
+      "id": 7,
+      "store_name": "COCOPAN CONGRESSIONAL",
+      "name_on_platform": "Congressional",
+      "location": "Congressional, Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-recto-delivery/2-C6TAT22GNVN2AA": {
+      "id": 8,
+      "store_name": "COCOPAN CM RECTO",
+      "name_on_platform": "Recto",
+      "location": "Recto, Manila",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-comembo-delivery/2-C4LHNVL1EEATDE": {
+      "id": 9,
+      "store_name": "COCOPAN COMEMBO",
+      "name_on_platform": "Comembo",
+      "location": "Makati City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-concepcion-uno-delivery/2-C6UYHBKJTJACAE": {
+      "id": 10,
+      "store_name": "COCOPAN CONCEPCION UNO",
+      "name_on_platform": "Concepcion Uno",
+      "location": "Marikina",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_124707_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C7KXCKNEN252ME": {
+      "id": 11,
+      "store_name": "COCOPAN EVER 10TH AVE.",
+      "name_on_platform": "Ever Caloocan",
+      "location": "Caloocan City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/online-delivery/2-C6UYHBKJSEC2TN?sourceID=20250906_124622_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS": {
+      "id": 12,
+      "store_name": "COCOPAN EVER 11TH AVE.",
+      "name_on_platform": "Ever 11th Avenue",
+      "location": "Balintawak, Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-ever-navotas-delivery/2-C6UYGEWWVCLFR6": {
+      "id": 13,
+      "store_name": "COCOPAN EVER NAVOTAS",
+      "name_on_platform": "Ever Navotas",
+      "location": "Navotas, Manila",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-edsa-taft-delivery/2-C7EUVP2UEK4HTN": {
+      "id": 14,
+      "store_name": "COCOPAN EDSA PASAY",
+      "name_on_platform": "Edsa Taft",
+      "location": "Pasay City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-evacom-delivery/2-C7EZVVDWE8NZHA": {
+      "id": 15,
+      "store_name": "COCOPAN EVACOM",
+      "name_on_platform": "Evacom",
+      "location": "Paranaque City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-fortune-market-marilao-delivery/2-C7E1CF32A7NKLE": {
+      "id": 16,
+      "store_name": "COCOPAN FORTUNE MARKET",
+      "name_on_platform": "Fortune Market Marilao",
+      "location": "Marilao, Bulacan",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-buendia-1-delivery/2-C6TATLDTSFMAAE": {
+      "id": 17,
+      "store_name": "COCOPAN GIL PUYAT",
+      "name_on_platform": "Buendia 1",
+      "location": "Pasay City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-guadalupe-delivery/2-C4LHNVLVCACWC2": {
+      "id": 18,
+      "store_name": "COCOPAN GUADALUPE",
+      "name_on_platform": "Guadalupe",
+      "location": "Makati City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-imall-antipolo-delivery/2-C66BGTUASBJTTJ": {
+      "id": 19,
+      "store_name": "COCOPAN IMALL ANTIPOLO",
+      "name_on_platform": "Imall Antipolo",
+      "location": "Antipolo Rizal",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-victor-medina-delivery/2-C7EUVP2UAXNGHE": {
+      "id": 20,
+      "store_name": "COCOPAN KABIHASNAN",
+      "name_on_platform": "Victor Medina",
+      "location": "Paranaque City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-kamuning-delivery/2-C66BGTUBBBAENA": {
+      "id": 21,
+      "store_name": "COCOPAN KAMUNING",
+      "name_on_platform": "Kamuning",
+      "location": "Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-kanlaon-delivery/2-C6UYGKT2DGEFJA": {
+      "id": 22,
+      "store_name": "COCOPAN KANLAON",
+      "name_on_platform": "Kanlaon",
+      "location": "Bagong Silang, Caloocan City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-katuparan-delivery/2-C6TBJ6VTCAXUPE": {
+      "id": 23,
+      "store_name": "COCOPAN KATUPARAN",
+      "name_on_platform": "Katuparan",
+      "location": "Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-kalentong-delivery/2-C35GCT3KGYUKT6": {
+      "id": 24,
+      "store_name": "COCOPAN KALENTONG I",
+      "name_on_platform": "Kalentong",
+      "location": "Mandaluyong",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-la-huerta-delivery/2-C7E1CYC3R4EDGE": {
+      "id": 25,
+      "store_name": "COCOPAN LA HUERTA",
+      "name_on_platform": "La Huerta",
+      "location": "Paranaque City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-galas-delivery/2-C66BGTT2CPXGWE": {
+      "id": 26,
+      "store_name": "COCOPAN LUZON GALAS",
+      "name_on_platform": "Galas",
+      "location": "Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-lifehome-rosario-delivery/2-C66BHCDEJ6MBN6": {
+      "id": 27,
+      "store_name": "COCOPAN LIFEHOMES ROSARIO",
+      "name_on_platform": "Lifehome Rosario",
+      "location": "Pasig City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-landayan-san-pedro-delivery/2-C7E1CYDWVLBUC6": {
+      "id": 28,
+      "store_name": "COCOPAN LANDAYAN",
+      "name_on_platform": "Landayan San Pedro",
+      "location": "San Pedro, Laguna",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-litex-delivery/2-C6XKTFWEJ7EXNN": {
+      "id": 29,
+      "store_name": "COCOPAN LITEX",
+      "name_on_platform": "Litex",
+      "location": "Quezon City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_131203_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C66BGTUAELCKE6": {
+      "id": 30,
+      "store_name": "COCOPAN MORNING BREEZE",
+      "name_on_platform": "Loreto Street",
+      "location": "Caloocan City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-merville-west-svc-rd-delivery/2-C4LHNVLZAXAVAJ": {
+      "id": 31,
+      "store_name": "COCOPAN MERVILLE",
+      "name_on_platform": "Merville West Svc Rd",
+      "location": "Paranaque City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-meycauayan-delivery/2-C6UYGKT2EEKHN2": {
+      "id": 32,
+      "store_name": "COCOPAN MEYCAUAYAN",
+      "name_on_platform": "Meycauayan",
+      "location": "Meycauayan, Bulacan",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-moonwalk-delivery/2-C6MCSA4FMEJWGJ": {
+      "id": 33,
+      "store_name": "COCOPAN MOONWALK",
+      "name_on_platform": "Moonwalk",
+      "location": "Paranaque City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-maypajo-delivery/2-C6XKTFWELJ51R6": {
+      "id": 34,
+      "store_name": "COCOPAN MAYPAJO",
+      "name_on_platform": "Maypajo",
+      "location": "Caloocan City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-munoz-delivery/2-C6MCSA4FN8MVAX": {
+      "id": 35,
+      "store_name": "COCOPAN MUNOZ",
+      "name_on_platform": "Munoz",
+      "location": "Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-murphy-cubao-delivery/2-C6UYGKT2DGEWA2": {
+      "id": 36,
+      "store_name": "COCOPAN MURPHY",
+      "name_on_platform": "Murphy Cubao",
+      "location": "Cubao, Quezon City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-naval-delivery/2-C6V2PEAEEALFA2": {
+      "id": 37,
+      "store_name": "COCOPAN NAVAL",
+      "name_on_platform": "Naval",
+      "location": "Malabon, Manila",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-n-domingo-delivery/2-C6XKTFWEKFWETA": {
+      "id": 38,
+      "store_name": "COCOPAN N. DOMINGO",
+      "name_on_platform": "N.Domingo",
+      "location": "San Juan, Metro Manila",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-ortigas-delivery/2-C7KXCKNHG2JJGA": {
+      "id": 39,
+      "store_name": "COCOPAN ORTIGAS CAINTA",
+      "name_on_platform": "Ortigas",
+      "location": "Cainta, Rizal",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-old-santa-mesa-delivery/2-C7EUVP2TVRBYVT": {
+      "id": 40,
+      "store_name": "COCOPAN OLD STA. MESA",
+      "name_on_platform": "Old Santa Mesa",
+      "location": "Old Sta. Mesa St., Manila",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-paco-delivery/2-C35GC7EFRANYRA": {
+      "id": 41,
+      "store_name": "COCOPAN PACO",
+      "name_on_platform": "Paco",
+      "location": "Paco, Manila",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-pateros-delivery/2-C6UYHBKJRYDKAE": {
+      "id": 42,
+      "store_name": "COCOPAN PATEROS",
+      "name_on_platform": "Pateros",
+      "location": "Taguig City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-pinagbuhatan-delivery/2-C6TATPA2V4EZHE": {
+      "id": 43,
+      "store_name": "COCOPAN PINAGBUHATAN",
+      "name_on_platform": "Pinagbuhatan",
+      "location": "Pasig City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-binangonan-delivery/2-C66BHCDEKACAAJ": {
+      "id": 44,
+      "store_name": "COCOPAN PAG-ASA BINANGONAN",
+      "name_on_platform": "Binangonan",
+      "location": "Binangonan Rizal",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-pedro-gil-delivery/2-C4E2FAJECANYCT": {
+      "id": 45,
+      "store_name": "COCOPAN PEDRO GIL",
+      "name_on_platform": "Pedro Gil",
+      "location": "Paco, Manila",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-pio-valenzuela-delivery/2-C6TATUVFRAJBLX": {
+      "id": 46,
+      "store_name": "COCOPAN PIO VALENZUELA",
+      "name_on_platform": "Pio Valenzuela",
+      "location": "Valenzuela City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_094314_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6MCSA4EPBWAC6": {
+      "id": 47,
+      "store_name": "COCOPAN PULANG LUPA",
+      "name_on_platform": "Pulang Lupa",
+      "location": "Las Pinas City",
+      "platform": "grabfood"
+    },
+    "Can't find it on the web or on mobile": {
+      "id": 48,
+      "store_name": "COCOPAN POBLACION",
+      "name_on_platform": "Can't find it on the web or on mobile",
+      "location": "Can't find it on the web or on mobile",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_123531_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6TATPA2V8KAGA": {
+      "id": 49,
+      "store_name": "COCOPAN PINAGSAMA I",
+      "name_on_platform": "Pinagsama",
+      "location": "Taguig City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_124145_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C66BGTUAWEUFEA": {
+      "id": 50,
+      "store_name": "COCOPAN PUTATAN",
+      "name_on_platform": "Putatan",
+      "location": "Muntinlupa City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_123719_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6UYGKT2ECDXTT": {
+      "id": 51,
+      "store_name": "COCOPAN PALATIW",
+      "name_on_platform": "Market Avenue, Palatiw",
+      "location": "Pasig City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-quezon-blvd-quiapo-delivery/2-C6MEGZMTTNUANJ": {
+      "id": 52,
+      "store_name": "COCOPAN QUIAPO",
+      "name_on_platform": "Quezon Blvd Quiapo",
+      "location": "Q.Blvd. Quiapo",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_123812_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C7EUVP2UAU6ZAN": {
+      "id": 53,
+      "store_name": "COCOPAN SIXTO CANIOGAN",
+      "name_on_platform": "Sixto Antonio",
+      "location": "Pasig City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_131013_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6V2PEAEEFLGMA": {
+      "id": 54,
+      "store_name": "COCOPAN SAMADORES",
+      "name_on_platform": "Luzon",
+      "location": "Quezon City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_125304_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6MCRY5FGJEKJJ": {
+      "id": 55,
+      "store_name": "COCOPAN SARMIENTO",
+      "name_on_platform": "Sarmiento",
+      "location": "Novaliches, Quezon City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_125907_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C7E1CYCVGPEFCE": {
+      "id": 56,
+      "store_name": "COCOPAN SAN VICENTE",
+      "name_on_platform": "San Vicente Binan",
+      "location": "Binan, Laguna",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_123633_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6TBLCCKNXK3TE": {
+      "id": 57,
+      "store_name": "COCOPAN SIGNAL",
+      "name_on_platform": "Signal",
+      "location": "Taguig City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_123924_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C7E1ANWBJCCAVA": {
+      "id": 58,
+      "store_name": "COCOPAN SIERRA MADRE",
+      "name_on_platform": "Sierra Madre",
+      "location": "Mandaluyong City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_140146_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C4E2FAJGTYTCVA": {
+      "id": 59,
+      "store_name": "COCOPAN SAN LAZARO",
+      "name_on_platform": "Felix Huertas St.",
+      "location": "Santa Cruz, MAnila",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_125612_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C66BGTT3C2MJJJ": {
+      "id": 60,
+      "store_name": "COCOPAN STA. QUITERIA",
+      "name_on_platform": "Santa Quiteria Caloocan",
+      "location": "Caloocan City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-taytay-delivery/2-C66BHCDEJ2CFTA": {
+      "id": 61,
+      "store_name": "COCOPAN TAYTAY",
+      "name_on_platform": "Taytay",
+      "location": "Taytay, Rizal",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_094554_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6UYGKT2EF61VJ": {
+      "id": 62,
+      "store_name": "COCOPAN TEJEROS",
+      "name_on_platform": "Tejeros",
+      "location": "Makati City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-talon-uno-delivery/2-C6TATTL2UGBXE2": {
+      "id": 63,
+      "store_name": "COCOPAN TALON UNO",
+      "name_on_platform": "Talon Uno",
+      "location": "Las Pinas City",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-villongco-delivery/2-C6TATUVFRJC1TN": {
+      "id": 64,
+      "store_name": "COCOPAN VILLONGCO I",
+      "name_on_platform": "Villongco",
+      "location": "Quezon Citty",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-wakas-bocaue-delivery/2-C7E1CF32A7EVME": {
+      "id": 65,
+      "store_name": "COCOPAN WAKAS BOCAUE",
+      "name_on_platform": "Wakas Bocaue",
+      "location": "Bocaue Bulacan",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-zapote-delivery/2-C7E1CF32BEEUGA": {
+      "id": 66,
+      "store_name": "COCOPAN ZAPOTE",
+      "name_on_platform": "Zapote",
+      "location": "Las Pinas City / Bacoor Cavite",
+      "platform": "grabfood"
+    },
+    "https://food.grab.com/ph/en/restaurant/cocopan-polo-m-h-del-pilar-delivery/2-C66BHCDEKF6YUE": {
+      "store_name": "Cocopan - Polo M.H Del Pilar",
+      "name_on_platform": "Polo M.H Del Pilar",
+      "location": "Valenzuela City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_125409_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C6MEHBN2EX51EA": {
+      "store_name": "Cocopan - Susano Road Novaliches",
+      "name_on_platform": "Susano Road Novaliches",
+      "location": "Novaliches, Quezon City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_130627_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C7K2LTJDNE2VAE": {
+      "store_name": "Cocopan - Evangelista",
+      "name_on_platform": "Evangelista",
+      "location": "Brgy. Pio Del Pilar, Makati City",
+      "platform": "grabfood"
+    },
+    "https://r.grab.com/g/6-20250906_142614_D04A3A46E55B4AF29A6D170C83D08758_MEXMPS-2-C7LDVGEVEPDTGN": {
+      "store_name": "Cocopan - Grace Park",
+      "name_on_platform": "Grace Park",
+      "location": "Caloocan City",
+      "platform": "grabfood"
+    },
+    "https://www.foodpanda.ph/restaurant/m90j/cocopan-aglipay": {
+      "store_code": "AGL",
+      "store_name": "COCOPAN AGLIPAY",
+      "address": "266 Retired Reverent G Aglipay Street Poblacion (H2PG+C8 Manila, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/bnn1/cocopan-anonas": {
+      "store_code": "ANO",
+      "store_name": "COCOPAN ANONAS",
+      "address": "Unit 1B One Molave Place Anonas Corner Molave Street Barangay Quirino 3A Project 3 3rd District (J3H7+F6X, Molave, Anonas, Project 3, Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/i51s/cocopan-altura": {
+      "store_code": "ASM",
+      "store_name": "COCOPAN ALTURA STA. MESA",
+      "address": "3551 Magsaysay Boulevard Altura Barangay 593 Sixth District (J236+32 Manila, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/flfl/cocopan-bf-holy-spirit": {
+      "store_code": "BFH",
+      "store_name": "COCOPAN BF HOLY SPIRIT",
+      "address": "12 BF Road Barangay Holy Spirit 2nd District (M3PP+J7 Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/n5hy/cocopan-vicas-camarin": {
+      "store_code": "BIC",
+      "store_name": "COCOPAN BICAS",
+      "address": "Bicas Building Congressional Road Corner Camarin Road Barangay 168 (P2VM+QR9)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/srux/cocopan-blumentritt": {
+      "store_code": "BLU",
+      "store_name": "COCOPAN BLUMENTRITT",
+      "address": "Unit B 2505 P Guevarra Street Corner Blumentritt Street (JXFP+P7 Manila, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/erw4/cocopan-filinvest-batasan": {
+      "store_code": "BTS",
+      "store_name": "COCOPAN BATASAN",
+      "address": "Block 7 Lot 4 Patibay Block 1 Batasan San Mateo Road Corner Filinvest II Road Barangay Batasan Hills Second District (M3QX+P5 Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/d3m1/cocopan-caa-las-pinas": {
+      "store_code": "CAA",
+      "store_name": "COCOPAN CAA",
+      "address": "12 Saging Street CPD-PH 1A BF International Village CAA Las Pinas (FX6W+H5 Las Pi\u00f1as, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/tff3/cocopan-congressional": {
+      "store_code": "CAQ",
+      "store_name": "COCOPAN CONGRESSIONAL",
+      "address": "10 Congressional Avenue Barangay Ramon Magsaysay First District (M25C+P2 Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/dt7a/cocopan-comembo": {
+      "store_code": "COM",
+      "store_name": "COCOPAN COMEMBO",
+      "address": "22 J.P. Rizal Extension Sampaguita Street Barangay Comembo 2nd District (7Q63G3X7+8H)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/xp47/cocopan-concepcion-uno": {
+      "store_code": "CUM",
+      "store_name": "COCOPAN CONCEPCION UNO",
+      "address": "14 Bayan Bayanan Avenue Barangay Concepcion Uno 2nd District (M423+7F Marikina, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/wcl5/cocopan-dela-paz-antipolo": {
+      "store_code": "DPA",
+      "store_name": "COCOPAN DELA PAZ ANTIPOLO",
+      "address": "ML Quezon Street Corner Dela Paz Street Barangay Dela Paz First District (H5QG+67 Antipolo City, Rizal)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/iuxa/cocopan-ever-caloocan-10th-avenue": {
+      "store_code": "EMC",
+      "store_name": "COCOPAN EVER 10TH AVE.",
+      "address": "221 P Burgos Barangay Poblacion 2nd District",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/xadn/cocopan-ever-11th-avenue": {
+      "store_code": "EME",
+      "store_name": "COCOPAN EVER 11TH AVE.",
+      "address": "Ever Supermarket Number 13 11th Avenue Corner A Bonifacio Barangay Balingasa Balintawak 1st District (MX2W+VP Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/qwvk/cocopan-ever-navotas": {
+      "store_code": "EMN",
+      "store_name": "COCOPAN EVER NAVOTAS",
+      "address": "Navotas Agora Complex 318 N Bay Boulevard Barangay NBBS Dagat Dagatan North Bay Boulevard South 1st District",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/cgoy/cocopan-evangelista": {
+      "store_code": "EPM",
+      "store_name": "COCOPAN EVANGELISTA",
+      "address": "1874 Evangelista Street Barangay Pio Del Pilar First District (H226+63 Makati, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/tep2/cocopan-edsa-taft": {
+      "store_code": "ESP",
+      "store_name": "COCOPAN EDSA PASAY",
+      "address": "518 Epifanio De los Santos Avenue Barangay 150 Fourth District (G2Q3+2G Pasay, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/uqh5/cocopan-evacom": {
+      "store_code": "EVA",
+      "store_name": "COCOPAN EVACOM",
+      "address": "8188 Dr Arcadio Santos Avenue Barangay San Dionisio Second District (F2G2+55 Para\u00f1aque, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/p52k/cocopan-fortune-marilao": {
+      "store_code": "FMM",
+      "store_name": "COCOPAN FORTUNE MARKET",
+      "address": "Fortune Market Mall MacArthur Highway (QW6X+MH Marilao, Bulacan)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/ilm8/cocopan-gastambide": {
+      "store_code": "GAS",
+      "store_name": "COCOPAN GASTAMBIDE",
+      "address": "Amio Gastambide Building 639 Gastambide Street Barangay 404 (JX3R+34M, Gastambide St., Sampaloc, Maynila, 1008 Kalakhang Maynila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/jrsf/cocopan-buendia-1": {
+      "store_code": "GIL",
+      "store_name": "COCOPAN GIL PUYAT",
+      "address": "274 A Senator Gil Puyat Avenue (HX3W+CF Pasay, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/lju1/cocopan-11th-avenue-grace-park": {
+      "store_code": "GPC",
+      "store_name": "COCOPAN GRACE PARK EAST",
+      "address": "122 11th Avenue Marcelo H Del Pilar Street Barangay 91 First District (MX3M+4J Caloocan City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/ve7h/cocopan-guadalupe": {
+      "store_code": "GUA",
+      "store_name": "COCOPAN GUADALUPE",
+      "address": "Cocopan 2196 Magsaysay Street Barangay Guadalupe Nuevo 2nd District (7Q63H27W+R5)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/j9n1/cocopan-i-mall-antipolo": {
+      "store_code": "IMA",
+      "store_name": "COCOPAN IMALL ANTIPOLO",
+      "address": "Manuel L Quezon Barangay San Roque First District (H5MG+J9C Imall, Antipolo, 1870 Rizal)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/omuq/cocopan-victor-medina": {
+      "store_code": "KAB",
+      "store_name": "COCOPAN KABIHASNAN",
+      "address": "8095 Kabihasnan Street Victor Medina Road Barangay San Dionisio Second District (FXRQ+P9 Para\u00f1aque, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/ytrx/cocopan-kamuning": {
+      "store_code": "KAM",
+      "store_name": "COCOPAN KAMUNING",
+      "address": "15 L Sianghio Street Corner K-3rd Barangay Kamuning Fourth District (J2GM+FV Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/g1j3/cocopan-kanlaon-street": {
+      "store_code": "KAN",
+      "store_name": "COCOPAN KANLAON",
+      "address": "Lot 5 Phase 1 Package 4 Kanlaon Street Barangay 176 Bagong Silang 1st District",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/wk3r/cocopan-la-huerta": {
+      "store_code": "LAH",
+      "store_name": "COCOPAN LA HUERTA",
+      "address": "1092 Quirino Avenue Barangay San Dionisio Fourth District (FXXR+M8 Para\u00f1aque, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/m4te/cocopan-galas": {
+      "store_code": "LGQ",
+      "store_name": "COCOPAN LUZON GALAS",
+      "address": "23 Luzon Avenue Barangay San Isidro Galas Fourth District (J275+7P Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/q031/cocopan-lifehomes-rosario": {
+      "store_code": "LRP",
+      "store_name": "COCOPAN LIFEHOMES ROSARIO",
+      "address": "8 President Quezon Street Lifehomes Subdivision Barangay Rosario Second District (H3RW+F4V, Pres. Quezon, Lifehomes, Pasig, 1609 Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/zgns/cocopan-landayan-san-pedro": {
+      "store_code": "LSL",
+      "store_name": "COCOPAN LANDAYAN",
+      "address": "Lot 13 Block 5 Hernandez Street Barangay Landayan First District (9328+WH City of San Pedro, Laguna)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/xwtr/cocopan-litex": {
+      "store_code": "LTX",
+      "store_name": "COCOPAN LITEX",
+      "address": "24 LITEX ROAD BARANGAY COMMONWEALTH SECOND DISTRICT (P32Q+9G Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/mvwg/cocopan-maysilo": {
+      "store_code": "MAY",
+      "store_name": "COCOPAN MAYSILO",
+      "address": "172 F Martinez Street Barangay Plainview (H2HM+8R5, Mandaluyong, 1550 Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/uy49/cocopan-loreto": {
+      "store_code": "MBC",
+      "store_name": "COCOPAN MORNING BREEZE",
+      "address": "115 Loreto Morning Breeze Subdivision Monumento Barangay 135 First District (MX5Q+47 Caloocan, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/w75z/cocopan-merville": {
+      "store_code": "MER",
+      "store_name": "COCOPAN MERVILLE",
+      "address": "Unit A 73 West Service Road Corner Merville Access Road Kalayaan Barangay 201 First District (G25M+G8 Pasay, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/e00z/cocopan-meycauayan-bulacan": {
+      "store_code": "MEY",
+      "store_name": "COCOPAN MEYCAUAYAN",
+      "address": "860 MacArthur Highway Barangay Calvario 4th District (PXQ6+29 Meycauayan, Bulacan)",
+      "platform": "foodpanda"
+    },
+    "foodpanda.ph/restaurant/rusp/cocopan-moonwalk": {
+      "store_code": "MOO",
+      "store_name": "COCOPAN MOONWALK",
+      "address": "15012 B Saint Francis Fastrack Avenue San Agustin Village 2nd District (F2R8+Q66, Do\u00f1a Soledad Ave, Para\u00f1aque, 1709 Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/g09p/cocopan-maypajo": {
+      "store_code": "MPC",
+      "store_name": "COCOPAN MAYPAJO",
+      "address": "185 A A MABINI CORNER MARCELA STREET BARANGAY 23 MAYPAJO SECOND DISTRICT (JXRG+W5 CALOOCAN, METRO MANILA)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/wgmi/cocopan-mindanao-avenue-tandang-sora": {
+      "store_code": "MTQ",
+      "store_name": "COCOPAN MINDANAO AVE",
+      "address": "Number 2 Rosal Street Corner Mindanao Avenue Street Dominic III Barangay Tandang Sora Sixth District (M2GJ+XW Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/aizh/cocopan-munoz": {
+      "store_code": "MUN",
+      "store_name": "COCOPAN MUNOZ",
+      "address": "335-B Roosevelt Avenue Barangay Katipunan 1st District (M249+9H Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/jn0o/cocopan-murphy-cubao": {
+      "store_code": "MUR",
+      "store_name": "COCOPAN MURPHY",
+      "address": "92A Liberty Avenue Barangay Socorro 3rd District (J376+VM Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/emap/cocopan-naval-street": {
+      "store_code": "NAV",
+      "store_name": "COCOPAN NAVAL",
+      "address": "Unit A 26 Naval Street Barangay Flores 1st District (MWGR+4R Malabon, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/z9gt/cocopan-n-domingo": {
+      "store_code": "NDS",
+      "store_name": "COCOPAN N. DOMINGO",
+      "address": "185 N DOMINGO STREET BALONG BATO FIRST DISTRICT (J25H+QM San Juan, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/isa4/cocopan-ortigas": {
+      "store_code": "OCR",
+      "store_name": "COCOPAN ORTIGAS CAINTA",
+      "address": "300 Ortigas Avenue Extension Barangay San Juan First District (H4JH+RF4 Cainta, Rizal, Philippines)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/aok0/cocopan-old-santa-mesa": {
+      "store_code": "OSM",
+      "store_name": "COCOPAN OLD STA. MESA",
+      "address": "4452 Valenzuela Street Barangay Santa Mesa Sixth District (J227+68 Manila, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/z2cv/cocopan-almeda-pateros": {
+      "store_code": "PAT",
+      "store_name": "COCOPAN PATEROS",
+      "address": "109 M Almeda Street Barangay San Roque Lone District (G3V9+G4 Pateros, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/e0w7/cocopan-binangonan": {
+      "store_code": "PBR",
+      "store_name": "COCOPAN PAG-ASA BINANGONAN",
+      "address": "987 National Road Barangay Pag Asa First District (G5C3+WQ Binangonan, Rizal)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/bs6f/cocopan-parola-cainta": {
+      "store_code": "PCR",
+      "store_name": "COCOPAN PAROLA",
+      "address": "55 Bonifacio Avenue Barangay 55 First District (H4G8+MP2, Bonifacio Ave, Cainta, 1900 Rizal)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/rrb2/cocopan-pedro-gil": {
+      "store_code": "PED",
+      "store_name": "COCOPAN PEDRO GIL",
+      "address": "1554 Pedro Gil Corner Main Streets Barangay 811 Zone 88 5th District (7Q63H2H2+F2)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/gkzo/cocopan-pio-valenzuela": {
+      "store_code": "PIO",
+      "store_name": "COCOPAN PIO VALENZUELA",
+      "address": "49 Pio Valenzuela Marulas (MXGM+39 Valenzuela, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/iobj/cocopan-pulang-lupa": {
+      "store_code": "PLL",
+      "store_name": "COCOPAN PULANG LUPA",
+      "address": "280 Real Street Pulang Lupa I 1st District (FXFG+9J Las Pi\u00f1as, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/yrpa/cocopan-c-de-guzman-santa-maria": {
+      "store_code": "SMB",
+      "store_name": "COCOPAN STA. MARIA",
+      "address": "Unit 1 1953 C De Guzman Street Poblacion Barangay Bagbaguin Sixth District (RX96+RF Santa Maria, Bulacan)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/inte/cocopan-pinagsama-ii-afp": {
+      "store_code": "PS2",
+      "store_name": "COCOPAN PINAGSAMA II",
+      "address": "34 Maria Rodriguez Tinga Avenue Barangay Central Signal Village Second District (G382+2W Taguig, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/km01/cocopan-pinagsama": {
+      "store_code": "PST",
+      "store_name": "COCOPAN PINAGSAMA I",
+      "address": "Lot 9 Block 10 Phase II Pinagsama Village Fourth District (G3F5+93 Taguig, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/mf3q/cocopan-putatan": {
+      "store_code": "PTT",
+      "store_name": "COCOPAN PUTATAN",
+      "address": "24 National Road Barangay Putatan First District (92VV+MV Muntinlupa, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/e6c0/cocopan-market-avenue-palatiw": {
+      "store_code": "PTW",
+      "store_name": "COCOPAN PALATIW",
+      "address": "292 Market Suarez Avenue Barangay Palatiw 1st District (H36M+5H Pasig, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/m0sb/cocopan-quiapo": {
+      "store_code": "QUA",
+      "store_name": "COCOPAN QUIAPO",
+      "address": "416 1-C Quezon Boulevard Barangay 393 (HXXM+8M Manila, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/dntx/cocopan-sixto-antonio-avenue": {
+      "store_code": "SAC",
+      "store_name": "COCOPAN SIXTO CANIOGAN",
+      "address": "176 J Doctor Sixto Antonio Avenue Barangay Caniogan 1st District 7Q63H38G+PG",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/e67g/cocopan-luzon": {
+      "store_code": "SAM",
+      "store_name": "COCOPAN SAMADORES",
+      "address": "Lot 9 Blok 9 Area 3 Luzon Avenue",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/sase/cocopan-sarmiento-novaliches": {
+      "store_code": "SAR",
+      "store_name": "COCOPAN SARMIENTO",
+      "address": "945 Quirino Highway Novaliches Proper Barangay Sarmiento Fifth District (P29Q+RW Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/w72u/cocopan-san-vicente-binan": {
+      "store_code": "SBL",
+      "store_name": "COCOPAN SAN VICENTE",
+      "address": "139 General Malvar Street Barangay San Vicente Lone Congressional District (83MJ+2H Bi\u00f1an, Laguna)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/rdct/cocopan-signal-taguig": {
+      "store_code": "SIG",
+      "store_name": "COCOPAN SIGNAL",
+      "address": "11 Luzon Street Zone 5 Central Signal Village (G343+F4 Taguig, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/v3nm/cocopan-san-isidro": {
+      "store_code": "SIT",
+      "store_name": "COCOPAN SAN ISIDRO",
+      "address": "0143 Rizal Avenue Isabelle Commercial Building Barangay San Isidro First District (H49J+P9 Taytay, Rizal)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/dslt/cocopan-sierra-madre-mandaluyong": {
+      "store_code": "SMM",
+      "store_name": "COCOPAN SIERRA MADRE",
+      "address": "Unit 108 Sierra Centre Building 8 Domingo Guevarra Corner Sierra Madre Street Barangay Highway Hills First District (H3H2+MG Mandaluyong City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/poyk/cocopan-santa-quiteria-caloocan": {
+      "store_code": "SQC",
+      "store_name": "COCOPAN STA. QUITERIA",
+      "address": "Stall Number 2 27 Tullahan Road Santa Quiteria Barangay 162 First District (M2J5+HXM, Tullahan Rd, Caloocan, 1402 Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/ej9u/cocopan-taytay": {
+      "store_code": "TAY",
+      "store_name": "COCOPAN TAYTAY",
+      "address": "2159 Rizal Avenue Marc Square Building Barangay Dolores First District (H45P+V4 Taytay, Rizal)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/n1ch/cocopan-tejeros": {
+      "store_code": "TEJ",
+      "store_name": "COCOPAN TEJEROS",
+      "address": "1069 Chino Roces Avenue Barangay Tejeros 4th District",
+      "platform": "foodpanda"
+    },
+    "foodpanda.ph/restaurant/qe3o/cocopan-trabajo-market": {
+      "store_code": "TSM",
+      "store_name": "COCOPAN TRABAJO",
+      "address": "785 M Dela Fuente Street Trabajo Market Barangay 419 Fourth District (JX5W+V9 Manila, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/oxjw/cocopan-talon-uno": {
+      "store_code": "TUL",
+      "store_name": "COCOPAN TALON UNO",
+      "address": "401 Bautista Street Corner Real Street Barangay Talon Uno (C2P4+XC Las Pi\u00f1as, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/a4t9/cocopan-villongco": {
+      "store_code": "VIL",
+      "store_name": "COCOPAN VILLONGCO I",
+      "address": "A&B 174 Villongco Street Commonwealth (M3XM+2G Quezon City, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/ruya/cocopan-wakas-bocaue": {
+      "store_code": "WBB",
+      "store_name": "COCOPAN WAKAS BOCAUE",
+      "address": "28 McArthur Highway Narra Street Barangay Wakas Fifth District (RW2F+29 Bocaue, Bulacan)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/ta5r/cocopan-zapote-bacoor": {
+      "store_code": "ZBC",
+      "store_name": "COCOPAN ZAPOTE",
+      "address": "Unit B1 U3 270 Zapote II (FX78+83 City of Bacoor, Cavite)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/jaxy/cocopan-polo-valenzuela": {
+      "store_name": "COCOPAN POLO VALENZUELA",
+      "address": "43 Marcelo H Del Pilar Street Barangay Polo First District (PW5W+59 Valenzuela, Metro Manila)",
+      "platform": "foodpanda"
+    },
+    "https://www.foodpanda.ph/restaurant/wtd9/cocopan-pacita-complex": {
+      "store_name": "COCOPAN PACITA COMPLEX",
+      "address": "Cher Terminal National Highway San Pedro Barangay Landayan First District (83X8+36 San Pedro, Laguna)",
+      "platform": "foodpanda"
+    }
+  },
+  "meta": {
+    "total_stores": 144,
+    "description": "URL to store name mapping for CocoPan stores"
+  }
+}
