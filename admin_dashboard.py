@@ -304,7 +304,7 @@ def format_time_ago(checked_at) -> str:
 def get_va_checkin_schedule():
     """Get the VA check-in schedule (7–10 PM Manila)"""
     return {
-        'start_hour': 19,  # 7 PM
+        'start_hour': 7,  # 7 PM
         'end_hour': 22,    # 10 PM
         'timezone': 'Asia/Manila',
         'reminder_minutes_before': 5
