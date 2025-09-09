@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
 CocoPan Watchtower - CLIENT DASHBOARD (FIXED)
-✅ Professional centered login page design  
+✅ Professional login page design
 ✅ Foodpanda status persistence until next hour
-✅ Reports starting September 10 (always default)
-✅ Removed Check Type column from Live Operations Monitor
+✅ Reports starting September 10
 ✅ Proper client email alerts
 """
 
@@ -204,7 +203,7 @@ def load_authorized_emails():
         return ["juanlopolicarpio@gmail.com"]
 
 # ======================================================================
-#                           BEAUTIFUL STYLES (FIXED LOGIN)
+#                           BEAUTIFUL STYLES
 # ======================================================================
 st.markdown("""
 <style>
@@ -218,7 +217,7 @@ st.markdown("""
         padding: 0 !important;
     }
     
-    /* FIXED LOGIN PAGE STYLES - CENTERED & COMPACT */
+    /* LOGIN PAGE STYLES */
     .login-container {
         min-height: 100vh;
         display: flex;
@@ -231,12 +230,12 @@ st.markdown("""
     .login-card {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         overflow: hidden;
         width: 100%;
-        max-width: 420px;
+        max-width: 480px;
         animation: slideUp 0.6s ease-out;
     }
     
@@ -247,54 +246,75 @@ st.markdown("""
     
     .login-header {
         background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-        padding: 30px 30px 25px 30px;
+        padding: 40px 40px 30px 40px;
         text-align: center;
         position: relative;
+        overflow: hidden;
+    }
+    
+    .login-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: shimmer 3s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
     
     .login-title {
         color: #ffffff;
-        font-size: 2.2rem;
+        font-size: 2.5rem;
         font-weight: 800;
         margin: 0 0 8px 0;
+        position: relative;
+        z-index: 1;
         text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .login-subtitle {
         color: rgba(255, 255, 255, 0.9);
-        font-size: 1rem;
+        font-size: 1.1rem;
         font-weight: 400;
         margin: 0;
+        position: relative;
+        z-index: 1;
     }
     
     .login-body {
-        padding: 30px;
+        padding: 40px;
     }
     
     .login-form-title {
         color: #1e293b;
-        font-size: 1.4rem;
+        font-size: 1.5rem;
         font-weight: 700;
-        margin: 0 0 6px 0;
+        margin: 0 0 8px 0;
         text-align: center;
     }
     
     .login-form-subtitle {
         color: #64748b;
-        font-size: 0.95rem;
-        margin: 0 0 25px 0;
+        font-size: 1rem;
+        margin: 0 0 32px 0;
         text-align: center;
     }
     
     .stTextInput > div > div > input {
         border: 2px solid #e2e8f0 !important;
-        border-radius: 10px !important;
-        padding: 14px 18px !important;
-        font-size: 1rem !important;
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+        font-size: 1.1rem !important;
         font-weight: 500 !important;
         background: #f8fafc !important;
         transition: all 0.3s ease !important;
-        height: 50px !important;
+        height: 60px !important;
     }
     
     .stTextInput > div > div > input:focus {
@@ -306,8 +326,8 @@ st.markdown("""
     .stTextInput > label {
         font-weight: 600 !important;
         color: #374151 !important;
-        font-size: 0.9rem !important;
-        margin-bottom: 6px !important;
+        font-size: 1rem !important;
+        margin-bottom: 8px !important;
     }
     
     .stButton > button {
@@ -315,15 +335,15 @@ st.markdown("""
         background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
         color: white !important;
         border: none !important;
-        border-radius: 10px !important;
-        padding: 14px 20px !important;
-        font-size: 1rem !important;
+        border-radius: 12px !important;
+        padding: 16px 24px !important;
+        font-size: 1.1rem !important;
         font-weight: 600 !important;
         text-transform: uppercase !important;
         letter-spacing: 0.5px !important;
         transition: all 0.3s ease !important;
         box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.4) !important;
-        min-height: 50px !important;
+        min-height: 60px !important;
     }
     
     .stButton > button:hover {
@@ -333,15 +353,15 @@ st.markdown("""
     
     .login-footer {
         text-align: center;
-        margin-top: 20px;
-        padding-top: 20px;
+        margin-top: 24px;
+        padding-top: 24px;
         border-top: 1px solid #e5e7eb;
     }
     
     .login-help {
         color: #6b7280;
-        font-size: 0.85rem;
-        line-height: 1.5;
+        font-size: 0.9rem;
+        line-height: 1.6;
     }
     
     .login-support {
@@ -516,16 +536,16 @@ st.markdown("""
 
     @media (max-width: 768px) {
         .login-card { 
-            margin: 15px;
-            max-width: calc(100vw - 30px);
+            margin: 10px;
+            max-width: calc(100vw - 20px);
         }
         
         .login-header, .login-body { 
-            padding: 25px 20px; 
+            padding: 30px 20px; 
         }
         
         .login-title { 
-            font-size: 1.8rem; 
+            font-size: 2rem; 
         }
         
         .main-app > div { 
@@ -806,7 +826,7 @@ def check_email_authentication() -> bool:
     if st.session_state.client_authenticated and st.session_state.client_email:
         return True
 
-    # ---- FIXED BEAUTIFUL LOGIN UI - CENTERED & COMPACT ----
+    # ---- BEAUTIFUL LOGIN UI ----
     st.markdown("""
     <div class="login-container">
         <div class="login-card">
@@ -935,7 +955,7 @@ def main():
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Tabs (FIXED: Removed Check Type column from Live Operations Monitor)
+    # Tabs (same as before but with updated Reports tab)
     tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports"])
 
     with tab1:
@@ -981,26 +1001,26 @@ def main():
             display['Platform'] = current['platform']
             
             status_labels = []
-            # REMOVED: check_type_labels = []  # FIXED: No longer creating Check Type column
+            check_type_labels = []
             for _, row in current.iterrows():
                 if row['under_review']:
                     status_labels.append("🟡 Under Review")
-                    # REMOVED: check_type_labels.append("Auto Check")
+                    check_type_labels.append("Auto Check")
                 elif row['is_va_checkin']:
                     if row['is_online']:
                         status_labels.append("🟢 Online")
                     else:
                         status_labels.append("🔴 Offline")
-                    # REMOVED: check_type_labels.append("VA Check-in")
+                    check_type_labels.append("VA Check-in")
                 else:
                     if row['is_online']:
                         status_labels.append("🟢 Online")
                     else:
                         status_labels.append("🔴 Offline")
-                    # REMOVED: check_type_labels.append("Auto Check")
+                    check_type_labels.append("Auto Check")
                     
             display['Status'] = status_labels
-            # REMOVED: display['Check Type'] = check_type_labels  # FIXED: No Check Type column
+            display['Check Type'] = check_type_labels
             
             try:
                 cur = current.copy()
@@ -1152,7 +1172,7 @@ def main():
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
 
     with tab4:
-        # FIXED Reports tab - always default to September 10 start date
+        # UPDATED Reports tab with September 10 minimum date
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Reports</div>
@@ -1166,10 +1186,10 @@ def main():
         min_date = datetime(2024, 9, 10).date()  # September 10, 2024
         
         with col1:
-            # FIXED: Always default to September 10, 2024 as start date
+            default_start = max(min_date, (ph_now - timedelta(days=7)).date())
             start_date = st.date_input(
                 "Start Date", 
-                value=min_date,  # FIXED: Always start from Sep 10
+                value=default_start, 
                 min_value=min_date,
                 key="reports_start_date"
             )
