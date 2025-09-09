@@ -269,7 +269,7 @@ def format_time_ago(checked_at) -> str:
 # ------------------------------------------------------------------------------
 def get_va_checkin_schedule():
     """7–10 PM Manila window."""
-    return {"start_hour": 7, "end_hour": 22, "timezone": "Asia/Manila"}
+    return {"start_hour": 6, "end_hour": 22, "timezone": "Asia/Manila"}
 
 def get_current_manila_time():
     return datetime.now(pytz.timezone("Asia/Manila"))
