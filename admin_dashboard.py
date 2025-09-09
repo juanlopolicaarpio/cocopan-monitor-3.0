@@ -464,26 +464,28 @@ def enhanced_va_checkin_tab():
     </div>
     """, unsafe_allow_html=True)
     
-    # Check if it's check-in time
+    # --- NEW: Show status but DO NOT hide stores outside check-in hours
     if not is_checkin_time():
         next_checkin = get_next_checkin_time()
         time_until = next_checkin - current_time
         hours_until = int(time_until.total_seconds() // 3600)
         minutes_until = int((time_until.total_seconds() % 3600) // 60)
         
-        st.warning(f"""
-⏰ **Not Check-in Time**
+        st.info(f"""
+⏰ **Outside Check-in Hours**
 
 Check-in hours: {schedule['start_hour']}:00 AM - {schedule['end_hour']}:00 AM Manila Time  
-Next check-in: {next_checkin.strftime('%I:%M %p')} ({hours_until}h {minutes_until}m)
+Next check-in window: {next_checkin.strftime('%I:%M %p')} (in {hours_until}h {minutes_until}m)
+
+You can review stores below, but submissions are only accepted during check-in hours.
         """)
-        return
-    
-    # Check if current hour already completed
-    hour_completed = check_if_hour_already_completed(current_hour_slot)
-    completed_hours = get_completed_hours_today()
-    
-    if hour_completed:
+        # NOTE: No return here — continue to show the store list.
+
+    # Check if current hour already completed (only relevant if within hours)
+    hour_completed = check_if_hour_already_completed(current_hour_slot) if is_checkin_time() else False
+    completed_hours = get_completed_hours_today() if is_checkin_time() else []
+
+    if hour_completed and is_checkin_time():
         next_hour = current_hour_slot + timedelta(hours=1)
         if next_hour.hour <= schedule['end_hour']:
             wait_until = next_hour - timedelta(minutes=5)  # Show 5 minutes before
@@ -510,13 +512,13 @@ All check-ins done for today. Next check-in: Tomorrow 7:00 AM
             col = [col1, col2, col3, col4][i]
             status = "✅ Done" if hour in completed_hours else "⏳ Pending"
             col.metric(f"{hour}:00 AM", status)
-        return
-    
-    # Current hour check-in interface
+        # Even if completed, still show stores below for reference (no return)
+
+    # Current hour interface header (informational)
     st.markdown(f"""
     <div style="background: #FEF3E2; border: 1px solid #F59E0B; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
-        <h4 style="margin: 0 0 0.5rem 0; color: #92400E;">🕐 {current_hour_slot.strftime('%I:00 %p')} Check-in</h4>
-        <p style="margin: 0; color: #92400E;">Please complete the check-in for this hour</p>
+        <h4 style="margin: 0 0 0.5rem 0; color: #92400E;">🕐 {current_hour_slot.strftime('%I:00 %p')} Slot</h4>
+        <p style="margin: 0; color: #92400E;">Review Foodpanda stores below. Submissions open 7–10 AM Manila.</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -621,19 +623,24 @@ All check-ins done for today. Next check-in: Tomorrow 7:00 AM
         for i, name in enumerate(offline_names, 1):
             st.write(f"{i}. 🔴 {name}")
     
-    # Submit section (ENHANCED: saves with hour_slot)
+    # --- NEW: Submit section with time validation (button disabled outside hours)
     st.markdown("---")
     st.markdown("### 📤 Submit Hourly Check-in")
-    if offline_count == 0:
-        st.info("ℹ️ No stores marked as offline. All Foodpanda stores will be saved as ONLINE.")
+
+    if not is_checkin_time():
+        st.warning("⚠️ Submissions are only accepted during check-in hours (7:00 AM - 10:00 AM Manila Time)")
+        st.button("📤 Submit Check-in (Outside Hours)", use_container_width=True, disabled=True)
     else:
-        st.warning(f"⚠️ {offline_count} stores will be marked as OFFLINE. {online_count} stores will remain ONLINE.")
-    
-    if st.button(f"📤 Submit Check-in for {current_hour_slot.strftime('%I:00 %p')}", use_container_width=True, type="primary"):
-        offline_store_ids = list(st.session_state.va_offline_stores)
-        success = save_va_checkin_enhanced(offline_store_ids, st.session_state.admin_email, current_hour_slot)
-        if success:
-            st.success(f"""
+        if offline_count == 0:
+            st.info("ℹ️ No stores marked as offline. All Foodpanda stores will be saved as ONLINE.")
+        else:
+            st.warning(f"⚠️ {offline_count} stores will be marked as OFFLINE. {online_count} stores will remain ONLINE.")
+        
+        if st.button(f"📤 Submit Check-in for {current_hour_slot.strftime('%I:00 %p')}", use_container_width=True, type="primary"):
+            offline_store_ids = list(st.session_state.va_offline_stores)
+            success = save_va_checkin_enhanced(offline_store_ids, st.session_state.admin_email, current_hour_slot)
+            if success:
+                st.success(f"""
 ✅ **{current_hour_slot.strftime('%I:00 %p')} Check-in Submitted Successfully!**
 
 📊 **Summary:**
@@ -643,13 +650,13 @@ All check-ins done for today. Next check-in: Tomorrow 7:00 AM
 - 🕐 Time Slot: {current_hour_slot.strftime('%I:00 %p')} Manila Time
 
 Next check-in will be available at {(current_hour_slot + timedelta(hours=1) - timedelta(minutes=5)).strftime('%I:%M %p')}
-            """)
-            # Clear selections and refresh
-            st.session_state.va_offline_stores = set()
-            load_foodpanda_stores.clear()
-            st.rerun()
-        else:
-            st.error("❌ Failed to submit check-in. Please try again.")
+                """)
+                # Clear selections and refresh
+                st.session_state.va_offline_stores = set()
+                load_foodpanda_stores.clear()
+                st.rerun()
+            else:
+                st.error("❌ Failed to submit check-in. Please try again.")
 
 # ---------------------------
 # STYLES
