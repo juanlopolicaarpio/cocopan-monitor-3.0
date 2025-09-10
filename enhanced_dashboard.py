@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (SIMPLIFIED)
+CocoPan Watchtower - CLIENT DASHBOARD (SIMPLIFIED, FIXED)
 ✅ Simple login page - no fancy backgrounds
 ✅ Just the form and basic styling
-✅ Foodpanda status persistence until next hour
-✅ Reports starting September 10
+✅ Foodpanda status persistence until next hour (live bias to VA check-ins)
+✅ Reports starting September 10, 2024
+✅ Daily uptime / downtime / reports use store_status_hourly (fixes inflated counts)
 """
 
 import os
@@ -215,8 +216,6 @@ st.markdown("""
         color: #1E293B; 
         padding: 2rem;
     }
-    
-    /* SIMPLE LOGIN */
     .login-container {
         max-width: 400px;
         margin: 4rem auto;
@@ -226,7 +225,6 @@ st.markdown("""
         border: 1px solid #E2E8F0;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    
     .login-title {
         font-size: 1.5rem;
         font-weight: 700;
@@ -234,7 +232,6 @@ st.markdown("""
         text-align: center;
         margin: 0 0 1.5rem 0;
     }
-
     .header-section { 
         background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); 
         border-radius: 16px; 
@@ -242,7 +239,6 @@ st.markdown("""
         margin-bottom: 1.25rem; 
         box-shadow: 0 4px 6px -1px rgba(0,0,0,.1);
     }
-    
     h1 { 
         color: #fff !important; 
         font-size: 2.4rem !important; 
@@ -251,7 +247,6 @@ st.markdown("""
         margin:0 !important; 
         letter-spacing:-.02em;
     }
-    
     h3 { 
         color: rgba(255,255,255,.9) !important; 
         font-weight: 400 !important; 
@@ -259,7 +254,6 @@ st.markdown("""
         text-align:center !important; 
         margin:.4rem 0 0 0 !important;
     }
-
     .section-header { 
         background:#fff; 
         border:1px solid #E2E8F0; 
@@ -268,20 +262,17 @@ st.markdown("""
         margin:1.1rem 0 .9rem 0; 
         box-shadow:0 1px 3px rgba(0,0,0,.06);
     }
-    
     .section-title { 
         font-size:1.1rem; 
         font-weight:600; 
         color:#1E293B; 
         margin:0;
     }
-    
     .section-subtitle { 
         font-size:.85rem; 
         color:#64748B; 
         margin:.25rem 0 0 0;
     }
-
     [data-testid="metric-container"] { 
         background:#fff; 
         border:1px solid #E2E8F0; 
@@ -291,18 +282,15 @@ st.markdown("""
         text-align:center; 
         transition:.2s; 
     }
-    
     [data-testid="metric-container"]:hover { 
         box-shadow:0 4px 6px -1px rgba(0,0,0,.08); 
         transform: translateY(-1px); 
     }
-    
     [data-testid="metric-value"] { 
         color:#1E293B; 
         font-weight:700; 
         font-size:1.75rem; 
     }
-    
     [data-testid="metric-label"] { 
         color:#64748B; 
         font-weight:600; 
@@ -310,7 +298,6 @@ st.markdown("""
         text-transform:uppercase; 
         letter-spacing:.05em; 
     }
-
     .stTabs [data-baseweb="tab-list"] { 
         gap:0; 
         background:#F1F5F9; 
@@ -318,7 +305,6 @@ st.markdown("""
         padding:.25rem; 
         border:1px solid #E2E8F0;
     }
-    
     .stTabs [data-baseweb="tab"] { 
         background:transparent; 
         border:none; 
@@ -329,19 +315,16 @@ st.markdown("""
         transition:.2s; 
         font-size:.85rem;
     }
-    
     .stTabs [data-baseweb="tab"]:hover { 
         background:#E2E8F0; 
         color:#1E293B; 
     }
-    
     .stTabs [aria-selected="true"] { 
         background:#fff !important; 
         color:#1E293B !important; 
         box-shadow:0 1px 2px rgba(0,0,0,.05); 
         font-weight:600;
     }
-
     .stDataFrame { 
         background:#fff; 
         border-radius:12px; 
@@ -349,7 +332,6 @@ st.markdown("""
         overflow:hidden; 
         box-shadow:0 1px 3px rgba(0,0,0,.06);
     }
-    
     .stDataFrame thead tr th { 
         background:#F8FAFC !important; 
         color:#475569 !important; 
@@ -361,7 +343,6 @@ st.markdown("""
         border-bottom:1px solid #E2E8F0 !important; 
         padding:.8rem .6rem !important;
     }
-    
     .stDataFrame tbody tr td { 
         background:#fff !important; 
         color:#1E293B !important; 
@@ -369,11 +350,9 @@ st.markdown("""
         border-bottom:1px solid #F1F5F9 !important; 
         padding:.65rem !important;
     }
-    
     .stDataFrame tbody tr:hover td { 
         background:#F8FAFC !important;
     }
-    
     .chart-container { 
         background:#fff; 
         border:1px solid #E2E8F0; 
@@ -381,7 +360,6 @@ st.markdown("""
         padding:.75rem; 
         box-shadow:0 1px 3px rgba(0,0,0,.06); 
     }
-    
     .filter-container { 
         background:#F8FAFC; 
         border:1px solid #E2E8F0; 
@@ -389,7 +367,6 @@ st.markdown("""
         padding:.9rem; 
         margin-bottom:.9rem; 
     }
-
     @media (max-width: 768px) {
         .login-container { 
             margin: 2rem auto;
@@ -400,7 +377,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ======================================================================
-#                       DATA HELPERS (UPDATED FOR FOODPANDA PERSISTENCE)
+#                       DATA HELPERS (PLATFORM + FLAGS)
 # ======================================================================
 def standardize_platform_name(platform_value):
     if pd.isna(platform_value):
@@ -419,18 +396,18 @@ def is_under_review(error_message: str) -> bool:
     msg = str(error_message).strip()
     return msg.startswith('[BLOCKED]') or msg.startswith('[UNKNOWN]') or msg.startswith('[ERROR]')
 
-def is_va_checkin(error_message: str) -> bool:
-    """Check if this is a VA check-in record"""
-    if pd.isna(error_message):
-        return False
-    return str(error_message).strip().startswith('[VA_CHECKIN]')
-
+# ======================================================================
+#                            DATA LOADERS
+# ======================================================================
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
 def load_comprehensive_data():
-    """UPDATED: Prioritize VA check-ins for Foodpanda stores and handle persistence"""
+    """
+    LIVE LIST: prefer VA check-ins for Foodpanda (uses status_checks for 'latest' only)
+    DAILY UPTIME: use store_status_hourly to avoid inflated counts
+    """
     try:
         with db.get_connection() as conn:
-            # Get the latest status for each store with preference for VA check-ins
+            # --- LIVE STATUS (latest) ---
             latest_status_query = """
                 WITH ranked_checks AS (
                     SELECT 
@@ -442,7 +419,6 @@ def load_comprehensive_data():
                         sc.checked_at,
                         sc.response_time_ms,
                         sc.error_message,
-                        -- Prioritize VA check-ins for Foodpanda stores
                         ROW_NUMBER() OVER (
                             PARTITION BY s.id 
                             ORDER BY 
@@ -454,7 +430,7 @@ def load_comprehensive_data():
                         ) as rn
                     FROM stores s
                     INNER JOIN status_checks sc ON s.id = sc.store_id
-                    WHERE sc.checked_at >= NOW() - INTERVAL '24 hours'  -- Only consider recent checks
+                    WHERE sc.checked_at >= NOW() - INTERVAL '24 hours'
                 )
                 SELECT 
                     id, name, platform, url, is_online, checked_at, 
@@ -464,61 +440,39 @@ def load_comprehensive_data():
                 ORDER BY name
             """
             latest_status = pd.read_sql_query(latest_status_query, conn)
-            
             if not latest_status.empty:
                 latest_status['platform'] = latest_status['platform'].apply(standardize_platform_name)
 
-            # For daily uptime, exclude under review and use effective checks
+            # --- DAILY UPTIME (SNAPSHOT) ---
             daily_uptime_query = """
-                SELECT 
-                    s.id,
-                    COALESCE(s.name_override, s.name) AS name,
-                    s.platform,
-
-                    COUNT(sc.id) FILTER (
-                      WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
-                             OR  sc.error_message LIKE '[UNKNOWN]%%'
-                             OR  sc.error_message LIKE '[ERROR]%%')
-                    ) AS effective_checks,
-
-                    SUM(CASE WHEN sc.is_online = true AND NOT (
-                              sc.error_message LIKE '[BLOCKED]%%'
-                           OR sc.error_message LIKE '[UNKNOWN]%%'
-                           OR sc.error_message LIKE '[ERROR]%%'
-                        ) THEN 1 ELSE 0 END) AS online_checks,
-
-                    SUM(CASE WHEN sc.is_online = false AND NOT (
-                              sc.error_message LIKE '[BLOCKED]%%'
-                           OR sc.error_message LIKE '[UNKNOWN]%%'
-                           OR sc.error_message LIKE '[ERROR]%%'
-                        ) THEN 1 ELSE 0 END) AS downtime_count,
-
-                    ROUND(
-                        (SUM(CASE WHEN sc.is_online = true AND NOT (
-                                  sc.error_message LIKE '[BLOCKED]%%'
-                               OR sc.error_message LIKE '[UNKNOWN]%%'
-                               OR sc.error_message LIKE '[ERROR]%%'
-                             ) THEN 1 ELSE 0 END)
-                         * 100.0 / NULLIF(
-                             COUNT(sc.id) FILTER (
-                               WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
-                                      OR  sc.error_message LIKE '[UNKNOWN]%%'
-                                      OR  sc.error_message LIKE '[ERROR]%%')
-                             ), 0)
-                        ), 1
-                    ) AS uptime_percentage
-
+                WITH today_hours AS (
+                  SELECT
+                    ssh.store_id,
+                    COUNT(*) FILTER (WHERE ssh.status IN ('ONLINE','OFFLINE')) AS effective_checks,
+                    SUM(CASE WHEN ssh.status = 'ONLINE'  THEN 1 ELSE 0 END) AS online_checks,
+                    SUM(CASE WHEN ssh.status = 'OFFLINE' THEN 1 ELSE 0 END) AS downtime_count,
+                    COUNT(*) FILTER (WHERE ssh.status IN ('BLOCKED','UNKNOWN','ERROR')) AS under_review_checks
+                  FROM store_status_hourly ssh
+                  WHERE DATE(ssh.effective_at AT TIME ZONE 'Asia/Manila')
+                        = DATE(timezone('Asia/Manila', now()))
+                  GROUP BY ssh.store_id
+                )
+                SELECT
+                  s.id,
+                  COALESCE(s.name_override, s.name) AS name,
+                  s.platform,
+                  COALESCE(th.effective_checks, 0) AS effective_checks,
+                  COALESCE(th.online_checks, 0)    AS online_checks,
+                  COALESCE(th.downtime_count, 0)   AS downtime_count,
+                  COALESCE(th.under_review_checks,0) AS under_review_checks,
+                  CASE 
+                    WHEN COALESCE(th.effective_checks,0) = 0 THEN NULL
+                    ELSE ROUND( (th.online_checks * 100.0 / NULLIF(th.effective_checks,0)) , 1)
+                  END AS uptime_percentage
                 FROM stores s
-                LEFT JOIN status_checks sc ON s.id = sc.store_id 
-                  AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')
-                      = DATE(timezone('Asia/Manila', now()))
-                GROUP BY s.id, s.name, s.name_override, s.platform
-                HAVING COUNT(sc.id) FILTER (
-                    WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
-                           OR  sc.error_message LIKE '[UNKNOWN]%%'
-                           OR  sc.error_message LIKE '[ERROR]%%')
-                ) > 0
-                ORDER BY uptime_percentage DESC
+                LEFT JOIN today_hours th ON th.store_id = s.id
+                WHERE COALESCE(th.effective_checks,0) > 0
+                ORDER BY uptime_percentage DESC NULLS LAST, name
             """
             daily_uptime = pd.read_sql_query(daily_uptime_query, conn)
             if not daily_uptime.empty:
@@ -531,7 +485,7 @@ def load_comprehensive_data():
 
 @st.cache_data(ttl=300)
 def load_reports_data(start_date, end_date):
-    """UPDATED: Reports starting from September 10, 2024"""
+    """Historical reports from store_status_hourly (range inclusive)"""
     try:
         # Enforce minimum date of September 10, 2024
         min_date = datetime(2024, 9, 10).date()
@@ -540,59 +494,32 @@ def load_reports_data(start_date, end_date):
             
         with db.get_connection() as conn:
             reports_query = """
-                SELECT 
-                    s.id,
-                    COALESCE(s.name_override, s.name) as name,
-                    s.platform,
-                    s.url,
-
-                    COUNT(sc.id) AS total_checks,
-
-                    SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) AS online_checks,
-                    SUM(CASE WHEN sc.error_message LIKE '[BLOCKED]%%' 
-                          OR  sc.error_message LIKE '[UNKNOWN]%%' 
-                          OR  sc.error_message LIKE '[ERROR]%%' THEN 1 ELSE 0 END) AS under_review_checks,
-
-                    COUNT(sc.id) FILTER (
-                      WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
-                             OR  sc.error_message LIKE '[UNKNOWN]%%'
-                             OR  sc.error_message LIKE '[ERROR]%%')
-                    ) AS effective_checks,
-
-                    SUM(CASE WHEN sc.is_online = true AND NOT (
-                              sc.error_message LIKE '[BLOCKED]%%'
-                           OR sc.error_message LIKE '[UNKNOWN]%%'
-                           OR sc.error_message LIKE '[ERROR]%%'
-                        ) THEN 1 ELSE 0 END) AS effective_online_checks,
-
-                    CASE 
-                        WHEN COUNT(sc.id) FILTER (
-                               WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
-                                      OR  sc.error_message LIKE '[UNKNOWN]%%'
-                                      OR  sc.error_message LIKE '[ERROR]%%')
-                             ) = 0 
-                        THEN NULL
-                        ELSE ROUND(
-                            (SUM(CASE WHEN sc.is_online = true AND NOT (
-                                      sc.error_message LIKE '[BLOCKED]%%'
-                                   OR sc.error_message LIKE '[UNKNOWN]%%'
-                                   OR sc.error_message LIKE '[ERROR]%%'
-                                 ) THEN 1 ELSE 0 END) * 100.0
-                             / NULLIF(
-                                 COUNT(sc.id) FILTER (
-                                   WHERE NOT (sc.error_message LIKE '[BLOCKED]%%'
-                                          OR  sc.error_message LIKE '[UNKNOWN]%%'
-                                          OR  sc.error_message LIKE '[ERROR]%%')
-                                 ), 0)
-                            ), 
-                            1
-                        )
-                    END as uptime_percentage
-
+                WITH range_hours AS (
+                  SELECT
+                    ssh.store_id,
+                    COUNT(*)                           AS total_hours,
+                    COUNT(*) FILTER (WHERE ssh.status IN ('BLOCKED','UNKNOWN','ERROR')) AS under_review_hours,
+                    COUNT(*) FILTER (WHERE ssh.status IN ('ONLINE','OFFLINE')) AS effective_hours,
+                    COUNT(*) FILTER (WHERE ssh.status = 'ONLINE')             AS online_hours
+                  FROM store_status_hourly ssh
+                  WHERE DATE(ssh.effective_at AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
+                  GROUP BY ssh.store_id
+                )
+                SELECT
+                  s.id,
+                  COALESCE(s.name_override, s.name) AS name,
+                  s.platform,
+                  s.url,
+                  COALESCE(rh.total_hours,0)        AS total_checks,
+                  COALESCE(rh.under_review_hours,0) AS under_review_checks,
+                  COALESCE(rh.effective_hours,0)    AS effective_checks,
+                  COALESCE(rh.online_hours,0)       AS effective_online_checks,
+                  CASE
+                    WHEN COALESCE(rh.effective_hours,0) = 0 THEN NULL
+                    ELSE ROUND((rh.online_hours * 100.0 / NULLIF(rh.effective_hours,0)), 1)
+                  END AS uptime_percentage
                 FROM stores s
-                LEFT JOIN status_checks sc ON s.id = sc.store_id
-                  AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
-                GROUP BY s.id, s.name, s.name_override, s.platform, s.url
+                LEFT JOIN range_hours rh ON rh.store_id = s.id
                 ORDER BY s.name
             """
             reports_data = pd.read_sql_query(reports_query, conn, params=(start_date, end_date))
@@ -603,6 +530,35 @@ def load_reports_data(start_date, end_date):
         logger.error(f"Error loading reports data: {e}")
         return None, str(e)
 
+def load_downtime_today():
+    """Downtime events today (snapshot-based)"""
+    try:
+        with db.get_connection() as conn:
+            downtime_query = """
+                SELECT 
+                    s.name,
+                    s.platform,
+                    COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') AS downtime_events,
+                    MIN(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS first_downtime,
+                    MAX(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS last_downtime
+                FROM stores s
+                JOIN store_status_hourly ssh ON ssh.store_id = s.id
+                WHERE DATE(ssh.effective_at AT TIME ZONE 'Asia/Manila')
+                      = DATE(timezone('Asia/Manila', now()))
+                GROUP BY s.id, s.name, s.platform
+                HAVING COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') > 0
+                ORDER BY downtime_events DESC
+            """
+            dt = pd.read_sql_query(downtime_query, conn)
+            if not dt.empty:
+                dt['platform'] = dt['platform'].apply(standardize_platform_name)
+            return dt, None
+    except Exception as e:
+        return pd.DataFrame(), str(e)
+
+# ======================================================================
+#                               UI HELPERS
+# ======================================================================
 def create_donut(online_count: int, offline_count: int):
     total = max(online_count + offline_count, 1)
     uptime_pct = online_count / total * 100.0
@@ -622,7 +578,7 @@ def create_donut(online_count: int, offline_count: int):
     return fig
 
 def get_last_check_time(latest_status):
-    """Get the most recent check time, properly handling VA check-ins"""
+    """Get the most recent check time"""
     if latest_status is None or len(latest_status) == 0:
         return config.get_current_time()
     try:
@@ -733,7 +689,7 @@ def main():
         st.info("Monitoring is running and stores are being checked regularly.")
         return
 
-    # Calculate statistics (same logic as before)
+    # Calculate top-line stats (live list -> exclude 'under review')
     under_review_mask = latest_status['error_message'].apply(is_under_review)
     under_review_count = int(under_review_mask.sum())
     effective = latest_status[~under_review_mask]
@@ -775,9 +731,10 @@ def main():
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Tabs (same as before but with updated Reports tab)
+    # Tabs
     tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports"])
 
+    # ----- TAB 1: LIVE -----
     with tab1:
         st.markdown(f"""
         <div class="section-header">
@@ -802,8 +759,7 @@ def main():
 
         current = latest_status.copy()
         current['under_review'] = current['error_message'].apply(is_under_review)
-        current['is_va_checkin'] = current['error_message'].apply(is_va_checkin)
-        
+
         if platform_filter_live != "All Platforms":
             current = current[current['platform'] == platform_filter_live]
         if status_filter == "Online Only":
@@ -819,28 +775,14 @@ def main():
             display = pd.DataFrame()
             display['Branch'] = current['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
             display['Platform'] = current['platform']
-            
+
             status_labels = []
-            check_type_labels = []
             for _, row in current.iterrows():
                 if row['under_review']:
                     status_labels.append("🟡 Under Review")
-                    check_type_labels.append("Auto Check")
-                elif row['is_va_checkin']:
-                    if row['is_online']:
-                        status_labels.append("🟢 Online")
-                    else:
-                        status_labels.append("🔴 Offline")
-                    check_type_labels.append("VA Check-in")
                 else:
-                    if row['is_online']:
-                        status_labels.append("🟢 Online")
-                    else:
-                        status_labels.append("🔴 Offline")
-                    check_type_labels.append("Auto Check")
-                    
+                    status_labels.append("🟢 Online" if row['is_online'] else "🔴 Offline")
             display['Status'] = status_labels
-            display['Check Type'] = check_type_labels
             
             try:
                 cur = current.copy()
@@ -852,14 +794,15 @@ def main():
                 display['Last Checked'] = cur['checked_at'].dt.strftime('%I:%M %p')
             except Exception:
                 display['Last Checked'] = '—'
+
             st.dataframe(display, use_container_width=True, hide_index=True, height=420)
 
+    # ----- TAB 2: DAILY UPTIME (SNAPSHOT) -----
     with tab2:
-        # Same as before
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Analytics</div>
-            <div class="section-subtitle">Daily performance metrics and availability statistics</div>
+            <div class="section-subtitle">Daily performance metrics and availability statistics (snapshot)</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -909,42 +852,20 @@ def main():
         else:
             st.info("Performance analytics will appear as new data comes in.")
 
+    # ----- TAB 3: DOWNTIME EVENTS (SNAPSHOT) -----
     with tab3:
-        # Same as before
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Downtime Events Analysis</div>
-            <div class="section-subtitle">Overview of offline events and frequency patterns</div>
+            <div class="section-subtitle">Overview of offline events and frequency patterns (snapshot)</div>
         </div>
         """, unsafe_allow_html=True)
 
-        try:
-            with db.get_connection() as conn:
-                downtime_query = """
-                    SELECT 
-                        s.name,
-                        s.platform,
-                        COUNT(sc.id) AS downtime_events,
-                        MIN(sc.checked_at) AS first_downtime,
-                        MAX(sc.checked_at) AS last_downtime
-                    FROM stores s
-                    INNER JOIN status_checks sc ON s.id = sc.store_id
-                    WHERE sc.is_online = false 
-                      AND NOT (sc.error_message LIKE '[BLOCKED]%%'
-                           OR  sc.error_message LIKE '[UNKNOWN]%%'
-                           OR  sc.error_message LIKE '[ERROR]%%')
-                      AND DATE(sc.checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = DATE(timezone('Asia/Manila', now()))
-                    GROUP BY s.id, s.name, s.platform
-                    ORDER BY downtime_events DESC
-                """
-                downtime = pd.read_sql_query(downtime_query, conn)
-                if not downtime.empty:
-                    downtime['platform'] = downtime['platform'].apply(standardize_platform_name)
-        except Exception as e:
-            downtime = pd.DataFrame()
-            st.error(f"Error loading downtime events: {e}")
+        downtime, dt_err = load_downtime_today()
+        if dt_err:
+            st.error(f"Error loading downtime events: {dt_err}")
 
-        if downtime.empty:
+        if downtime is None or downtime.empty:
             st.success("✅ No downtime events recorded today.")
         else:
             st.markdown('<div class="filter-container">', unsafe_allow_html=True)
@@ -991,8 +912,8 @@ def main():
 
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
 
+    # ----- TAB 4: REPORTS (SNAPSHOT) -----
     with tab4:
-        # UPDATED Reports tab with September 10 minimum date
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Reports</div>
@@ -1003,7 +924,7 @@ def main():
         st.markdown('<div class="filter-container">', unsafe_allow_html=True)
         col1, col2, col3 = st.columns([2, 2, 1])
         ph_now = config.get_current_time()
-        min_date = datetime(2024, 9, 10).date()  # September 10, 2024
+        min_date = datetime(2024, 9, 10).date()
         
         with col1:
             default_start = max(min_date, (ph_now - timedelta(days=7)).date())
@@ -1026,14 +947,13 @@ def main():
             generate_report = st.button("📊 Generate Report", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Show minimum date info
         if start_date < min_date:
             st.info(f"ℹ️ Reports are available starting from {min_date.strftime('%B %d, %Y')}. Start date adjusted automatically.")
 
         if start_date > end_date:
             st.error("❌ Start date must be before end date")
-        elif start_date == end_date == ph_now.date():
-            st.info("💡 Tip: Select a date range of at least 2–3 days for meaningful uptime analysis")
+        elif not generate_report:
+            st.info("Select a date range and click Generate Report.")
         else:
             reports_data, rep_err = load_reports_data(start_date, end_date)
             if rep_err:
