@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (SIMPLIFIED, FIXED)
-✅ Simple login page - no fancy backgrounds
-✅ Live status prefers VA check-ins for Foodpanda
-✅ Daily uptime / downtime / reports read from store_status_hourly (fixes inflated counts)
-✅ Reports available starting September 10, 2025
+CocoPan Watchtower - CLIENT DASHBOARD (DARK MODE FIXED)
+✅ Proper dark theme with no white backgrounds
+✅ Legend positioned under the donut chart
+✅ Improved readability and contrast
 """
 
 import os
@@ -203,41 +202,52 @@ def load_authorized_emails():
         return ["juanlopolicarpio@gmail.com"]
 
 # ======================================================================
-#                           SIMPLE STYLES
+#                           DARK MODE STYLES
 # ======================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Hide Streamlit branding */
     #MainMenu, footer, .stDeployButton, header {visibility: hidden;}
+    
+    /* Main dark theme */
     .main { 
         font-family: 'Inter', sans-serif; 
-        background: #F8FAFC;
-        color: #1E293B; 
+        background: #0F172A;
+        color: #E2E8F0; 
         padding: 2rem;
     }
+    
+    /* Login container */
     .login-container {
         max-width: 400px;
         margin: 4rem auto;
-        background: white;
+        background: #1E293B;
         padding: 2rem;
-        border-radius: 8px;
-        border: 1px solid #E2E8F0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        border: 1px solid #334155;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
     }
+    
     .login-title {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #1E293B;
+        color: #F1F5F9;
         text-align: center;
         margin: 0 0 1.5rem 0;
     }
+    
+    /* Header section with gradient */
     .header-section { 
         background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); 
         border-radius: 16px; 
         padding: 1.5rem; 
         margin-bottom: 1.25rem; 
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,.1);
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,.3);
+        border: 1px solid #1E40AF;
     }
+    
     h1 { 
         color: #fff !important; 
         font-size: 2.4rem !important; 
@@ -246,6 +256,7 @@ st.markdown("""
         margin:0 !important; 
         letter-spacing:-.02em;
     }
+    
     h3 { 
         color: rgba(255,255,255,.9) !important; 
         font-weight: 400 !important; 
@@ -253,123 +264,210 @@ st.markdown("""
         text-align:center !important; 
         margin:.4rem 0 0 0 !important;
     }
+    
+    /* Section headers */
     .section-header { 
-        background:#fff; 
-        border:1px solid #E2E8F0; 
-        border-radius:8px; 
-        padding:.9rem 1.1rem; 
-        margin:1.1rem 0 .9rem 0; 
-        box-shadow:0 1px 3px rgba(0,0,0,.06);
+        background: #1E293B; 
+        border: 1px solid #334155; 
+        border-radius: 8px; 
+        padding: .9rem 1.1rem; 
+        margin: 1.1rem 0 .9rem 0; 
+        box-shadow: 0 2px 4px rgba(0,0,0,.2);
     }
+    
     .section-title { 
-        font-size:1.1rem; 
-        font-weight:600; 
-        color:#1E293B; 
-        margin:0;
+        font-size: 1.1rem; 
+        font-weight: 600; 
+        color: #F1F5F9; 
+        margin: 0;
     }
+    
     .section-subtitle { 
-        font-size:.85rem; 
-        color:#64748B; 
-        margin:.25rem 0 0 0;
+        font-size: .85rem; 
+        color: #94A3B8; 
+        margin: .25rem 0 0 0;
     }
+    
+    /* Metric containers */
     [data-testid="metric-container"] { 
-        background:#fff; 
-        border:1px solid #E2E8F0; 
-        border-radius:12px; 
-        padding:1.25rem 1rem; 
-        box-shadow:0 1px 3px rgba(0,0,0,.06); 
-        text-align:center; 
-        transition:.2s; 
+        background: #1E293B; 
+        border: 1px solid #334155; 
+        border-radius: 12px; 
+        padding: 1.25rem 1rem; 
+        box-shadow: 0 2px 4px rgba(0,0,0,.2); 
+        text-align: center; 
+        transition: .2s; 
     }
+    
     [data-testid="metric-container"]:hover { 
-        box-shadow:0 4px 6px -1px rgba(0,0,0,.08); 
-        transform: translateY(-1px); 
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,.3); 
+        transform: translateY(-1px);
+        border-color: #475569;
     }
+    
     [data-testid="metric-value"] { 
-        color:#1E293B; 
-        font-weight:700; 
-        font-size:1.75rem; 
+        color: #F1F5F9; 
+        font-weight: 700; 
+        font-size: 1.75rem; 
     }
+    
     [data-testid="metric-label"] { 
-        color:#64748B; 
-        font-weight:600; 
-        font-size:.8rem; 
-        text-transform:uppercase; 
-        letter-spacing:.05em; 
+        color: #94A3B8; 
+        font-weight: 600; 
+        font-size: .8rem; 
+        text-transform: uppercase; 
+        letter-spacing: .05em; 
     }
+    
+    /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] { 
-        gap:0; 
-        background:#F1F5F9; 
-        border-radius:8px; 
-        padding:.25rem; 
-        border:1px solid #E2E8F0;
+        gap: 0; 
+        background: #1E293B; 
+        border-radius: 8px; 
+        padding: .25rem; 
+        border: 1px solid #334155;
     }
+    
     .stTabs [data-baseweb="tab"] { 
-        background:transparent; 
-        border:none; 
-        border-radius:6px; 
-        color:#64748B; 
-        font-weight:500; 
-        padding:.65rem 1.2rem; 
-        transition:.2s; 
-        font-size:.85rem;
+        background: transparent; 
+        border: none; 
+        border-radius: 6px; 
+        color: #94A3B8; 
+        font-weight: 500; 
+        padding: .65rem 1.2rem; 
+        transition: .2s; 
+        font-size: .85rem;
     }
+    
     .stTabs [data-baseweb="tab"]:hover { 
-        background:#E2E8F0; 
-        color:#1E293B; 
+        background: #334155; 
+        color: #E2E8F0; 
     }
+    
     .stTabs [aria-selected="true"] { 
-        background:#fff !important; 
-        color:#1E293B !important; 
-        box-shadow:0 1px 2px rgba(0,0,0,.05); 
-        font-weight:600;
+        background: #3B82F6 !important; 
+        color: #fff !important; 
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); 
+        font-weight: 600;
     }
+    
+    /* Data tables */
     .stDataFrame { 
-        background:#fff; 
-        border-radius:12px; 
-        border:1px solid #E2E8F0; 
-        overflow:hidden; 
-        box-shadow:0 1px 3px rgba(0,0,0,.06);
+        background: #1E293B; 
+        border-radius: 12px; 
+        border: 1px solid #334155; 
+        overflow: hidden; 
+        box-shadow: 0 2px 4px rgba(0,0,0,.2);
     }
+    
     .stDataFrame thead tr th { 
-        background:#F8FAFC !important; 
-        color:#475569 !important; 
-        font-weight:600 !important; 
-        text-transform:uppercase; 
-        font-size:.72rem; 
-        letter-spacing:.05em; 
-        border:none !important; 
-        border-bottom:1px solid #E2E8F0 !important; 
-        padding:.8rem .6rem !important;
+        background: #0F172A !important; 
+        color: #94A3B8 !important; 
+        font-weight: 600 !important; 
+        text-transform: uppercase; 
+        font-size: .72rem; 
+        letter-spacing: .05em; 
+        border: none !important; 
+        border-bottom: 1px solid #334155 !important; 
+        padding: .8rem .6rem !important;
     }
+    
     .stDataFrame tbody tr td { 
-        background:#fff !important; 
-        color:#1E293B !important; 
-        border:none !important; 
-        border-bottom:1px solid #F1F5F9 !important; 
-        padding:.65rem !important;
+        background: #1E293B !important; 
+        color: #E2E8F0 !important; 
+        border: none !important; 
+        border-bottom: 1px solid #334155 !important; 
+        padding: .65rem !important;
     }
+    
     .stDataFrame tbody tr:hover td { 
-        background:#F8FAFC !important;
+        background: #334155 !important;
     }
+    
+    /* Chart container */
     .chart-container { 
-        background:#fff; 
-        border:1px solid #E2E8F0; 
-        border-radius:12px; 
-        padding:.75rem; 
-        box-shadow:0 1px 3px rgba(0,0,0,.06); 
+        background: #1E293B; 
+        border: 1px solid #334155; 
+        border-radius: 12px; 
+        padding: .75rem; 
+        box-shadow: 0 2px 4px rgba(0,0,0,.2); 
     }
+    
+    /* Filter container */
     .filter-container { 
-        background:#F8FAFC; 
-        border:1px solid #E2E8F0; 
-        border-radius:8px; 
-        padding:.9rem; 
-        margin-bottom:.9rem; 
+        background: #1E293B; 
+        border: 1px solid #334155; 
+        border-radius: 8px; 
+        padding: .9rem; 
+        margin-bottom: .9rem; 
     }
+    
+    /* Sidebar styling */
+    .css-1d391kg { 
+        background: #1E293B;
+    }
+    
+    /* Input fields */
+    .stSelectbox > div > div {
+        background: #334155;
+        border: 1px solid #475569;
+        color: #E2E8F0;
+    }
+    
+    .stTextInput > div > div > input {
+        background: #334155;
+        border: 1px solid #475569;
+        color: #E2E8F0;
+    }
+    
+    .stDateInput > div > div > input {
+        background: #334155;
+        border: 1px solid #475569;
+        color: #E2E8F0;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background: #3B82F6;
+        border: 1px solid #2563EB;
+        color: white;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: .2s;
+    }
+    
+    .stButton > button:hover {
+        background: #2563EB;
+        border-color: #1D4ED8;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    
+    /* Success/Error messages */
+    .stSuccess {
+        background: #065F46;
+        border: 1px solid #047857;
+        color: #A7F3D0;
+    }
+    
+    .stError {
+        background: #7F1D1D;
+        border: 1px solid #991B1B;
+        color: #FECACA;
+    }
+    
+    .stInfo {
+        background: #1E3A8A;
+        border: 1px solid #1D4ED8;
+        color: #BFDBFE;
+    }
+    
     @media (max-width: 768px) {
         .login-container { 
             margin: 2rem auto;
             padding: 1.5rem;
+        }
+        .main {
+            padding: 1rem;
         }
     }
 </style>
@@ -561,19 +659,46 @@ def load_downtime_today():
 def create_donut(online_count: int, offline_count: int):
     total = max(online_count + offline_count, 1)
     uptime_pct = online_count / total * 100.0
+    
     fig = go.Figure(data=[go.Pie(
         labels=['Online', 'Offline'],
         values=[online_count, offline_count],
         hole=0.65,
-        marker=dict(colors=['#059669', '#EF4444'], line=dict(width=2, color='#FFFFFF')),
+        marker=dict(
+            colors=['#10B981', '#EF4444'], 
+            line=dict(width=2, color='#1E293B')
+        ),
         textinfo='none',
         hovertemplate='<b>%{label}</b><br>%{value} stores (%{percent})<extra></extra>',
         showlegend=True
     )])
-    fig.add_annotation(text=f"<b style='font-size:28px'>{uptime_pct:.0f}%</b>", x=0.5, y=0.5, showarrow=False, font=dict(family="Inter"))
-    fig.update_layout(height=250, margin=dict(t=12,b=12,l=12,r=12),
-                      paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                      legend=dict(orientation="h", yanchor="bottom", y=-0.08, xanchor="center", x=0.5, font=dict(size=10)))
+    
+    # Center percentage text
+    fig.add_annotation(
+        text=f"<b style='font-size:28px; color:#F1F5F9'>{uptime_pct:.0f}%</b>", 
+        x=0.5, y=0.5, 
+        showarrow=False, 
+        font=dict(family="Inter", color="#F1F5F9")
+    )
+    
+    # Update layout with proper legend positioning
+    fig.update_layout(
+        height=280,  # Increased height to accommodate legend below
+        margin=dict(t=20, b=60, l=20, r=20),  # More bottom margin for legend
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)',
+        legend=dict(
+            orientation="h", 
+            yanchor="top", 
+            y=-0.1,  # Position legend below the chart
+            xanchor="center", 
+            x=0.5, 
+            font=dict(size=12, color="#E2E8F0"),
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        font=dict(color="#E2E8F0")
+    )
+    
     return fig
 
 def get_last_check_time(latest_status):
