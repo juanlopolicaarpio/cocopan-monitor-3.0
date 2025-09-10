@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-CocoPan Admin Dashboard - FIXED DATA SAVING
+CocoPan Admin Dashboard - FIXED DATA SAVING + DEFAULT-ALL-ONLINE AT WINDOW START
 ✅ Now saves Foodpanda data to BOTH legacy and hourly snapshot tables
 ✅ Matches GrabFood saving pattern exactly
 ✅ Ensures consistent dashboard behavior
+✅ NEW: Default state becomes "ALL ONLINE" exactly 10 minutes before each hour (window start) and throughout the active window until submitted
 """
 # ===== Standard libs =====
 import os
@@ -545,6 +546,11 @@ def enhanced_va_checkin_tab():
     current_hour_slot = get_current_hour_slot()
     schedule = get_va_checkin_schedule()
 
+    # Compute window start/end and in-window flag
+    window_start = current_hour_slot - timedelta(minutes=10)
+    window_end = current_hour_slot + timedelta(minutes=50)
+    in_window = window_start <= current_time <= window_end
+
     st.markdown(f"""
     <div class="section-header" style="background:#fff; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem 1.1rem; margin:1.1rem 0 .9rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06);">
         <div style="font-size:1.1rem; font-weight:600; color:#1E293B; margin:0;">🐼 VA Hourly Check-in</div>
@@ -572,22 +578,33 @@ You can review stores below; submissions are accepted during the window.
     if "va_offline_stores" not in st.session_state:
         st.session_state.va_offline_stores = set()
 
-    # If hour already completed and we have no local state, load submitted state
+    # NEW: One-time initializer per slot to set default = ALL ONLINE right at window start (and during window before submit)
+    slot_key = f"va_initialized_slot::{current_hour_slot.isoformat()}"
+    if slot_key not in st.session_state:
+        st.session_state[slot_key] = False
+
+    # Initialize to default-all-online ONLY once per slot, and ONLY if we're in the active window and not yet submitted
+    if in_window and not hour_completed and not st.session_state[slot_key]:
+        # Reset to default-all-online
+        st.session_state.va_offline_stores = set()
+        st.session_state[slot_key] = True
+        logger.info(f"🟢 Defaulted to ALL ONLINE for slot {current_hour_slot} at window start")
+        # Note: we do NOT st.rerun() here to avoid disrupting the operator's first view
+
+    # If hour already completed and we have no local state for this slot, load submitted state
     if hour_completed and len(st.session_state.va_offline_stores) == 0:
         submitted_offline_ids = load_submitted_va_state(current_hour_slot)
         st.session_state.va_offline_stores = submitted_offline_ids
         logger.info(f"Loaded submitted state into session: {len(submitted_offline_ids)} offline stores")
 
     # Header strip with exact window
-    window_start = current_hour_slot - timedelta(minutes=10)
-    window_end = current_hour_slot + timedelta(minutes=50)
     st.markdown(f"""
     <div style="background: {'#DCFCE7' if hour_completed else '#FEF3E2'}; border: 1px solid {'#16A34A' if hour_completed else '#F59E0B'}; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
         <h4 style="margin: 0 0 0.4rem 0; color: {'#166534' if hour_completed else '#92400E'};">
             🕐 {current_hour_slot.strftime('%I:00 %p')} Check Window ({window_start.strftime('%I:%M %p')} - {window_end.strftime('%I:%M %p')})
         </h4>
         <p style="margin: 0; color: {'#166534' if hour_completed else '#92400E'};">
-            {"✅ Already submitted for this hour. Data saved to BOTH legacy and hourly systems." if hour_completed else "⏳ Ready for submission. Will save to BOTH legacy and hourly systems."}
+            {"✅ Already submitted for this hour. Data saved to BOTH legacy and hourly systems." if hour_completed else "⏳ Ready for submission. Default state is ALL ONLINE during this window until you mark otherwise."}
         </p>
     </div>
     """, unsafe_allow_html=True)
