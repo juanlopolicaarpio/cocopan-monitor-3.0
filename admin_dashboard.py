@@ -645,7 +645,7 @@ You can review stores below; submissions are accepted during the window.
     if q:
         ranked = [(rank(s["name"], q), norm_name(s["name"]), s) for s in stores]
         filtered = [t[2] for t in sorted([r for r in ranked if r[0] < 3], key=lambda x: (x[0], x[1]))]
-        st.info(f"Found {len(filtered)} matches for "{q}". Prefix matches first.")
+        st.info(f"Found {len(filtered)} matches for '{q}'. Prefix matches first.")
     else:
         filtered = stores
         st.info(f"Showing all {len(filtered)} stores. Type to filter.")
