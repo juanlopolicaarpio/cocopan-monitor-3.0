@@ -1126,7 +1126,7 @@ def main():
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Analytics</div>
-            <div class="section-subtitle">Daily performance metrics • Uses hourly snapshots when available, real-time checks as fallback</div>
+            <div class="section-subtitle">Daily performance metrics </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1139,9 +1139,6 @@ def main():
                 platform_filter = st.selectbox("Filter by Platform:", platform_options, key="uptime_platform_filter")
             with d2:
                 sort_order = st.selectbox("Sort by Uptime:", ["Highest to Lowest", "Lowest to Highest"], key="uptime_sort_order")
-            with d3:
-                show_all_stores = st.checkbox("Show stores without today's data", value=True, key="show_all_stores")
-            st.markdown('</div>', unsafe_allow_html=True)
 
             filt = daily_uptime.copy()
             if platform_filter != "All Platforms":
@@ -1218,7 +1215,7 @@ def main():
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Downtime Events Analysis</div>
-            <div class="section-subtitle">Offline events and frequency patterns • Uses hourly snapshots when available, real-time checks as fallback</div>
+            <div class="section-subtitle">Offline events and frequency patterns</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1283,7 +1280,7 @@ def main():
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Reports</div>
-            <div class="section-subtitle">Historical uptime analysis • Uses hourly snapshots when available, real-time checks as fallback • Available from September 10, 2025</div>
+            <div class="section-subtitle">Historical uptime analysis • Available from September 10, 2025</div>
         </div>
         """, unsafe_allow_html=True)
 
