@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (COMPLETE WITH ENHANCED AUTHENTICATION)
-✅ Persistent login with encrypted cookies (30-day expiration)
-✅ "Keep me logged in" functionality with automatic token refresh
-✅ Graceful fallback to browser localStorage when cookies unavailable
+CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + FIXED FOODPANDA)
 ✅ Automatic light/dark theme detection based on user's system preference
 ✅ Smooth transitions between themes
 ✅ Fixed Foodpanda display issue with hybrid data sources
 ✅ Legend positioned properly under charts
 ✅ Foodpanda stores now appear in all tabs
-✅ No deprecated st.cache usage - all modern caching
-✅ Streamlined login UI
 """
 
 import os
@@ -36,7 +31,7 @@ from config import config
 from database import db
 
 # =========================
-# Enhanced Cookie Manager with Better Persistence
+# Optional Cookie Manager
 # =========================
 try:
     from streamlit_cookies_manager import EncryptedCookieManager as CookieManager
@@ -91,7 +86,7 @@ logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
 # ======================================================================
-#                            ENHANCED AUTH HELPERS
+#                            AUTH HELPERS
 # ======================================================================
 COOKIE_NAME = "cp_client_auth"
 COOKIE_PREFIX = "watchtower"
@@ -100,12 +95,8 @@ TOKEN_ROLLING_REFRESH_DAYS = 7
 
 def _get_secret_key() -> bytes:
     secret = getattr(config, 'SECRET_KEY', None) or os.getenv('SECRET_KEY')
-    if not secret or secret == 'CHANGE_ME_IN_PROD_please_use_strong_key_here':
-        # Generate a session-specific key if none provided (for development)
-        session_id = st.session_state.get('_auth_session_id', str(int(time.time())))
-        if '_auth_session_id' not in st.session_state:
-            st.session_state._auth_session_id = session_id
-        secret = f"cocopan_auth_{session_id}_default_key"
+    if not secret:
+        secret = "CHANGE_ME_IN_PROD_please"
     return secret.encode("utf-8")
 
 def _b64url_encode(b: bytes) -> str:
@@ -147,7 +138,7 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
 def days_remaining(exp_unix: int) -> float:
     return max(0.0, (exp_unix - int(time.time())) / 86400.0)
 
-# ---------------- Enhanced Cookie Abstraction ----------------
+# ---------------- Cookie Abstraction ----------------
 class CookieStore:
     def __init__(self):
         self.persistent = False
@@ -156,39 +147,15 @@ class CookieStore:
 
         if _COOKIE_LIB_AVAILABLE:
             try:
-                # Use stronger cookie configuration
-                cookie_password = getattr(config, 'COOKIE_PASSWORD', None) or os.getenv('COOKIE_PASSWORD')
-                if not cookie_password or cookie_password == 'set-a-strong-cookie-password-here':
-                    # Generate a session-specific password if none provided
-                    import hashlib
-                    session_id = st.session_state.get('_session_id', str(int(time.time())))
-                    if '_session_id' not in st.session_state:
-                        st.session_state._session_id = session_id
-                    cookie_password = hashlib.sha256(f"{session_id}_cocopan_auth".encode()).hexdigest()[:32]
-                
-                self._cookies = CookieManager(
-                    prefix=COOKIE_PREFIX, 
-                    password=cookie_password,
-                    expiry_days=TOKEN_TTL_DAYS
-                )
+                self._cookies = CookieManager(prefix=COOKIE_PREFIX, password=os.getenv("COOKIE_PASSWORD") or "set-a-strong-cookie-password")
                 self.ready = self._cookies.ready()
                 self.persistent = True
-                
-                if self.ready:
-                    logger.info("✅ Cookie manager initialized with persistence")
-                else:
-                    logger.warning("⏳ Cookie manager initializing...")
-                    
             except Exception as e:
-                logger.warning(f"Cookie manager unavailable, using enhanced session fallback: {e}")
+                logger.warning(f"Cookie manager unavailable, using session fallback: {e}")
                 self._cookies = None
                 self.persistent = False
                 self.ready = True
         else:
-            logger.info("📝 Using browser localStorage fallback for authentication persistence")
-
-        # Enhanced session fallback with browser localStorage simulation
-        if not self.persistent:
             if "cookie_fallback" not in st.session_state:
                 st.session_state.cookie_fallback = {}
             self._cookies = st.session_state.cookie_fallback
@@ -196,73 +163,28 @@ class CookieStore:
             self.ready = True
 
     def get(self, key: str) -> Optional[str]:
-        if self.persistent and self._cookies:
+        if self.persistent:
             return self._cookies.get(key)
-        return self._cookies.get(key) if self._cookies else None
+        return self._cookies.get(key)
 
     def set(self, key: str, value: str, max_age_days: int = TOKEN_TTL_DAYS):
-        if self.persistent and self._cookies:
-            try:
-                self._cookies[key] = value
-                self._cookies.save()
-                logger.debug(f"✅ Cookie saved: {key}")
-            except Exception as e:
-                logger.error(f"Failed to save cookie: {e}")
+        if self.persistent:
+            self._cookies[key] = value
+            self._cookies.save()
         else:
-            if self._cookies is not None:
-                self._cookies[key] = value
-                # Also try to persist in browser storage via JS (if possible)
-                self._try_browser_storage(key, value)
+            self._cookies[key] = value
 
     def delete(self, key: str):
-        if self.persistent and self._cookies:
+        if self.persistent:
             try:
                 if key in self._cookies:
                     del self._cookies[key]
                     self._cookies.save()
-                    logger.debug(f"✅ Cookie deleted: {key}")
             except Exception:
                 pass
         else:
-            if self._cookies and key in self._cookies:
+            if key in self._cookies:
                 del self._cookies[key]
-                # Also try to remove from browser storage
-                self._try_browser_storage_delete(key)
-
-    def _try_browser_storage(self, key: str, value: str):
-        """Try to store in browser localStorage via JavaScript"""
-        try:
-            # Inject JavaScript to store in browser localStorage
-            js_code = f"""
-            <script>
-                try {{
-                    localStorage.setItem('cocopan_auth_{key}', '{value}');
-                    console.log('Stored auth token in localStorage');
-                }} catch (e) {{
-                    console.warn('localStorage not available:', e);
-                }}
-            </script>
-            """
-            st.markdown(js_code, unsafe_allow_html=True)
-        except Exception:
-            pass
-
-    def _try_browser_storage_delete(self, key: str):
-        """Try to remove from browser localStorage via JavaScript"""
-        try:
-            js_code = f"""
-            <script>
-                try {{
-                    localStorage.removeItem('cocopan_auth_{key}');
-                    console.log('Removed auth token from localStorage');
-                }} catch (e) {{
-                    console.warn('localStorage removal failed:', e);
-                }}
-            </script>
-            """
-            st.markdown(js_code, unsafe_allow_html=True)
-        except Exception:
-            pass
 
 # ---------------- Allow-list Loader ----------------
 def load_authorized_emails():
@@ -683,7 +605,7 @@ def is_under_review(error_message: str) -> bool:
     return msg.startswith('[BLOCKED]') or msg.startswith('[UNKNOWN]') or msg.startswith('[ERROR]')
 
 # ======================================================================
-#                            DATA LOADERS (UPDATED - No deprecated cache)
+#                            DATA LOADERS
 # ======================================================================
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
 def load_comprehensive_data():
@@ -991,142 +913,66 @@ def get_last_check_time(latest_status):
         return config.get_current_time()
 
 # ======================================================================
-#                         Enhanced Authentication Flow  
+#                         SIMPLE AUTH FLOW
 # ======================================================================
 def check_email_authentication() -> bool:
     authorized_emails = load_authorized_emails()
 
     cookies = CookieStore()
-    
-    # Enhanced ready check with retry
     if not cookies.ready:
-        if _COOKIE_LIB_AVAILABLE:
-            # Show loading state for cookie manager
-            with st.spinner("🔐 Initializing secure authentication..."):
-                time.sleep(0.5)  # Brief wait for cookie manager
-                cookies = CookieStore()  # Retry
-                if not cookies.ready:
-                    st.warning("⏳ Authentication system loading. Please refresh if this persists.")
-                    st.stop()
-        else:
-            # Session-based fallback is always ready
-            pass
+        st.error("Authentication system initializing. Please refresh.")
+        return False
 
-    # Initialize session state
     if 'client_authenticated' not in st.session_state:
         st.session_state.client_authenticated = False
         st.session_state.client_email = None
 
-    # Enhanced auto-login: Check both cookies and browser storage
-    if not st.session_state.client_authenticated:
-        token = None
-        
-        # Try cookie first
-        if cookies.persistent:
-            token = cookies.get(COOKIE_NAME)
-        
-        # If no cookie and we're in fallback mode, try to read from browser storage
-        if not token and not cookies.persistent:
-            # Inject JavaScript to check localStorage
-            st.markdown("""
-            <script>
-                try {
-                    const token = localStorage.getItem('cocopan_auth_cp_client_auth');
-                    if (token) {
-                        // Store in session state via a hidden element
-                        const hiddenEl = document.createElement('input');
-                        hiddenEl.type = 'hidden';
-                        hiddenEl.id = 'ls_auth_token';
-                        hiddenEl.value = token;
-                        document.body.appendChild(hiddenEl);
-                    }
-                } catch (e) {
-                    console.warn('localStorage read failed:', e);
-                }
-            </script>
-            """, unsafe_allow_html=True)
-            
-            # Try to get token from session storage simulation
-            token = cookies.get(COOKIE_NAME)
-        
-        if token:
-            payload = verify_token(token)
-            if payload:
-                email = str(payload.get("email", "")).lower()
-                if email in authorized_emails:
-                    st.session_state.client_authenticated = True
-                    st.session_state.client_email = email
-                    
-                    # Token refresh logic
-                    rem = days_remaining(int(payload.get("exp", 0)))
-                    if rem <= TOKEN_ROLLING_REFRESH_DAYS:
-                        new_token = issue_token(email)
-                        cookies.set(COOKIE_NAME, new_token, max_age_days=TOKEN_TTL_DAYS)
-                        logger.info(f"🔄 Auth token refreshed for {email} ({rem:.1f} days remaining)")
-                    
-                    logger.info(f"✅ Auto-login successful for {email}")
-                    return True
-            else:
-                # Invalid token, clean up
-                cookies.delete(COOKIE_NAME)
-                logger.info("🧹 Cleared invalid auth token")
+    # Cookie-based auto-login
+    token = cookies.get(COOKIE_NAME)
+    if token and not st.session_state.client_authenticated:
+        payload = verify_token(token)
+        if payload:
+            email = str(payload.get("email", "")).lower()
+            if email in authorized_emails:
+                st.session_state.client_authenticated = True
+                st.session_state.client_email = email
+                rem = days_remaining(int(payload.get("exp", 0)))
+                if rem <= TOKEN_ROLLING_REFRESH_DAYS:
+                    new_token = issue_token(email)
+                    cookies.set(COOKIE_NAME, new_token, max_age_days=TOKEN_TTL_DAYS)
+                return True
+        else:
+            cookies.delete(COOKIE_NAME)
 
-    # If already authenticated in session, continue
     if st.session_state.client_authenticated and st.session_state.client_email:
         return True
 
-    # ---- Enhanced Login UI ----
+    # ---- SIMPLE LOGIN UI ----
     st.markdown("""
     <div class="login-container">
-        <div class="login-title">🏢 CocoPan Watchtower</div>
-        <p style="text-align: center; color: var(--text-secondary); margin: 0.5rem 0 1.5rem 0;">
-            Operations Monitoring Dashboard
-        </p>
+        <div class="login-title">CocoPan Watchtower</div>
     </div>
     """, unsafe_allow_html=True)
-
-    # Remember me option
-    remember_me = st.checkbox(
-        "🔒 Keep me logged in", 
-        value=True, 
-        help="Stay logged in for 30 days (recommended)"
-    )
 
     with st.form("auth_form", clear_on_submit=False):
         email = st.text_input(
             "Authorized Email Address",
-            placeholder="your.email@company.com",
-            help="Enter your authorized company email address"
+            placeholder="your.email@company.com"
         )
         
-        submitted = st.form_submit_button("🚀 Access Dashboard", use_container_width=True)
+        submitted = st.form_submit_button("Access Dashboard", use_container_width=True)
         
         if submitted:
             e = email.strip().lower()
-            if not e:
-                st.error("❌ Please enter your email address")
-            elif e not in authorized_emails:
-                st.error("❌ Email not authorized for dashboard access")
-                st.info("💡 Contact your administrator if you believe this is an error")
-            else:
-                # Generate token with appropriate TTL
-                ttl = TOKEN_TTL_DAYS if remember_me else 1  # 1 day if not remembering
-                token = issue_token(e, ttl_days=ttl)
-                cookies.set(COOKIE_NAME, token, max_age_days=ttl)
-                
+            if e and e in authorized_emails:
+                token = issue_token(e)
+                cookies.set(COOKIE_NAME, token, max_age_days=TOKEN_TTL_DAYS)
                 st.session_state.client_authenticated = True
                 st.session_state.client_email = e
-                
-                if remember_me:
-                    st.success("✅ Access granted! You'll stay logged in for 30 days.")
-                else:
-                    st.success("✅ Access granted! Session expires in 24 hours.")
-                
-                logger.info(f"✅ User authenticated: {e} (remember: {remember_me})")
-                
-                # Small delay to show success message
-                time.sleep(1)
+                st.success("✅ Access granted")
                 st.rerun()
+            else:
+                st.error("❌ Email not authorized")
 
     return False
 
@@ -1137,30 +983,16 @@ def main():
     if not check_email_authentication():
         return
 
-    # Enhanced sidebar user info
+    # Sidebar user info
     with st.sidebar:
-        st.markdown(f"**👤 Logged in as:**\n{st.session_state.client_email}")
-        
-        # Show authentication status
-        cookies = CookieStore()
-        if cookies.persistent:
-            token = cookies.get(COOKIE_NAME)
-            if token:
-                payload = verify_token(token)
-                if payload:
-                    days_left = days_remaining(int(payload.get("exp", 0)))
-                    st.markdown(f"🔐 **Session expires:** {days_left:.1f} days")
-        
+        st.markdown(f"**Logged in as:**\n{st.session_state.client_email}")
         st.markdown("---")
         st.markdown("🎨 **Theme:** Adapts to your system preference")
         st.markdown("💡 **Tip:** Change your browser/OS theme to see the dashboard adapt!")
-        
-        if st.button("🚪 Logout", use_container_width=True):
-            cookies = CookieStore()
-            cookies.delete(COOKIE_NAME)
+        if st.button("Logout"):
+            CookieStore().delete(COOKIE_NAME)
             st.session_state.client_authenticated = False
             st.session_state.client_email = None
-            st.success("✅ Logged out successfully")
             st.rerun()
 
     latest_status, daily_uptime, error = load_comprehensive_data()
@@ -1627,14 +1459,6 @@ def main():
                 with ic3:
                     if stores_no_data_filtered > 0:
                         st.markdown(f"**📊 No Data:** {stores_no_data_filtered} stores (no activity in period)")
-
-    st.markdown("---")
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        if st.button("🔄 Refresh All Data", use_container_width=True):
-            # Clear all cached data using new syntax
-            st.cache_data.clear()
-            st.rerun()
 
 if __name__ == "__main__":
     try:
