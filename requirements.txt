@@ -3,43 +3,44 @@ requests>=2.31.0
 beautifulsoup4>=4.12.0
 python-dotenv>=1.0.0
 
-# Async HTTP and Concurrent Processing
+# Async HTTP and Concurrency
 aiohttp>=3.9.0
 asyncio-throttle>=1.0.0
+nest-asyncio>=1.5.6
 
-# Browser Automation (Async) - Fixed version
+# Browser Automation (headless)
 playwright>=1.40.0
 
 # Dashboard and Visualization
 streamlit>=1.28.0
 plotly>=5.17.0
-pandas>=2.1.0
+pandas>=2.2.0
 
-# Time and Timezone Management
-pytz>=2023.3
-# requirements.txt  (add this line anywhere)
+# Time and Timezone
+pytz>=2024.1
+
+# Docker client (optional helper)
 docker==7.1.0
 
 # Database
+SQLAlchemy>=2.0.0
 psycopg2-binary>=2.9.0
 
-# Scheduling (Backup - optional)
+# Scheduling (optional)
 APScheduler>=3.10.0
 
 # System Monitoring and Health
 psutil>=5.9.0
 
-# Circuit Breaker and Resilience
+# Resilience / Retries
 tenacity>=8.2.0
 
-# Logging and Monitoring
+# Logging
 structlog>=23.1.0
 
-# Performance (Linux only - will be ignored on other systems)
+# Performance (Linux only)
 uvloop>=0.19.0; sys_platform == "linux"
 
-# Testing (Development)
+# Testing (dev)
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
-playwright>=1.40.0
-nest-asyncio>=1.5.6
