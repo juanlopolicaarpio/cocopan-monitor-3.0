@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (SIMPLIFIED, FIXED)
-✅ Simple login page - no fancy backgrounds
-✅ Live status prefers VA check-ins for Foodpanda
-✅ Daily uptime / downtime / reports read from store_status_hourly (fixes inflated counts)
-✅ Reports available starting September 10, 2025
+CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + FIXED FOODPANDA)
+✅ Automatic light/dark theme detection based on user's system preference
+✅ Smooth transitions between themes
+✅ Fixed Foodpanda display issue with hybrid data sources
+✅ Legend positioned properly under charts
+✅ Foodpanda stores now appear in all tabs
 """
 
 import os
@@ -203,41 +204,104 @@ def load_authorized_emails():
         return ["juanlopolicarpio@gmail.com"]
 
 # ======================================================================
-#                           SIMPLE STYLES
+#                     ADAPTIVE THEME STYLES (LIGHT/DARK)
 # ======================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Hide Streamlit branding */
     #MainMenu, footer, .stDeployButton, header {visibility: hidden;}
+    
+    /* CSS Variables for theme switching */
+    :root {
+        --bg-primary: #F8FAFC;
+        --bg-secondary: #FFFFFF;
+        --bg-tertiary: #F1F5F9;
+        --text-primary: #1E293B;
+        --text-secondary: #64748B;
+        --text-muted: #94A3B8;
+        --border-color: #E2E8F0;
+        --border-hover: #CBD5E1;
+        --shadow-light: rgba(0,0,0,0.04);
+        --shadow-medium: rgba(0,0,0,0.08);
+        --shadow-strong: rgba(0,0,0,0.12);
+        --success-bg: #F0FDF4;
+        --success-border: #BBF7D0;
+        --success-text: #166534;
+        --error-bg: #FEF2F2;
+        --error-border: #FECACA;
+        --error-text: #DC2626;
+        --info-bg: #EFF6FF;
+        --info-border: #BFDBFE;
+        --info-text: #1D4ED8;
+    }
+    
+    /* Dark mode variables */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg-primary: #0F172A;
+            --bg-secondary: #1E293B;
+            --bg-tertiary: #334155;
+            --text-primary: #F1F5F9;
+            --text-secondary: #E2E8F0;
+            --text-muted: #94A3B8;
+            --border-color: #334155;
+            --border-hover: #475569;
+            --shadow-light: rgba(0,0,0,0.2);
+            --shadow-medium: rgba(0,0,0,0.3);
+            --shadow-strong: rgba(0,0,0,0.4);
+            --success-bg: #065F46;
+            --success-border: #047857;
+            --success-text: #A7F3D0;
+            --error-bg: #7F1D1D;
+            --error-border: #991B1B;
+            --error-text: #FECACA;
+            --info-bg: #1E3A8A;
+            --info-border: #1D4ED8;
+            --info-text: #BFDBFE;
+        }
+    }
+    
+    /* Main layout */
     .main { 
         font-family: 'Inter', sans-serif; 
-        background: #F8FAFC;
-        color: #1E293B; 
+        background: var(--bg-primary);
+        color: var(--text-primary); 
         padding: 2rem;
+        transition: background-color 0.3s ease, color 0.3s ease;
     }
+    
+    /* Login container */
     .login-container {
         max-width: 400px;
         margin: 4rem auto;
-        background: white;
+        background: var(--bg-secondary);
         padding: 2rem;
-        border-radius: 8px;
-        border: 1px solid #E2E8F0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px -1px var(--shadow-medium);
+        transition: all 0.3s ease;
     }
+    
     .login-title {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #1E293B;
+        color: var(--text-primary);
         text-align: center;
         margin: 0 0 1.5rem 0;
     }
+    
+    /* Header section with gradient - stays blue in both themes */
     .header-section { 
         background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); 
         border-radius: 16px; 
         padding: 1.5rem; 
         margin-bottom: 1.25rem; 
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,.1);
+        box-shadow: 0 4px 6px -1px var(--shadow-medium);
+        border: 1px solid #1E40AF;
     }
+    
     h1 { 
         color: #fff !important; 
         font-size: 2.4rem !important; 
@@ -246,6 +310,7 @@ st.markdown("""
         margin:0 !important; 
         letter-spacing:-.02em;
     }
+    
     h3 { 
         color: rgba(255,255,255,.9) !important; 
         font-weight: 400 !important; 
@@ -253,126 +318,270 @@ st.markdown("""
         text-align:center !important; 
         margin:.4rem 0 0 0 !important;
     }
+    
+    /* Section headers */
     .section-header { 
-        background:#fff; 
-        border:1px solid #E2E8F0; 
-        border-radius:8px; 
-        padding:.9rem 1.1rem; 
-        margin:1.1rem 0 .9rem 0; 
-        box-shadow:0 1px 3px rgba(0,0,0,.06);
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 8px; 
+        padding: .9rem 1.1rem; 
+        margin: 1.1rem 0 .9rem 0; 
+        box-shadow: 0 2px 4px var(--shadow-light);
+        transition: all 0.3s ease;
     }
+    
     .section-title { 
-        font-size:1.1rem; 
-        font-weight:600; 
-        color:#1E293B; 
-        margin:0;
+        font-size: 1.1rem; 
+        font-weight: 600; 
+        color: var(--text-primary); 
+        margin: 0;
     }
+    
     .section-subtitle { 
-        font-size:.85rem; 
-        color:#64748B; 
-        margin:.25rem 0 0 0;
+        font-size: .85rem; 
+        color: var(--text-muted); 
+        margin: .25rem 0 0 0;
     }
+    
+    /* Metric containers */
     [data-testid="metric-container"] { 
-        background:#fff; 
-        border:1px solid #E2E8F0; 
-        border-radius:12px; 
-        padding:1.25rem 1rem; 
-        box-shadow:0 1px 3px rgba(0,0,0,.06); 
-        text-align:center; 
-        transition:.2s; 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 12px; 
+        padding: 1.25rem 1rem; 
+        box-shadow: 0 2px 4px var(--shadow-light); 
+        text-align: center; 
+        transition: all 0.3s ease; 
     }
+    
     [data-testid="metric-container"]:hover { 
-        box-shadow:0 4px 6px -1px rgba(0,0,0,.08); 
-        transform: translateY(-1px); 
+        box-shadow: 0 4px 6px -1px var(--shadow-medium); 
+        transform: translateY(-1px);
+        border-color: var(--border-hover);
     }
+    
     [data-testid="metric-value"] { 
-        color:#1E293B; 
-        font-weight:700; 
-        font-size:1.75rem; 
+        color: var(--text-primary); 
+        font-weight: 700; 
+        font-size: 1.75rem; 
     }
+    
     [data-testid="metric-label"] { 
-        color:#64748B; 
-        font-weight:600; 
-        font-size:.8rem; 
-        text-transform:uppercase; 
-        letter-spacing:.05em; 
+        color: var(--text-muted); 
+        font-weight: 600; 
+        font-size: .8rem; 
+        text-transform: uppercase; 
+        letter-spacing: .05em; 
     }
+    
+    /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] { 
-        gap:0; 
-        background:#F1F5F9; 
-        border-radius:8px; 
-        padding:.25rem; 
-        border:1px solid #E2E8F0;
+        gap: 0; 
+        background: var(--bg-tertiary); 
+        border-radius: 8px; 
+        padding: .25rem; 
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
     }
+    
     .stTabs [data-baseweb="tab"] { 
-        background:transparent; 
-        border:none; 
-        border-radius:6px; 
-        color:#64748B; 
-        font-weight:500; 
-        padding:.65rem 1.2rem; 
-        transition:.2s; 
-        font-size:.85rem;
+        background: transparent; 
+        border: none; 
+        border-radius: 6px; 
+        color: var(--text-muted); 
+        font-weight: 500; 
+        padding: .65rem 1.2rem; 
+        transition: all 0.3s ease; 
+        font-size: .85rem;
     }
+    
     .stTabs [data-baseweb="tab"]:hover { 
-        background:#E2E8F0; 
-        color:#1E293B; 
+        background: var(--border-color); 
+        color: var(--text-secondary); 
     }
+    
     .stTabs [aria-selected="true"] { 
-        background:#fff !important; 
-        color:#1E293B !important; 
-        box-shadow:0 1px 2px rgba(0,0,0,.05); 
-        font-weight:600;
+        background: #3B82F6 !important; 
+        color: #fff !important; 
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); 
+        font-weight: 600;
     }
+    
+    /* Data tables */
     .stDataFrame { 
-        background:#fff; 
-        border-radius:12px; 
-        border:1px solid #E2E8F0; 
-        overflow:hidden; 
-        box-shadow:0 1px 3px rgba(0,0,0,.06);
+        background: var(--bg-secondary); 
+        border-radius: 12px; 
+        border: 1px solid var(--border-color); 
+        overflow: hidden; 
+        box-shadow: 0 2px 4px var(--shadow-light);
+        transition: all 0.3s ease;
     }
+    
     .stDataFrame thead tr th { 
-        background:#F8FAFC !important; 
-        color:#475569 !important; 
-        font-weight:600 !important; 
-        text-transform:uppercase; 
-        font-size:.72rem; 
-        letter-spacing:.05em; 
-        border:none !important; 
-        border-bottom:1px solid #E2E8F0 !important; 
-        padding:.8rem .6rem !important;
+        background: var(--bg-tertiary) !important; 
+        color: var(--text-muted) !important; 
+        font-weight: 600 !important; 
+        text-transform: uppercase; 
+        font-size: .72rem; 
+        letter-spacing: .05em; 
+        border: none !important; 
+        border-bottom: 1px solid var(--border-color) !important; 
+        padding: .8rem .6rem !important;
     }
+    
     .stDataFrame tbody tr td { 
-        background:#fff !important; 
-        color:#1E293B !important; 
-        border:none !important; 
-        border-bottom:1px solid #F1F5F9 !important; 
-        padding:.65rem !important;
+        background: var(--bg-secondary) !important; 
+        color: var(--text-primary) !important; 
+        border: none !important; 
+        border-bottom: 1px solid var(--border-color) !important; 
+        padding: .65rem !important;
     }
+    
     .stDataFrame tbody tr:hover td { 
-        background:#F8FAFC !important;
+        background: var(--bg-tertiary) !important;
     }
+    
+    /* Chart container */
     .chart-container { 
-        background:#fff; 
-        border:1px solid #E2E8F0; 
-        border-radius:12px; 
-        padding:.75rem; 
-        box-shadow:0 1px 3px rgba(0,0,0,.06); 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 12px; 
+        padding: .75rem; 
+        box-shadow: 0 2px 4px var(--shadow-light);
+        transition: all 0.3s ease; 
     }
+    
+    /* Filter container */
     .filter-container { 
-        background:#F8FAFC; 
-        border:1px solid #E2E8F0; 
-        border-radius:8px; 
-        padding:.9rem; 
-        margin-bottom:.9rem; 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 8px; 
+        padding: .9rem; 
+        margin-bottom: .9rem;
+        transition: all 0.3s ease; 
     }
+    
+    /* Sidebar styling */
+    .css-1d391kg { 
+        background: var(--bg-secondary);
+        transition: all 0.3s ease;
+    }
+    
+    /* Input fields - adaptive styling */
+    .stSelectbox > div > div {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput > div > div > input {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    .stDateInput > div > div > input {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background: #3B82F6;
+        border: 1px solid #2563EB;
+        color: white;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background: #2563EB;
+        border-color: #1D4ED8;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    
+    /* Success/Error/Info messages - adaptive */
+    .stSuccess {
+        background: var(--success-bg);
+        border: 1px solid var(--success-border);
+        color: var(--success-text);
+        transition: all 0.3s ease;
+    }
+    
+    .stError {
+        background: var(--error-bg);
+        border: 1px solid var(--error-border);
+        color: var(--error-text);
+        transition: all 0.3s ease;
+    }
+    
+    .stInfo {
+        background: var(--info-bg);
+        border: 1px solid var(--info-border);
+        color: var(--info-text);
+        transition: all 0.3s ease;
+    }
+    
+    /* Checkbox styling */
+    .stCheckbox > label {
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    /* Mobile responsiveness */
     @media (max-width: 768px) {
         .login-container { 
             margin: 2rem auto;
             padding: 1.5rem;
         }
+        .main {
+            padding: 1rem;
+        }
+    }
+    
+    /* Force theme-aware styling for Streamlit components */
+    @media (prefers-color-scheme: light) {
+        .stSelectbox label, .stTextInput label, .stDateInput label {
+            color: var(--text-primary) !important;
+        }
+    }
+    
+    @media (prefers-color-scheme: dark) {
+        .stSelectbox label, .stTextInput label, .stDateInput label {
+            color: var(--text-primary) !important;
+        }
+        
+        /* Ensure dropdowns are readable in dark mode */
+        .stSelectbox > div > div > div {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+    }
+    
+    /* Smooth transitions for theme changes */
+    * {
+        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     }
 </style>
+
+<script>
+// Detect theme preference and add class to body for additional JS-based theming
+(function() {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.add(prefersDark ? 'theme-dark' : 'theme-light');
+    
+    // Listen for theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        document.body.classList.remove('theme-dark', 'theme-light');
+        document.body.classList.add(e.matches ? 'theme-dark' : 'theme-light');
+    });
+})();
+</script>
 """, unsafe_allow_html=True)
 
 # ======================================================================
@@ -402,7 +611,7 @@ def is_under_review(error_message: str) -> bool:
 def load_comprehensive_data():
     """
     LIVE LIST: prefer VA check-ins for Foodpanda (uses status_checks for 'latest' only)
-    DAILY UPTIME/DOWNTIME: use store_status_hourly to avoid inflated counts
+    DAILY UPTIME/DOWNTIME: use hybrid approach (hourly + status_checks fallback)
     """
     try:
         with db.get_connection() as conn:
@@ -442,7 +651,7 @@ def load_comprehensive_data():
             if not latest_status.empty:
                 latest_status['platform'] = latest_status['platform'].apply(standardize_platform_name)
 
-            # --- DAILY UPTIME (SNAPSHOT) ---
+            # --- DAILY UPTIME (HYBRID: hourly + fallback to status_checks) ---
             daily_uptime_query = """
                 WITH today_hours AS (
                   SELECT
@@ -455,22 +664,55 @@ def load_comprehensive_data():
                   WHERE DATE(ssh.effective_at AT TIME ZONE 'Asia/Manila')
                         = DATE(timezone('Asia/Manila', now()))
                   GROUP BY ssh.store_id
+                ),
+                status_checks_today AS (
+                  SELECT
+                    sc.store_id,
+                    COUNT(*) AS total_checks,
+                    SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) AS online_checks,
+                    SUM(CASE WHEN sc.is_online = false THEN 1 ELSE 0 END) AS offline_checks
+                  FROM status_checks sc
+                  WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila') 
+                        = DATE(timezone('Asia/Manila', now()))
+                  GROUP BY sc.store_id
+                ),
+                latest_status AS (
+                  SELECT DISTINCT ON (s.id)
+                    s.id as store_id,
+                    sc.is_online,
+                    sc.checked_at
+                  FROM stores s
+                  LEFT JOIN status_checks sc ON s.id = sc.store_id
+                  WHERE sc.checked_at >= NOW() - INTERVAL '24 hours'
+                  ORDER BY s.id, sc.checked_at DESC
                 )
                 SELECT
                   s.id,
                   COALESCE(s.name_override, s.name) AS name,
                   s.platform,
-                  COALESCE(th.effective_checks, 0) AS effective_checks,
-                  COALESCE(th.online_checks, 0)    AS online_checks,
-                  COALESCE(th.downtime_count, 0)   AS downtime_count,
-                  COALESCE(th.under_review_checks,0) AS under_review_checks,
+                  -- Use hourly data if available, otherwise fallback to status_checks
+                  COALESCE(th.effective_checks, sct.total_checks, 0) AS effective_checks,
+                  COALESCE(th.online_checks, sct.online_checks, 0) AS online_checks,
+                  COALESCE(th.downtime_count, sct.offline_checks, 0) AS downtime_count,
+                  COALESCE(th.under_review_checks, 0) AS under_review_checks,
                   CASE 
-                    WHEN COALESCE(th.effective_checks,0) = 0 THEN NULL
-                    ELSE ROUND( (th.online_checks * 100.0 / NULLIF(th.effective_checks,0)) , 1)
-                  END AS uptime_percentage
+                    WHEN COALESCE(th.effective_checks, sct.total_checks, 0) = 0 THEN 
+                      CASE WHEN ls.is_online IS TRUE THEN 100.0 
+                           WHEN ls.is_online IS FALSE THEN 0.0 
+                           ELSE NULL END
+                    ELSE ROUND( (COALESCE(th.online_checks, sct.online_checks, 0) * 100.0 / 
+                                NULLIF(COALESCE(th.effective_checks, sct.total_checks, 0), 0)) , 1)
+                  END AS uptime_percentage,
+                  -- Indicate data source
+                  CASE 
+                    WHEN th.effective_checks > 0 THEN 'hourly'
+                    WHEN sct.total_checks > 0 THEN 'status_checks'
+                    ELSE 'latest_only'
+                  END AS data_source
                 FROM stores s
                 LEFT JOIN today_hours th ON th.store_id = s.id
-                WHERE COALESCE(th.effective_checks,0) > 0
+                LEFT JOIN status_checks_today sct ON sct.store_id = s.id
+                LEFT JOIN latest_status ls ON ls.store_id = s.id
                 ORDER BY uptime_percentage DESC NULLS LAST, name
             """
             daily_uptime = pd.read_sql_query(daily_uptime_query, conn)
@@ -484,7 +726,7 @@ def load_comprehensive_data():
 
 @st.cache_data(ttl=300)
 def load_reports_data(start_date, end_date):
-    """Historical reports from store_status_hourly (range inclusive)"""
+    """Historical reports from store_status_hourly + status_checks fallback"""
     try:
         # Enforce minimum date of September 10, 2025
         min_date = datetime(2025, 9, 10).date()
@@ -499,29 +741,50 @@ def load_reports_data(start_date, end_date):
                     COUNT(*)                           AS total_hours,
                     COUNT(*) FILTER (WHERE ssh.status IN ('BLOCKED','UNKNOWN','ERROR')) AS under_review_hours,
                     COUNT(*) FILTER (WHERE ssh.status IN ('ONLINE','OFFLINE')) AS effective_hours,
-                    COUNT(*) FILTER (WHERE ssh.status = 'ONLINE')             AS online_hours
+                    COUNT(*) FILTER (WHERE ssh.status = 'ONLINE')             AS online_hours,
+                    'hourly' as data_source
                   FROM store_status_hourly ssh
                   WHERE DATE(ssh.effective_at AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
                   GROUP BY ssh.store_id
+                ),
+                range_status_checks AS (
+                  SELECT
+                    sc.store_id,
+                    COUNT(*) AS total_checks,
+                    0 AS under_review_checks,
+                    COUNT(*) AS effective_checks,
+                    COUNT(*) FILTER (WHERE sc.is_online = true) AS online_checks,
+                    'status_checks' as data_source
+                  FROM status_checks sc
+                  WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
+                    AND sc.store_id NOT IN (
+                        SELECT DISTINCT store_id 
+                        FROM store_status_hourly ssh2
+                        WHERE DATE(ssh2.effective_at AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
+                    )
+                  GROUP BY sc.store_id
                 )
                 SELECT
                   s.id,
                   COALESCE(s.name_override, s.name) AS name,
                   s.platform,
                   s.url,
-                  COALESCE(rh.total_hours,0)        AS total_checks,
-                  COALESCE(rh.under_review_hours,0) AS under_review_checks,
-                  COALESCE(rh.effective_hours,0)    AS effective_checks,
-                  COALESCE(rh.online_hours,0)       AS effective_online_checks,
+                  COALESCE(rh.total_hours, rsc.total_checks, 0) AS total_checks,
+                  COALESCE(rh.under_review_hours, rsc.under_review_checks, 0) AS under_review_checks,
+                  COALESCE(rh.effective_hours, rsc.effective_checks, 0) AS effective_checks,
+                  COALESCE(rh.online_hours, rsc.online_checks, 0) AS effective_online_checks,
                   CASE
-                    WHEN COALESCE(rh.effective_hours,0) = 0 THEN NULL
-                    ELSE ROUND((rh.online_hours * 100.0 / NULLIF(rh.effective_hours,0)), 1)
-                  END AS uptime_percentage
+                    WHEN COALESCE(rh.effective_hours, rsc.effective_checks, 0) = 0 THEN NULL
+                    ELSE ROUND((COALESCE(rh.online_hours, rsc.online_checks, 0) * 100.0 / 
+                               NULLIF(COALESCE(rh.effective_hours, rsc.effective_checks, 0), 0)), 1)
+                  END AS uptime_percentage,
+                  COALESCE(rh.data_source, rsc.data_source, 'none') AS data_source
                 FROM stores s
                 LEFT JOIN range_hours rh ON rh.store_id = s.id
-                ORDER BY s.name
+                LEFT JOIN range_status_checks rsc ON rsc.store_id = s.id
+                ORDER BY uptime_percentage DESC NULLS LAST, s.name
             """
-            reports_data = pd.read_sql_query(reports_query, conn, params=(start_date, end_date))
+            reports_data = pd.read_sql_query(reports_query, conn, params=(start_date, end_date, start_date, end_date, start_date, end_date))
             if not reports_data.empty:
                 reports_data['platform'] = reports_data['platform'].apply(standardize_platform_name)
             return reports_data, None
@@ -530,22 +793,52 @@ def load_reports_data(start_date, end_date):
         return None, str(e)
 
 def load_downtime_today():
-    """Downtime events today (snapshot-based)"""
+    """Downtime events today (hybrid: hourly + status_checks fallback)"""
     try:
         with db.get_connection() as conn:
+            # Try hourly data first, fallback to status_checks
             downtime_query = """
-                SELECT 
-                    s.name,
-                    s.platform,
-                    COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') AS downtime_events,
-                    MIN(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS first_downtime,
-                    MAX(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS last_downtime
-                FROM stores s
-                JOIN store_status_hourly ssh ON ssh.store_id = s.id
-                WHERE DATE(ssh.effective_at AT TIME ZONE 'Asia/Manila')
-                      = DATE(timezone('Asia/Manila', now()))
-                GROUP BY s.id, s.name, s.platform
-                HAVING COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') > 0
+                WITH hourly_downtime AS (
+                    SELECT 
+                        s.name,
+                        s.platform,
+                        COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') AS downtime_events,
+                        MIN(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS first_downtime,
+                        MAX(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS last_downtime,
+                        'hourly' as data_source
+                    FROM stores s
+                    JOIN store_status_hourly ssh ON ssh.store_id = s.id
+                    WHERE DATE(ssh.effective_at AT TIME ZONE 'Asia/Manila')
+                          = DATE(timezone('Asia/Manila', now()))
+                    GROUP BY s.id, s.name, s.platform
+                    HAVING COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') > 0
+                ),
+                status_checks_downtime AS (
+                    SELECT 
+                        s.name,
+                        s.platform,
+                        COUNT(*) FILTER (WHERE sc.is_online = false) AS downtime_events,
+                        MIN(sc.checked_at) FILTER (WHERE sc.is_online = false) AS first_downtime,
+                        MAX(sc.checked_at) FILTER (WHERE sc.is_online = false) AS last_downtime,
+                        'status_checks' as data_source
+                    FROM stores s
+                    JOIN status_checks sc ON sc.store_id = s.id
+                    WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila')
+                          = DATE(timezone('Asia/Manila', now()))
+                      AND s.id NOT IN (
+                          SELECT DISTINCT store_id 
+                          FROM store_status_hourly ssh2
+                          WHERE DATE(ssh2.effective_at AT TIME ZONE 'Asia/Manila') 
+                                = DATE(timezone('Asia/Manila', now()))
+                      )
+                    GROUP BY s.id, s.name, s.platform
+                    HAVING COUNT(*) FILTER (WHERE sc.is_online = false) > 0
+                )
+                SELECT name, platform, downtime_events, first_downtime, last_downtime, data_source
+                FROM hourly_downtime
+                UNION ALL
+                SELECT name, platform, downtime_events, first_downtime, last_downtime, data_source
+                FROM status_checks_downtime
                 ORDER BY downtime_events DESC
             """
             dt = pd.read_sql_query(downtime_query, conn)
@@ -561,19 +854,48 @@ def load_downtime_today():
 def create_donut(online_count: int, offline_count: int):
     total = max(online_count + offline_count, 1)
     uptime_pct = online_count / total * 100.0
+    
+    # Detect user's theme preference via JavaScript (fallback to dark)
+    # We'll use colors that work well in both themes
     fig = go.Figure(data=[go.Pie(
         labels=['Online', 'Offline'],
         values=[online_count, offline_count],
         hole=0.65,
-        marker=dict(colors=['#059669', '#EF4444'], line=dict(width=2, color='#FFFFFF')),
+        marker=dict(
+            colors=['#10B981', '#EF4444'],  # Green and red work in both themes
+            line=dict(width=2, color='rgba(255,255,255,0.1)')  # Subtle border
+        ),
         textinfo='none',
         hovertemplate='<b>%{label}</b><br>%{value} stores (%{percent})<extra></extra>',
         showlegend=True
     )])
-    fig.add_annotation(text=f"<b style='font-size:28px'>{uptime_pct:.0f}%</b>", x=0.5, y=0.5, showarrow=False, font=dict(family="Inter"))
-    fig.update_layout(height=250, margin=dict(t=12,b=12,l=12,r=12),
-                      paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                      legend=dict(orientation="h", yanchor="bottom", y=-0.08, xanchor="center", x=0.5, font=dict(size=10)))
+    
+    # Center percentage text - theme adaptive
+    fig.add_annotation(
+        text=f"<b style='font-size:28px'>{uptime_pct:.0f}%</b>", 
+        x=0.5, y=0.5, 
+        showarrow=False, 
+        font=dict(family="Inter", color="#475569")  # Medium gray that works in both themes
+    )
+    
+    # Update layout with theme-adaptive styling
+    fig.update_layout(
+        height=280,
+        margin=dict(t=20, b=60, l=20, r=20),
+        paper_bgcolor='rgba(0,0,0,0)',  # Transparent background
+        plot_bgcolor='rgba(0,0,0,0)',   # Transparent plot area
+        legend=dict(
+            orientation="h", 
+            yanchor="top", 
+            y=-0.1,
+            xanchor="center", 
+            x=0.5, 
+            font=dict(size=12, color="#64748B"),  # Neutral gray
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        font=dict(color="#64748B")  # Neutral text color
+    )
+    
     return fig
 
 def get_last_check_time(latest_status):
@@ -664,6 +986,9 @@ def main():
     # Sidebar user info
     with st.sidebar:
         st.markdown(f"**Logged in as:**\n{st.session_state.client_email}")
+        st.markdown("---")
+        st.markdown("🎨 **Theme:** Adapts to your system preference")
+        st.markdown("💡 **Tip:** Change your browser/OS theme to see the dashboard adapt!")
         if st.button("Logout"):
             CookieStore().delete(COOKIE_NAME)
             st.session_state.client_authenticated = False
@@ -796,29 +1121,35 @@ def main():
 
             st.dataframe(display, use_container_width=True, hide_index=True, height=420)
 
-    # ----- TAB 2: DAILY UPTIME (SNAPSHOT) -----
+    # ----- TAB 2: DAILY UPTIME (HYBRID) -----
     with tab2:
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Analytics</div>
-            <div class="section-subtitle">Daily performance metrics and availability statistics (snapshot)</div>
+            <div class="section-subtitle">Daily performance metrics • Uses hourly snapshots when available, real-time checks as fallback</div>
         </div>
         """, unsafe_allow_html=True)
 
         if daily_uptime is not None and len(daily_uptime) > 0:
             st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-            d1, d2 = st.columns(2)
+            d1, d2, d3 = st.columns(3)
             with d1:
                 available_platforms = sorted(daily_uptime['platform'].dropna().unique())
                 platform_options = ["All Platforms"] + available_platforms
                 platform_filter = st.selectbox("Filter by Platform:", platform_options, key="uptime_platform_filter")
             with d2:
                 sort_order = st.selectbox("Sort by Uptime:", ["Highest to Lowest", "Lowest to Highest"], key="uptime_sort_order")
+            with d3:
+                show_all_stores = st.checkbox("Show stores without today's data", value=True, key="show_all_stores")
             st.markdown('</div>', unsafe_allow_html=True)
 
             filt = daily_uptime.copy()
             if platform_filter != "All Platforms":
                 filt = filt[filt['platform'] == platform_filter]
+
+            # Filter by data availability if requested
+            if not show_all_stores:
+                filt = filt[filt['effective_checks'] > 0]
 
             if len(filt) == 0:
                 st.info(f"No data available for {platform_filter}")
@@ -827,36 +1158,67 @@ def main():
                 disp['Branch'] = filt['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
                 disp['Platform'] = filt['platform']
 
-                def fmt_u(u):
+                def fmt_u(row):
                     try:
-                        u = float(u)
+                        u = float(row['uptime_percentage']) if pd.notna(row['uptime_percentage']) else None
+                        checks = int(row['effective_checks']) if pd.notna(row['effective_checks']) else 0
+                        data_source = row.get('data_source', 'unknown') if 'data_source' in filt.columns else 'unknown'
+                        
+                        if checks == 0:
+                            return "📊 No data"
+                        elif u is None:
+                            return "📊 No Data"
+                        else:
+                            # Add data source indicator
+                            source_icon = "⏰" if data_source == 'hourly' else "📱" if data_source == 'status_checks' else "📊"
+                            if u >= 95:
+                                return f"🟢 {u:.1f}% {source_icon}".strip()
+                            elif u >= 80:
+                                return f"🟡 {u:.1f}% {source_icon}".strip()
+                            else:
+                                return f"🔴 {u:.1f}% {source_icon}".strip()
                     except Exception:
                         return "—"
-                    if u >= 95:
-                        return f"🟢 {u:.1f}%"
-                    elif u >= 80:
-                        return f"🟡 {u:.1f}%"
-                    else:
-                        return f"🔴 {u:.1f}%"
 
-                disp['Uptime'] = [fmt_u(u) for u in filt['uptime_percentage']]
+                disp['Uptime'] = [fmt_u(row) for _, row in filt.iterrows()]
                 disp['Total Checks'] = filt['effective_checks'].astype(str)
                 disp['Times Down'] = filt['downtime_count'].astype(str)
 
-                sort_vals = filt['uptime_percentage'].astype(float)
-                idx = sort_vals.sort_values(ascending=(sort_order == "Lowest to Highest")).index
-                disp = disp.loc[idx].reset_index(drop=True)
+                # Sort handling
+                if sort_order == "Highest to Lowest":
+                    sort_vals = []
+                    for _, row in filt.iterrows():
+                        if row['effective_checks'] == 0:
+                            sort_vals.append(-1)  # No data goes to bottom
+                        elif pd.isna(row['uptime_percentage']):
+                            sort_vals.append(-1)
+                        else:
+                            sort_vals.append(float(row['uptime_percentage']))
+                    disp['sort_helper'] = sort_vals
+                    disp = disp.sort_values('sort_helper', ascending=False).drop('sort_helper', axis=1)
+                elif sort_order == "Lowest to Highest":
+                    sort_vals = []
+                    for _, row in filt.iterrows():
+                        if row['effective_checks'] == 0:
+                            sort_vals.append(999)  # No data goes to bottom
+                        elif pd.isna(row['uptime_percentage']):
+                            sort_vals.append(999)
+                        else:
+                            sort_vals.append(float(row['uptime_percentage']))
+                    disp['sort_helper'] = sort_vals
+                    disp = disp.sort_values('sort_helper', ascending=True).drop('sort_helper', axis=1)
 
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
+                st.markdown("**Legend:** 🟢 Excellent (≥95%) • 🟡 Good (80–94%) • 🔴 Needs Attention (<80%) • ⏰ Hourly data • 📱 Real-time checks")
         else:
-            st.info("Performance analytics will appear as new data comes in.")
+            st.info("ℹ️ Performance analytics will appear as new monitoring data comes in. Enable 'Show stores without today's data' to see all registered stores.")
 
-    # ----- TAB 3: DOWNTIME EVENTS (SNAPSHOT) -----
+    # ----- TAB 3: DOWNTIME EVENTS (HYBRID) -----
     with tab3:
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Downtime Events Analysis</div>
-            <div class="section-subtitle">Overview of offline events and frequency patterns (snapshot)</div>
+            <div class="section-subtitle">Offline events and frequency patterns • Uses hourly snapshots when available, real-time checks as fallback</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -885,13 +1247,17 @@ def main():
                 disp['Platform'] = data['platform']
 
                 sev = []
-                for n in data['downtime_events']:
+                for i, row in data.iterrows():
+                    n = row['downtime_events']
+                    data_source = row.get('data_source', 'unknown') if 'data_source' in data.columns else 'unknown'
+                    source_icon = "⏰" if data_source == 'hourly' else "📱" if data_source == 'status_checks' else ""
+                    
                     if n >= 5:
-                        sev.append(f"🔴 {n} events")
+                        sev.append(f"🔴 {n} events {source_icon}".strip())
                     elif n >= 3:
-                        sev.append(f"🟡 {n} events")
+                        sev.append(f"🟡 {n} events {source_icon}".strip())
                     else:
-                        sev.append(f"🟢 {n} events")
+                        sev.append(f"🟢 {n} events {source_icon}".strip())
                 disp['Offline Events'] = sev
 
                 try:
@@ -910,13 +1276,14 @@ def main():
                     disp['Last Offline'] = '—'
 
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
+                st.markdown("**Legend:** 🟢 Low (1-2) • 🟡 Medium (3-4) • 🔴 High (5+) downtime events • ⏰ Hourly data • 📱 Real-time checks")
 
-    # ----- TAB 4: REPORTS (SNAPSHOT with persistent generate state) -----
+    # ----- TAB 4: REPORTS (HYBRID with persistent generate state) -----
     with tab4:
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Reports</div>
-            <div class="section-subtitle">Historical uptime analysis • Excludes 'Under Review' periods • Available from September 10, 2025</div>
+            <div class="section-subtitle">Historical uptime analysis • Uses hourly snapshots when available, real-time checks as fallback • Available from September 10, 2025</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -990,7 +1357,7 @@ def main():
         total_stores = len(reports_data)
         stores_with_data = int((reports_data['effective_checks'] > 0).sum())
         stores_no_data = total_stores - stores_with_data
-        avg_uptime = reports_data['uptime_percentage'].dropna().mean() if stores_with_data > 0 else 0.0
+        avg_uptime = reports_data[reports_data['effective_checks'] > 0]['uptime_percentage'].dropna().mean() if stores_with_data > 0 else 0.0
 
         st.markdown("### 📊 Report Summary")
         c1, c2, c3, c4 = st.columns(4)
@@ -1004,7 +1371,7 @@ def main():
             st.metric("Period", f"{range_start.strftime('%b %d')} - {range_end.strftime('%b %d')}")
 
         st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-        r1, r2 = st.columns([2, 2])
+        r1, r2, r3 = st.columns([2, 2, 1])
         with r1:
             available_platforms = sorted(reports_data['platform'].dropna().unique())
             platform_options = ["All Platforms"] + available_platforms
@@ -1012,11 +1379,18 @@ def main():
         with r2:
             sort_options = ["Uptime (High to Low)", "Uptime (Low to High)", "Store Name (A-Z)", "Platform"]
             sort_order = st.selectbox("Sort by:", sort_options, key="reports_sort_order")
+        with r3:
+            st.markdown("<br>", unsafe_allow_html=True)
+            show_all_in_reports = st.checkbox("Show stores without data", value=True, key="show_all_reports")
         st.markdown('</div>', unsafe_allow_html=True)
 
         filtered_data = reports_data.copy()
         if platform_filter_reports != "All Platforms":
             filtered_data = filtered_data[filtered_data['platform'] == platform_filter_reports]
+        
+        # Filter by data availability if requested
+        if not show_all_in_reports:
+            filtered_data = filtered_data[filtered_data['effective_checks'] > 0]
 
         display_data = pd.DataFrame()
         display_data['Branch'] = filtered_data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
@@ -1025,15 +1399,18 @@ def main():
         uptime_formatted = []
         for _, row in filtered_data.iterrows():
             if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
-                uptime_formatted.append("📊 No Data")
+                uptime_formatted.append("📊 No Data in Period")
             else:
                 uptime = float(row['uptime_percentage'])
+                data_source = row.get('data_source', 'unknown') if 'data_source' in filtered_data.columns else 'unknown'
+                source_icon = "⏰" if data_source == 'hourly' else "📱" if data_source == 'status_checks' else ""
+                
                 if uptime >= 95:
-                    uptime_formatted.append(f"🟢 {uptime:.1f}%")
+                    uptime_formatted.append(f"🟢 {uptime:.1f}% {source_icon}".strip())
                 elif uptime >= 80:
-                    uptime_formatted.append(f"🟡 {uptime:.1f}%")
+                    uptime_formatted.append(f"🟡 {uptime:.1f}% {source_icon}".strip())
                 else:
-                    uptime_formatted.append(f"🔴 {uptime:.1f}%")
+                    uptime_formatted.append(f"🔴 {uptime:.1f}% {source_icon}".strip())
         display_data['Uptime'] = uptime_formatted
 
         if sort_order == "Uptime (High to Low)":
@@ -1064,11 +1441,15 @@ def main():
             st.info(f"No stores found for {platform_filter_reports}")
         else:
             st.dataframe(display_data, use_container_width=True, hide_index=True, height=420)
-            st.markdown("**Legend:** 🟢 Excellent (≥95%) • 🟡 Good (80–94%) • 🔴 Needs Attention (<80%) • 📊 No Data Available")
+            st.markdown("**Legend:** 🟢 Excellent (≥95%) • 🟡 Good (80–94%) • 🔴 Needs Attention (<80%) • ⏰ Hourly data • 📱 Real-time checks")
 
             if stores_with_data > 0:
-                high_performers = int(((filtered_data['uptime_percentage'] >= 95) & filtered_data['uptime_percentage'].notna()).sum())
-                low_performers = int(((filtered_data['uptime_percentage'] < 80) & filtered_data['uptime_percentage'].notna()).sum())
+                # Only calculate from stores that have data in the selected period
+                stores_with_data_filtered = filtered_data[filtered_data['effective_checks'] > 0]
+                high_performers = int(((stores_with_data_filtered['uptime_percentage'] >= 95) & stores_with_data_filtered['uptime_percentage'].notna()).sum())
+                low_performers = int(((stores_with_data_filtered['uptime_percentage'] < 80) & stores_with_data_filtered['uptime_percentage'].notna()).sum())
+                stores_no_data_filtered = len(filtered_data) - len(stores_with_data_filtered)
+                
                 st.markdown("### 📋 Quick Insights")
                 ic1, ic2, ic3 = st.columns(3)
                 with ic1:
@@ -1076,8 +1457,8 @@ def main():
                 with ic2:
                     st.markdown(f"**🔴 Need Attention:** {low_performers} stores (<80% uptime)")
                 with ic3:
-                    if stores_no_data > 0:
-                        st.markdown(f"**📊 No Data:** {stores_no_data} stores (no activity in period)")
+                    if stores_no_data_filtered > 0:
+                        st.markdown(f"**📊 No Data:** {stores_no_data_filtered} stores (no activity in period)")
 
 if __name__ == "__main__":
     try:
