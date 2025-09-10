@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
 """
-Fixed CocoPan Database Module
-Dynamic timezone support and proper cursor result handling
-ADDED: Manual override functionality for admin interface
-ADDED: Hourly snapshot schema + idempotent upserts (store_status_hourly, status_summary_hourly)
+CocoPan Database Module (Railway-ready) — WITH ADMIN HELPERS
+- No hard-coded DB URL; always uses config.get_database_url()
+- psycopg2 ThreadedConnectionPool for writes/updates
+- SQLAlchemy Engine for all pandas reads (fixes pandas warning)
+- TCP keepalives + pool_pre_ping + pool_recycle to auto-heal EOF/peer resets
+- Keeps your hourly upserts & admin helpers (get_database_stats, get_stores_needing_attention, set_store_name_override)
 """
 import os
 import time
 import logging
 from contextlib import contextmanager
-from typing import List, Tuple, Optional, Dict, Any
-import psycopg2
+from typing import Optional, Dict, Any
+
 import sqlite3
-from psycopg2 import pool
+import psycopg2
+from psycopg2 import pool as pg_pool
 import pandas as pd
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Engine
+
 from config import config
 
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
@@ -21,169 +28,161 @@ logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     def __init__(self):
-        self.connection_pool = None
+        self.connection_pool: Optional[pg_pool.ThreadedConnectionPool] = None
+        self.sa_engine: Optional[Engine] = None  # SQLAlchemy engine for pandas reads
         self.db_type = "sqlite" if config.USE_SQLITE else "postgresql"
-        self.max_retries = 3
-        self.retry_delay = 5
-        self.timezone = config.TIMEZONE  # Use config timezone consistently
+        self.max_retries = int(getattr(config, "MAX_RETRIES", 3))
+        self.retry_delay = int(getattr(config, "RETRY_DELAY", 5))
+        self.timezone = config.TIMEZONE
+        self.sqlite_path = getattr(config, "SQLITE_PATH", "store_status.db")
         self._initialize_database()
-    
+
+    # ---------- Initialization ----------
+
     def _initialize_database(self):
-        """Initialize database with retry logic"""
+        """Initialize DB connections and ensure schema; fall back to SQLite only if all retries fail."""
         for attempt in range(self.max_retries):
             try:
                 if self.db_type == "postgresql":
-                    self._init_postgresql()
+                    self._init_postgresql_pool()
+                    self._init_sqlalchemy_engine()  # for pandas reads (resilient)
                 else:
                     self._init_sqlite()
+
                 self._create_tables()
                 logger.info(f"✅ Database initialized ({self.db_type}) on attempt {attempt + 1}")
                 return
             except Exception as e:
-                logger.error(f"❌ Database initialization failed (attempt {attempt + 1}): {str(e)}")
+                logger.error(f"❌ Database initialization failed (attempt {attempt + 1}): {e}")
                 if attempt < self.max_retries - 1:
-                    logger.info(f"🔄 Retrying in {self.retry_delay} seconds...")
                     time.sleep(self.retry_delay)
                 else:
-                    logger.error("❌ All database initialization attempts failed")
-                    # Fallback to SQLite instead of crashing
+                    logger.error("⚠️ Falling back to SQLite for safety")
                     self.db_type = "sqlite"
                     self._init_sqlite()
                     self._create_tables()
-    
-    def _init_postgresql(self):
-        """Initialize PostgreSQL without RealDictCursor"""
-        try:
-            db_url = config.DATABASE_URL
-            logger.info(f"🔌 Attempting PostgreSQL connection...")
-            
-            if not db_url.startswith('postgresql://') and not db_url.startswith('postgres://'):
-                raise ValueError(f"Invalid PostgreSQL URL format: {db_url}")
-            
-            # Test basic connection first
-            test_conn = psycopg2.connect(db_url)
-            test_conn.close()
-            logger.info("✅ PostgreSQL test connection successful")
-            
-            # Create connection pool WITHOUT RealDictCursor
-            self.connection_pool = psycopg2.pool.ThreadedConnectionPool(
-                minconn=1, 
-                maxconn=20, 
-                dsn=db_url
-            )
-            logger.info("✅ PostgreSQL connection pool created")
-            
-        except psycopg2.OperationalError as e:
-            error_msg = str(e).strip()
-            logger.error(f"❌ PostgreSQL operational error: {error_msg}")
-            raise
-            
-        except Exception as e:
-            error_msg = str(e).strip()
-            logger.error(f"❌ Unexpected PostgreSQL error: {error_msg}")
-            raise
-    
+
+    def _init_postgresql_pool(self):
+        """Create psycopg2 pool using env DATABASE_URL (no hard-coding)."""
+        db_url = config.get_database_url()
+        logger.info("🔌 Connecting to PostgreSQL via env DATABASE_URL")
+        # Quick test connection
+        test_conn = psycopg2.connect(db_url)
+        test_conn.close()
+        # PgBouncer-friendly pool
+        self.connection_pool = pg_pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=10,
+            dsn=db_url,
+        )
+        logger.info("✅ PostgreSQL connection pool created")
+
+    def _init_sqlalchemy_engine(self):
+        """Small, resilient engine for all pandas reads."""
+        url = config.get_database_url()
+        self.sa_engine = create_engine(
+            url,
+            pool_size=3,
+            max_overflow=1,
+            pool_pre_ping=True,   # swap dead sockets before use
+            pool_recycle=120,     # recycle before hosted idle timeouts
+            future=True,
+            connect_args=dict(
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5,
+            ),
+        )
+
     def _init_sqlite(self):
-        """Initialize SQLite"""
-        self.sqlite_path = config.SQLITE_PATH
-        try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(os.path.abspath(self.sqlite_path)), exist_ok=True)
-            
-            # Test connection
-            conn = sqlite3.connect(self.sqlite_path, timeout=30)
-            conn.execute("SELECT 1")  # Test query
-            conn.close()
-            logger.info(f"✅ SQLite database ready: {self.sqlite_path}")
-        except Exception as e:
-            logger.error(f"❌ SQLite connection failed: {str(e)}")
-            raise
-    
+        os.makedirs(os.path.dirname(os.path.abspath(self.sqlite_path)), exist_ok=True)
+        conn = sqlite3.connect(self.sqlite_path, timeout=30)
+        conn.execute("SELECT 1")
+        conn.close()
+        logger.info(f"✅ SQLite database ready: {self.sqlite_path}")
+
+    # ---------- Connection management ----------
+
     @contextmanager
     def get_connection(self):
-        """Get database connection with proper error handling"""
+        """
+        Yield a live connection for write/update operations.
+        - Performs a preflight SELECT 1 (heals stale sockets)
+        - One quick retry path if the first conn is broken
+        """
         if self.db_type == "postgresql":
+            if not self.connection_pool:
+                raise RuntimeError("Connection pool not initialized")
             conn = None
             try:
-                if not self.connection_pool:
-                    raise Exception("Connection pool not initialized")
-                
                 conn = self.connection_pool.getconn()
-                if conn is None:
-                    raise Exception("Failed to get connection from pool")
-                
-                # Test connection
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT 1")
-                
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")  # preflight ping
                 yield conn
-                
-            except Exception as e:
-                error_msg = str(e).strip()
-                logger.error(f"❌ Database connection error: {error_msg}")
-                if conn:
+            except Exception:
+                # try one fresh connection
+                try:
+                    if conn:
+                        conn.close()
+                except Exception:
+                    pass
+                if self.connection_pool:
+                    fresh = self.connection_pool.getconn()
                     try:
-                        conn.rollback()
-                    except:
-                        pass
-                raise Exception(f"Database connection failed: {error_msg}")
-                
+                        with fresh.cursor() as cur:
+                            cur.execute("SELECT 1")
+                        yield fresh
+                    finally:
+                        self.connection_pool.putconn(fresh)
+                else:
+                    raise
             finally:
                 if conn and self.connection_pool:
                     try:
                         self.connection_pool.putconn(conn)
-                    except:
+                    except Exception:
                         pass
         else:
-            # SQLite
-            conn = None
+            conn = sqlite3.connect(self.sqlite_path, timeout=30)
+            conn.row_factory = sqlite3.Row
             try:
-                conn = sqlite3.connect(self.sqlite_path, timeout=30)
-                conn.row_factory = sqlite3.Row
-                
-                # Test connection
                 conn.execute("SELECT 1")
-                
                 yield conn
-                
-            except Exception as e:
-                error_msg = str(e).strip()
-                logger.error(f"❌ SQLite error: {error_msg}")
-                if conn:
-                    try:
-                        conn.rollback()
-                    except:
-                        pass
-                raise Exception(f"SQLite error: {error_msg}")
-                
             finally:
-                if conn:
-                    try:
-                        conn.close()
-                    except:
-                        pass
-    
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+    def _ensure_sa(self) -> Engine:
+        """Ensure a SQLAlchemy engine exists for reads."""
+        if self.db_type == "sqlite":
+            if not self.sa_engine:
+                self.sa_engine = create_engine(f"sqlite:///{self.sqlite_path}", future=True)
+            return self.sa_engine
+        if not self.sa_engine:
+            self._init_sqlalchemy_engine()
+        return self.sa_engine
+
+    # ---------- Schema ----------
+
     def _create_tables(self):
-        """Create database tables"""
         with self.get_connection() as conn:
-            cursor = conn.cursor()
-            
+            cur = conn.cursor()
             if self.db_type == "postgresql":
-                # Create stores table
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS stores (
                         id SERIAL PRIMARY KEY,
                         name VARCHAR(255) NOT NULL,
-                        url TEXT NOT NULL UNIQUE,
+                        url  TEXT NOT NULL UNIQUE,
                         platform VARCHAR(50) NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         name_override VARCHAR(255),
                         last_manual_check TIMESTAMP
                     )
                 """)
-                
-                # Create status_checks table
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS status_checks (
                         id SERIAL PRIMARY KEY,
                         store_id INTEGER REFERENCES stores(id),
@@ -193,9 +192,7 @@ class DatabaseManager:
                         error_message TEXT
                     )
                 """)
-                
-                # Create summary_reports table
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS summary_reports (
                         id SERIAL PRIMARY KEY,
                         total_stores INTEGER NOT NULL,
@@ -205,14 +202,12 @@ class DatabaseManager:
                         report_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                
-                # --- NEW: hourly per-store snapshot (idempotent) ---
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS store_status_hourly (
                         effective_at  timestamptz NOT NULL,
                         platform      text        NOT NULL,
                         store_id      integer     NOT NULL REFERENCES stores(id),
-                        status        text        NOT NULL,   -- ONLINE/OFFLINE/BLOCKED/ERROR/UNKNOWN
+                        status        text        NOT NULL,
                         confidence    real        NOT NULL,
                         response_ms   integer     NULL,
                         evidence      text        NULL,
@@ -221,9 +216,7 @@ class DatabaseManager:
                         PRIMARY KEY (platform, store_id, effective_at)
                     )
                 """)
-
-                # --- NEW: hourly summary (idempotent) ---
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS status_summary_hourly (
                         effective_at  timestamptz PRIMARY KEY,
                         total         integer NOT NULL,
@@ -236,20 +229,18 @@ class DatabaseManager:
                     )
                 """)
             else:
-                # SQLite tables
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS stores (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL,
-                        url TEXT NOT NULL UNIQUE,
+                        url  TEXT NOT NULL UNIQUE,
                         platform TEXT NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         name_override TEXT,
                         last_manual_check TIMESTAMP
                     )
                 """)
-                
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS status_checks (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         store_id INTEGER,
@@ -260,8 +251,7 @@ class DatabaseManager:
                         FOREIGN KEY (store_id) REFERENCES stores (id)
                     )
                 """)
-                
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS summary_reports (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         total_stores INTEGER NOT NULL,
@@ -271,11 +261,9 @@ class DatabaseManager:
                         report_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-
-                # --- NEW (SQLite): hourly per-store snapshot ---
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS store_status_hourly (
-                        effective_at  TEXT NOT NULL,   -- ISO timestamp
+                        effective_at  TEXT NOT NULL,
                         platform      TEXT NOT NULL,
                         store_id      INTEGER NOT NULL,
                         status        TEXT NOT NULL,
@@ -287,9 +275,7 @@ class DatabaseManager:
                         PRIMARY KEY (platform, store_id, effective_at)
                     )
                 """)
-
-                # --- NEW (SQLite): hourly summary ---
-                cursor.execute("""
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS status_summary_hourly (
                         effective_at  TEXT PRIMARY KEY,
                         total         INTEGER NOT NULL,
@@ -301,452 +287,441 @@ class DatabaseManager:
                         last_probe_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-            
             conn.commit()
-    
+
+    # ---------- CRUD helpers (writes via psycopg2, reads via SQLAlchemy) ----------
+
     def get_or_create_store(self, name: str, url: str) -> int:
-        """Get or create store with proper tuple indexing"""
         platform = "foodpanda" if "foodpanda" in url else "grabfood"
-        
         for attempt in range(self.max_retries):
             try:
                 with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    
+                    cur = conn.cursor()
                     if self.db_type == "postgresql":
-                        # Check existing store
-                        cursor.execute("SELECT id FROM stores WHERE url = %s", (url,))
-                        result = cursor.fetchone()
-                        
-                        if result:
-                            return result[0]  # Tuple indexing for regular cursor
-                        
-                        # Create new store
-                        cursor.execute(
+                        cur.execute("SELECT id FROM stores WHERE url = %s", (url,))
+                        row = cur.fetchone()
+                        if row:
+                            return row[0]
+                        cur.execute(
                             "INSERT INTO stores (name, url, platform) VALUES (%s, %s, %s) RETURNING id",
                             (name, url, platform)
                         )
-                        store_result = cursor.fetchone()
-                        store_id = store_result[0]  # Tuple indexing
+                        store_id = cur.fetchone()[0]
                     else:
-                        # SQLite version
-                        cursor.execute("SELECT id FROM stores WHERE url = ?", (url,))
-                        result = cursor.fetchone()
-                        
-                        if result:
-                            return result["id"]  # SQLite uses Row factory
-                        
-                        cursor.execute(
+                        cur.execute("SELECT id FROM stores WHERE url = ?", (url,))
+                        row = cur.fetchone()
+                        if row:
+                            return row["id"]
+                        cur.execute(
                             "INSERT INTO stores (name, url, platform) VALUES (?, ?, ?)",
                             (name, url, platform)
                         )
-                        store_id = cursor.lastrowid
-                    
+                        store_id = cur.lastrowid
                     conn.commit()
                     return store_id
-                    
             except Exception as e:
-                error_msg = str(e).strip()
-                logger.error(f"❌ Failed to get_or_create_store for {name} (attempt {attempt + 1}): {error_msg}")
+                logger.error(f"❌ get_or_create_store failed (attempt {attempt+1}): {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                 else:
-                    raise Exception(f"Failed to create store after {self.max_retries} attempts: {error_msg}")
-    
-    def save_status_check(self, store_id: int, is_online: bool, 
-                         response_time_ms: Optional[int] = None, 
-                         error_message: Optional[str] = None) -> bool:
-        """Save status check with proper data types"""
+                    raise
+
+    def save_status_check(self, store_id: int, is_online: bool,
+                          response_time_ms: Optional[int] = None,
+                          error_message: Optional[str] = None) -> bool:
         for attempt in range(self.max_retries):
             try:
-                # Ensure proper data types
                 is_online_value = bool(is_online)
-                
-                if response_time_ms is not None:
-                    response_time_ms = int(response_time_ms)
-                
+                response_time_ms = int(response_time_ms) if response_time_ms is not None else None
                 if error_message and len(error_message) > 500:
                     error_message = error_message[:500] + "..."
-                
                 with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    
+                    cur = conn.cursor()
                     if self.db_type == "postgresql":
-                        cursor.execute("""
+                        cur.execute("""
                             INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message)
                             VALUES (%s, %s, %s, %s)
                         """, (store_id, is_online_value, response_time_ms, error_message))
                     else:
-                        cursor.execute("""
+                        cur.execute("""
                             INSERT INTO status_checks (store_id, is_online, response_time_ms, error_message)
                             VALUES (?, ?, ?, ?)
                         """, (store_id, is_online_value, response_time_ms, error_message))
-                    
                     conn.commit()
                     return True
-                    
             except Exception as e:
-                error_msg = str(e).strip()
-                logger.error(f"❌ Failed to save status check for store_id {store_id} (attempt {attempt + 1}): {error_msg}")
+                logger.error(f"❌ save_status_check failed (attempt {attempt+1}): {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                 else:
-                    logger.error(f"❌ Failed to save status check after {self.max_retries} attempts")
                     return False
-    
+
     def save_summary_report(self, total_stores: int, online_stores: int, offline_stores: int) -> bool:
-        """Save summary report with proper data types"""
         for attempt in range(self.max_retries):
             try:
-                online_percentage = (online_stores / total_stores * 100) if total_stores > 0 else 0
-                
-                # Ensure proper data types
-                total_stores = int(total_stores)
-                online_stores = int(online_stores)
-                offline_stores = int(offline_stores)
-                online_percentage = float(online_percentage)
-                
+                online_pct = float((online_stores / total_stores * 100) if total_stores > 0 else 0.0)
                 with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    
+                    cur = conn.cursor()
                     if self.db_type == "postgresql":
-                        cursor.execute("""
+                        cur.execute("""
                             INSERT INTO summary_reports (total_stores, online_stores, offline_stores, online_percentage)
                             VALUES (%s, %s, %s, %s)
-                        """, (total_stores, online_stores, offline_stores, online_percentage))
+                        """, (int(total_stores), int(online_stores), int(offline_stores), online_pct))
                     else:
-                        cursor.execute("""
+                        cur.execute("""
                             INSERT INTO summary_reports (total_stores, online_stores, offline_stores, online_percentage)
                             VALUES (?, ?, ?, ?)
-                        """, (total_stores, online_stores, offline_stores, online_percentage))
-                    
+                        """, (int(total_stores), int(online_stores), int(offline_stores), online_pct))
                     conn.commit()
                     return True
-                    
             except Exception as e:
-                error_msg = str(e).strip()
-                logger.error(f"❌ Failed to save summary report (attempt {attempt + 1}): {error_msg}")
+                logger.error(f"❌ save_summary_report failed (attempt {attempt+1}): {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                 else:
-                    logger.error(f"❌ Failed to save summary report after {self.max_retries} attempts")
                     return False
-    
+
+    # ---------- READ APIs (pandas via SQLAlchemy engine; fixes pandas warning) ----------
+
     def get_latest_status(self) -> pd.DataFrame:
-        """Get latest status using proper connection for pandas"""
         try:
-            with self.get_connection() as conn:
-                query = """
+            sql = """
+                SELECT 
+                    s.name,
+                    COALESCE(s.name_override, s.name) AS display_name,
+                    s.url,
+                    s.platform,
+                    sc.is_online,
+                    sc.checked_at,
+                    sc.response_time_ms
+                FROM stores s
+                JOIN status_checks sc ON s.id = sc.store_id
+                JOIN (
+                    SELECT store_id, MAX(checked_at) AS latest_check
+                    FROM status_checks
+                    GROUP BY store_id
+                ) latest ON sc.store_id = latest.store_id AND sc.checked_at = latest.latest_check
+                ORDER BY display_name
+            """
+            return pd.read_sql_query(text(sql), self._ensure_sa())
+        except Exception as e:
+            logger.error(f"❌ get_latest_status failed: {e}")
+            return pd.DataFrame()
+
+    def get_hourly_data(self) -> pd.DataFrame:
+        try:
+            if self.db_type == "postgresql":
+                sql = """
                     SELECT 
-                        s.name,
-                        COALESCE(s.name_override, s.name) as display_name,
-                        s.url,
+                        EXTRACT(HOUR FROM report_time AT TIME ZONE :tz)::integer AS hour,
+                        ROUND(AVG(online_percentage)::numeric, 0)::integer       AS online_pct,
+                        ROUND(AVG(100 - online_percentage)::numeric, 0)::integer AS offline_pct,
+                        COUNT(*) AS data_points
+                    FROM summary_reports
+                    WHERE DATE(report_time AT TIME ZONE :tz) = CURRENT_DATE
+                    GROUP BY EXTRACT(HOUR FROM report_time AT TIME ZONE :tz)
+                    ORDER BY hour
+                """
+                return pd.read_sql_query(text(sql), self._ensure_sa(), params={"tz": self.timezone})
+            else:
+                offset = "+8 hours"  # Manila default
+                sql = f"""
+                    SELECT 
+                        CAST(strftime('%H', report_time, '{offset}') AS INTEGER) AS hour,
+                        ROUND(AVG(online_percentage), 0) AS online_pct,
+                        ROUND(AVG(100 - online_percentage), 0) AS offline_pct,
+                        COUNT(*) AS data_points
+                    FROM summary_reports
+                    WHERE DATE(report_time, '{offset}') = DATE('now', '{offset}')
+                    GROUP BY strftime('%H', report_time, '{offset}')
+                    ORDER BY hour
+                """
+                return pd.read_sql_query(text(sql), self._ensure_sa())
+        except Exception as e:
+            logger.error(f"❌ get_hourly_data failed: {e}")
+            return pd.DataFrame()
+
+    def get_store_logs(self, limit: int = 50) -> pd.DataFrame:
+        try:
+            if self.db_type == "postgresql":
+                sql = """
+                    SELECT 
+                        COALESCE(s.name_override, s.name) AS name,
                         s.platform,
                         sc.is_online,
                         sc.checked_at,
                         sc.response_time_ms
                     FROM stores s
-                    INNER JOIN status_checks sc ON s.id = sc.store_id
-                    INNER JOIN (
-                        SELECT store_id, MAX(checked_at) as latest_check
-                        FROM status_checks
-                        GROUP BY store_id
-                    ) latest ON sc.store_id = latest.store_id AND sc.checked_at = latest.latest_check
-                    ORDER BY display_name
+                    JOIN status_checks sc ON s.id = sc.store_id
+                    WHERE DATE(sc.checked_at AT TIME ZONE :tz) = CURRENT_DATE
+                    ORDER BY sc.checked_at DESC
+                    LIMIT :lim
                 """
-                return pd.read_sql_query(query, conn)
+                return pd.read_sql_query(text(sql), self._ensure_sa(), params={"tz": self.timezone, "lim": int(limit)})
+            else:
+                offset = "+8 hours"
+                sql = f"""
+                    SELECT 
+                        COALESCE(s.name_override, s.name) AS name,
+                        s.platform,
+                        sc.is_online,
+                        sc.checked_at,
+                        sc.response_time_ms
+                    FROM stores s
+                    JOIN status_checks sc ON s.id = sc.store_id
+                    WHERE DATE(sc.checked_at, '{offset}') = DATE('now', '{offset}')
+                    ORDER BY sc.checked_at DESC
+                    LIMIT :lim
+                """
+                return pd.read_sql_query(text(sql), self._ensure_sa(), params={"lim": int(limit)})
         except Exception as e:
-            logger.error(f"❌ Failed to get latest status: {str(e)}")
+            logger.error(f"❌ get_store_logs failed: {e}")
             return pd.DataFrame()
-    
-    def get_hourly_data(self) -> pd.DataFrame:
-        """Get hourly data using dynamic timezone from config"""
-        try:
-            with self.get_connection() as conn:
-                if self.db_type == "postgresql":
-                    query = f"""
-                        SELECT 
-                            EXTRACT(HOUR FROM report_time AT TIME ZONE %s)::integer as hour,
-                            ROUND(AVG(online_percentage)::numeric, 0)::integer as online_pct,
-                            ROUND(AVG(100 - online_percentage)::numeric, 0)::integer as offline_pct,
-                            COUNT(*) as data_points
-                        FROM summary_reports
-                        WHERE DATE(report_time AT TIME ZONE %s) = CURRENT_DATE
-                        GROUP BY EXTRACT(HOUR FROM report_time AT TIME ZONE %s)
-                        ORDER BY hour
-                    """
-                    return pd.read_sql_query(query, conn, params=(self.timezone, self.timezone, self.timezone))
-                else:
-                    # SQLite - calculate offset based on timezone
-                    if self.timezone == 'Asia/Manila':
-                        offset_hours = '+8 hours'
-                    else:
-                        offset_hours = '+8 hours'  # Default to Manila time
-                    
-                    query = f"""
-                        SELECT 
-                            strftime('%H', report_time, '{offset_hours}') as hour,
-                            ROUND(AVG(online_percentage), 0) as online_pct,
-                            ROUND(AVG(100 - online_percentage), 0), COUNT(*) as data_points
-                        FROM summary_reports
-                        WHERE DATE(report_time, '{offset_hours}') = DATE('now', '{offset_hours}')
-                        GROUP BY strftime('%H', report_time, '{offset_hours}')
-                        ORDER BY hour
-                    """
-                    return pd.read_sql_query(query, conn)
-        except Exception as e:
-            logger.error(f"❌ Failed to get hourly data: {str(e)}")
-            return pd.DataFrame()
-    
-    def get_store_logs(self, limit: int = 50) -> pd.DataFrame:
-        """Get store logs using dynamic timezone from config"""
-        try:
-            with self.get_connection() as conn:
-                if self.db_type == "postgresql":
-                    query = """
-                        SELECT 
-                            COALESCE(s.name_override, s.name) as name,
-                            s.platform,
-                            sc.is_online,
-                            sc.checked_at,
-                            sc.response_time_ms
-                        FROM stores s
-                        INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at AT TIME ZONE %s) = CURRENT_DATE
-                        ORDER BY sc.checked_at DESC
-                        LIMIT %s
-                    """
-                    return pd.read_sql_query(query, conn, params=(self.timezone, limit))
-                else:
-                    # SQLite with dynamic timezone offset
-                    if self.timezone == 'Asia/Manila':
-                        offset_hours = '+8 hours'
-                    else:
-                        offset_hours = '+8 hours'  # Default to Manila time
-                    
-                    query = f"""
-                        SELECT 
-                            COALESCE(s.name_override, s.name) as name,
-                            s.platform,
-                            sc.is_online,
-                            sc.checked_at,
-                            sc.response_time_ms
-                        FROM stores s
-                        INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at, '{offset_hours}') = DATE('now', '{offset_hours}')
-                        ORDER BY sc.checked_at DESC
-                        LIMIT ?
-                    """
-                    return pd.read_sql_query(query, conn, params=(limit,))
-        except Exception as e:
-            logger.error(f"❌ Failed to get store logs: {str(e)}")
-            return pd.DataFrame()
-    
+
     def get_daily_uptime(self) -> pd.DataFrame:
-        """Get daily uptime using dynamic timezone from config"""
         try:
-            with self.get_connection() as conn:
-                if self.db_type == "postgresql":
-                    query = """
-                        SELECT 
-                            COALESCE(s.name_override, s.name) as name,
-                            s.platform,
-                            COUNT(sc.id) as total_checks,
-                            SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) as online_checks,
-                            ROUND(
-                                (SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id))::numeric, 
-                                0
-                            )::integer as uptime_percentage
-                        FROM stores s
-                        INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at AT TIME ZONE %s) = CURRENT_DATE
-                        GROUP BY s.id, s.name, s.name_override, s.platform
-                        ORDER BY uptime_percentage DESC
-                    """
-                    return pd.read_sql_query(query, conn, params=(self.timezone,))
-                else:
-                    # SQLite with dynamic timezone offset
-                    if self.timezone == 'Asia/Manila':
-                        offset_hours = '+8 hours'
-                    else:
-                        offset_hours = '+8 hours'  # Default to Manila time
-                    
-                    query = f"""
-                        SELECT 
-                            COALESCE(s.name_override, s.name) as name,
-                            s.platform,
-                            COUNT(sc.id) as total_checks,
-                            SUM(CASE WHEN sc.is_online = 1 THEN 1 ELSE 0 END) as online_checks,
-                            ROUND(
-                                (SUM(CASE WHEN sc.is_online = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id)), 
-                                0
-                            ) as uptime_percentage
-                        FROM stores s
-                        INNER JOIN status_checks sc ON s.id = sc.store_id
-                        WHERE DATE(sc.checked_at, '{offset_hours}') = DATE('now', '{offset_hours}')
-                        GROUP BY s.id, s.name, s.name_override, s.platform
-                        ORDER BY uptime_percentage DESC
-                    """
-                    return pd.read_sql_query(query, conn)
+            if self.db_type == "postgresql":
+                sql = """
+                    SELECT 
+                        COALESCE(s.name_override, s.name) AS name,
+                        s.platform,
+                        COUNT(sc.id)                                         AS total_checks,
+                        SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) AS online_checks,
+                        ROUND(
+                            (SUM(CASE WHEN sc.is_online = true THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id))::numeric, 
+                            0
+                        )::integer AS uptime_percentage
+                    FROM stores s
+                    JOIN status_checks sc ON s.id = sc.store_id
+                    WHERE DATE(sc.checked_at AT TIME ZONE :tz) = CURRENT_DATE
+                    GROUP BY s.id, s.name, s.name_override, s.platform
+                    ORDER BY uptime_percentage DESC
+                """
+                return pd.read_sql_query(text(sql), self._ensure_sa(), params={"tz": self.timezone})
+            else:
+                offset = "+8 hours"
+                sql = f"""
+                    SELECT 
+                        COALESCE(s.name_override, s.name) AS name,
+                        s.platform,
+                        COUNT(sc.id) AS total_checks,
+                        SUM(CASE WHEN sc.is_online = 1 THEN 1 ELSE 0 END) AS online_checks,
+                        ROUND(
+                            (SUM(CASE WHEN sc.is_online = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(sc.id)), 
+                            0
+                        ) AS uptime_percentage
+                    FROM stores s
+                    JOIN status_checks sc ON s.id = sc.store_id
+                    WHERE DATE(sc.checked_at, '{offset}') = DATE('now', '{offset}')
+                    GROUP BY s.id, s.name, s.name_override, s.platform
+                    ORDER BY uptime_percentage DESC
+                """
+                return pd.read_sql_query(text(sql), self._ensure_sa())
         except Exception as e:
-            logger.error(f"❌ Failed to get daily uptime: {str(e)}")
+            logger.error(f"❌ get_daily_uptime failed: {e}")
             return pd.DataFrame()
-    
+
+    # ---------- Admin helpers (ported & adapted) ----------
+
     def get_database_stats(self) -> Dict[str, Any]:
-        """Get database stats with FIXED tuple handling"""
+        """Return lightweight stats for health checks / admin widgets."""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                cursor.execute('SELECT COUNT(*) FROM stores')
-                store_count = cursor.fetchone()[0]
-                
-                cursor.execute('SELECT platform, COUNT(*) FROM stores GROUP BY platform')
+                cur = conn.cursor()
+
+                # store count
+                cur.execute("SELECT COUNT(*) FROM stores")
+                store_count = cur.fetchone()[0]
+
+                # platform breakdown
+                cur.execute("SELECT platform, COUNT(*) FROM stores GROUP BY platform")
+                rows = cur.fetchall()
+                platforms: Dict[str, int] = {}
+                for r in rows:
+                    # r can be tuple or Row
+                    key = r[0]
+                    val = r[1]
+                    platforms[str(key)] = int(val)
+
+                # total checks
+                cur.execute("SELECT COUNT(*) FROM status_checks")
+                total_checks = cur.fetchone()[0]
+
+                # latest summary (most recent report_time)
                 if self.db_type == "postgresql":
-                    platforms = dict(cursor.fetchall())
-                else:
-                    platforms = {row["platform"]: row["COUNT(*)"] for row in cursor.fetchall()}
-                
-                cursor.execute('SELECT COUNT(*) FROM status_checks')
-                total_checks = cursor.fetchone()[0]
-                
-                if self.db_type == "postgresql":
-                    cursor.execute("""
-                        SELECT total_stores, online_stores, offline_stores, 
-                               online_percentage, report_time
-                        FROM summary_reports 
-                        ORDER BY report_time DESC 
+                    cur.execute("""
+                        SELECT total_stores, online_stores, offline_stores, online_percentage, report_time
+                        FROM summary_reports
+                        ORDER BY report_time DESC
                         LIMIT 1
                     """)
-                    latest_summary = cursor.fetchone()
-                    latest_summary_dict = None
-                    if latest_summary:
-                        latest_summary_dict = {
-                            'total_stores': latest_summary[0],
-                            'online_stores': latest_summary[1], 
-                            'offline_stores': latest_summary[2],
-                            'online_percentage': latest_summary[3],
-                            'report_time': latest_summary[4]
+                    ls = cur.fetchone()
+                    latest_summary = None
+                    if ls:
+                        latest_summary = {
+                            "total_stores": ls[0],
+                            "online_stores": ls[1],
+                            "offline_stores": ls[2],
+                            "online_percentage": ls[3],
+                            "report_time": ls[4],
                         }
                 else:
-                    cursor.execute('SELECT * FROM summary_reports ORDER BY report_time DESC LIMIT 1')
-                    latest_summary = cursor.fetchone()
-                    latest_summary_dict = dict(latest_summary) if latest_summary else None
-                
+                    cur.execute("SELECT total_stores, online_stores, offline_stores, online_percentage, report_time FROM summary_reports ORDER BY report_time DESC LIMIT 1")
+                    ls = cur.fetchone()
+                    latest_summary = None
+                    if ls:
+                        # sqlite Row supports keys but we consume positionally for consistency
+                        latest_summary = {
+                            "total_stores": ls[0],
+                            "online_stores": ls[1],
+                            "offline_stores": ls[2],
+                            "online_percentage": ls[3],
+                            "report_time": ls[4],
+                        }
+
                 return {
-                    'store_count': store_count,
-                    'platforms': platforms,
-                    'total_checks': total_checks,
-                    'latest_summary': latest_summary_dict,
-                    'db_type': self.db_type,
-                    'timezone': self.timezone
+                    "store_count": int(store_count),
+                    "platforms": platforms,
+                    "total_checks": int(total_checks),
+                    "latest_summary": latest_summary,
+                    "db_type": self.db_type,
+                    "timezone": self.timezone,
                 }
         except Exception as e:
-            logger.error(f"❌ Failed to get database stats: {str(e)}")
+            logger.error(f"❌ get_database_stats failed: {e}")
             return {
-                'store_count': 0,
-                'platforms': {},
-                'total_checks': 0,
-                'latest_summary': None,
-                'db_type': self.db_type,
-                'timezone': self.timezone
+                "store_count": 0,
+                "platforms": {},
+                "total_checks": 0,
+                "latest_summary": None,
+                "db_type": self.db_type,
+                "timezone": self.timezone,
             }
-    
-    # ADDED: Manual Override Methods
-    
+
     def get_stores_needing_attention(self) -> pd.DataFrame:
-        """Get stores that need manual attention (BLOCKED, UNKNOWN, ERROR)"""
+        """
+        Return stores that currently look BLOCKED/UNKNOWN/ERROR today.
+        - Postgres: uses DISTINCT ON (fast path)
+        - SQLite: emulate with MAX(checked_at) subquery
+        """
         try:
-            with self.get_connection() as conn:
-                query = """
+            if self.db_type == "postgresql":
+                sql = """
                     SELECT 
                         s.id,
-                        COALESCE(s.name_override, s.name) as name,
+                        COALESCE(s.name_override, s.name) AS name,
                         s.url,
                         s.platform,
                         sc.is_online,
                         sc.checked_at,
                         sc.response_time_ms,
                         sc.error_message,
-                        
-                        -- Determine problematic status from error message
                         CASE 
-                            WHEN sc.error_message LIKE '[BLOCKED]%' THEN 'BLOCKED'
-                            WHEN sc.error_message LIKE '[UNKNOWN]%' THEN 'UNKNOWN'  
-                            WHEN sc.error_message LIKE '[ERROR]%' THEN 'ERROR'
+                            WHEN sc.error_message LIKE '[BLOCKED]%%' THEN 'BLOCKED'
+                            WHEN sc.error_message LIKE '[UNKNOWN]%%' THEN 'UNKNOWN'
+                            WHEN sc.error_message LIKE '[ERROR]%%'  THEN 'ERROR'
                             WHEN sc.is_online = false AND sc.error_message IS NOT NULL THEN 'NEEDS_CHECK'
                             ELSE 'OK'
-                        END as problem_status
-                        
+                        END AS problem_status
                     FROM stores s
-                    INNER JOIN (
-                        SELECT DISTINCT ON (store_id) 
-                            store_id, is_online, checked_at, response_time_ms, error_message
-                        FROM status_checks 
+                    JOIN (
+                        SELECT DISTINCT ON (store_id)
+                               store_id, is_online, checked_at, response_time_ms, error_message
+                        FROM status_checks
                         ORDER BY store_id, checked_at DESC
                     ) sc ON s.id = sc.store_id
-                    
                     WHERE (
-                        sc.error_message LIKE '[BLOCKED]%' OR 
-                        sc.error_message LIKE '[UNKNOWN]%' OR 
-                        sc.error_message LIKE '[ERROR]%'
+                        sc.error_message LIKE '[BLOCKED]%%' OR
+                        sc.error_message LIKE '[UNKNOWN]%%' OR
+                        sc.error_message LIKE '[ERROR]%%'
                     )
-                    AND DATE(sc.checked_at) = CURRENT_DATE  -- Only today's issues
-                    
+                    AND DATE(sc.checked_at AT TIME ZONE :tz) = CURRENT_DATE
                     ORDER BY sc.checked_at DESC
                 """
-                
-                return pd.read_sql_query(query, conn)
-                
+                return pd.read_sql_query(text(sql), self._ensure_sa(), params={"tz": self.timezone})
+            else:
+                # SQLite: emulate "latest per store" then filter
+                offset = "+8 hours"
+                sql = f"""
+                    WITH latest AS (
+                        SELECT sc1.*
+                        FROM status_checks sc1
+                        JOIN (
+                            SELECT store_id, MAX(checked_at) AS max_ts
+                            FROM status_checks
+                            GROUP BY store_id
+                        ) x ON x.store_id = sc1.store_id AND x.max_ts = sc1.checked_at
+                    )
+                    SELECT 
+                        s.id,
+                        COALESCE(s.name_override, s.name) AS name,
+                        s.url,
+                        s.platform,
+                        l.is_online,
+                        l.checked_at,
+                        l.response_time_ms,
+                        l.error_message,
+                        CASE 
+                            WHEN l.error_message LIKE '[BLOCKED]%%' THEN 'BLOCKED'
+                            WHEN l.error_message LIKE '[UNKNOWN]%%' THEN 'UNKNOWN'
+                            WHEN l.error_message LIKE '[ERROR]%%'  THEN 'ERROR'
+                            WHEN l.is_online = 0 AND l.error_message IS NOT NULL THEN 'NEEDS_CHECK'
+                            ELSE 'OK'
+                        END AS problem_status
+                    FROM stores s
+                    JOIN latest l ON s.id = l.store_id
+                    WHERE (
+                        l.error_message LIKE '[BLOCKED]%%' OR
+                        l.error_message LIKE '[UNKNOWN]%%' OR
+                        l.error_message LIKE '[ERROR]%%'
+                    )
+                    AND DATE(l.checked_at, '{offset}') = DATE('now', '{offset}')
+                    ORDER BY l.checked_at DESC
+                """
+                return pd.read_sql_query(text(sql), self._ensure_sa())
         except Exception as e:
-            logger.error(f"Failed to get stores needing attention: {e}")
+            logger.error(f"❌ get_stores_needing_attention failed: {e}")
             return pd.DataFrame()
-    
+
     def set_store_name_override(self, store_id: int, new_name: str, set_by: str) -> bool:
-        """Set custom name for a store"""
+        """Set custom name for a store (records last_manual_check)."""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor()
-                
+                cur = conn.cursor()
                 if self.db_type == "postgresql":
-                    cursor.execute("""
-                        UPDATE stores 
-                        SET name_override = %s, last_manual_check = CURRENT_TIMESTAMP
+                    cur.execute("""
+                        UPDATE stores
+                        SET name_override = %s,
+                            last_manual_check = CURRENT_TIMESTAMP
                         WHERE id = %s
                     """, (new_name, store_id))
                 else:
-                    cursor.execute("""
-                        UPDATE stores 
-                        SET name_override = ?, last_manual_check = CURRENT_TIMESTAMP
+                    cur.execute("""
+                        UPDATE stores
+                        SET name_override = ?,
+                            last_manual_check = CURRENT_TIMESTAMP
                         WHERE id = ?
                     """, (new_name, store_id))
-                
                 conn.commit()
                 logger.info(f"✅ Store name updated: store_id={store_id}, name='{new_name}', by={set_by}")
                 return True
-                
         except Exception as e:
-            logger.error(f"Failed to set store name override: {e}")
+            logger.error(f"❌ set_store_name_override failed: {e}")
             return False
 
-    # ---------- NEW PUBLIC HELPERS FOR HOURLY SNAPSHOTS ----------
+    # ---------- Hourly upserts (unchanged logic) ----------
 
     def ensure_schema(self) -> None:
-        """Idempotently ensure hourly tables exist (safe to call anytime)."""
         self._create_tables()
 
-    def upsert_store_status_hourly(
-        self, *,
-        effective_at, platform, store_id, status,
-        confidence, response_ms, evidence, probe_time, run_id
-    ) -> None:
-        """One row per (platform, store_id, hour). Latest probe in the hour wins."""
+    def upsert_store_status_hourly(self, *, effective_at, platform, store_id, status,
+                                   confidence, response_ms, evidence, probe_time, run_id) -> None:
         for attempt in range(self.max_retries):
             try:
                 with self.get_connection() as conn:
-                    cursor = conn.cursor()
+                    cur = conn.cursor()
                     if self.db_type == "postgresql":
-                        cursor.execute("""
+                        cur.execute("""
                             INSERT INTO store_status_hourly
                               (effective_at, platform, store_id, status, confidence, response_ms, evidence, probe_time, run_id)
                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
@@ -761,7 +736,7 @@ class DatabaseManager:
                             WHERE store_status_hourly.probe_time <= EXCLUDED.probe_time
                         """, (effective_at, platform, store_id, status, confidence, response_ms, evidence, probe_time, str(run_id)))
                     else:
-                        cursor.execute("""
+                        cur.execute("""
                             INSERT INTO store_status_hourly
                               (effective_at, platform, store_id, status, confidence, response_ms, evidence, probe_time, run_id)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -778,22 +753,19 @@ class DatabaseManager:
                     conn.commit()
                     return
             except Exception as e:
-                logger.error(f"❌ upsert_store_status_hourly failed (attempt {attempt + 1}): {e}")
+                logger.error(f"❌ upsert_store_status_hourly failed (attempt {attempt+1}): {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                 else:
                     raise
 
-    def upsert_status_summary_hourly(
-        self, *, effective_at, total, online, offline, blocked, errors, unknown, last_probe_at
-    ) -> None:
-        """One summary row per hour (idempotent)."""
+    def upsert_status_summary_hourly(self, *, effective_at, total, online, offline, blocked, errors, unknown, last_probe_at) -> None:
         for attempt in range(self.max_retries):
             try:
                 with self.get_connection() as conn:
-                    cursor = conn.cursor()
+                    cur = conn.cursor()
                     if self.db_type == "postgresql":
-                        cursor.execute("""
+                        cur.execute("""
                             INSERT INTO status_summary_hourly
                               (effective_at, total, online, offline, blocked, errors, unknown, last_probe_at)
                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
@@ -803,7 +775,7 @@ class DatabaseManager:
                               last_probe_at=EXCLUDED.last_probe_at
                         """, (effective_at, total, online, offline, blocked, errors, unknown, last_probe_at))
                     else:
-                        cursor.execute("""
+                        cur.execute("""
                             INSERT INTO status_summary_hourly
                               (effective_at, total, online, offline, blocked, errors, unknown, last_probe_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -815,14 +787,13 @@ class DatabaseManager:
                     conn.commit()
                     return
             except Exception as e:
-                logger.error(f"❌ upsert_status_summary_hourly failed (attempt {attempt + 1}): {e}")
+                logger.error(f"❌ upsert_status_summary_hourly failed (attempt {attempt+1}): {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                 else:
                     raise
-    
+
     def close(self):
-        """Close database connections"""
         if self.connection_pool:
             try:
                 self.connection_pool.closeall()
@@ -830,5 +801,5 @@ class DatabaseManager:
             except Exception as e:
                 logger.error(f"❌ Error closing connection pool: {e}")
 
-# Global database instance
+# Global instance
 db = DatabaseManager()

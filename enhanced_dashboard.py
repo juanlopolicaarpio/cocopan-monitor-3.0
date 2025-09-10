@@ -2,10 +2,9 @@
 """
 CocoPan Watchtower - CLIENT DASHBOARD (SIMPLIFIED, FIXED)
 ✅ Simple login page - no fancy backgrounds
-✅ Just the form and basic styling
-✅ Foodpanda status persistence until next hour (live bias to VA check-ins)
-✅ Reports starting September 10, 2024
-✅ Daily uptime / downtime / reports use store_status_hourly (fixes inflated counts)
+✅ Live status prefers VA check-ins for Foodpanda
+✅ Daily uptime / downtime / reports read from store_status_hourly (fixes inflated counts)
+✅ Reports available starting September 10, 2025
 """
 
 import os
@@ -403,7 +402,7 @@ def is_under_review(error_message: str) -> bool:
 def load_comprehensive_data():
     """
     LIVE LIST: prefer VA check-ins for Foodpanda (uses status_checks for 'latest' only)
-    DAILY UPTIME: use store_status_hourly to avoid inflated counts
+    DAILY UPTIME/DOWNTIME: use store_status_hourly to avoid inflated counts
     """
     try:
         with db.get_connection() as conn:
@@ -487,8 +486,8 @@ def load_comprehensive_data():
 def load_reports_data(start_date, end_date):
     """Historical reports from store_status_hourly (range inclusive)"""
     try:
-        # Enforce minimum date of September 10, 2024
-        min_date = datetime(2024, 9, 10).date()
+        # Enforce minimum date of September 10, 2025
+        min_date = datetime(2025, 9, 10).date()
         if start_date < min_date:
             start_date = min_date
             
@@ -912,20 +911,26 @@ def main():
 
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
 
-    # ----- TAB 4: REPORTS (SNAPSHOT) -----
+    # ----- TAB 4: REPORTS (SNAPSHOT with persistent generate state) -----
     with tab4:
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Store Uptime Reports</div>
-            <div class="section-subtitle">Historical uptime analysis • Excludes 'Under Review' periods • Available from September 10, 2024</div>
+            <div class="section-subtitle">Historical uptime analysis • Excludes 'Under Review' periods • Available from September 10, 2025</div>
         </div>
         """, unsafe_allow_html=True)
+
+        # --- state init ---
+        if "reports_generated" not in st.session_state:
+            st.session_state.reports_generated = False
+        if "reports_last_range" not in st.session_state:
+            st.session_state.reports_last_range = None  # (start_date, end_date)
 
         st.markdown('<div class="filter-container">', unsafe_allow_html=True)
         col1, col2, col3 = st.columns([2, 2, 1])
         ph_now = config.get_current_time()
-        min_date = datetime(2024, 9, 10).date()
-        
+        min_date = datetime(2025, 9, 10).date()
+
         with col1:
             default_start = max(min_date, (ph_now - timedelta(days=7)).date())
             start_date = st.date_input(
@@ -944,114 +949,135 @@ def main():
             )
         with col3:
             st.markdown("<br>", unsafe_allow_html=True)
-            generate_report = st.button("📊 Generate Report", use_container_width=True)
+            generate_report_clicked = st.button("📊 Generate Report", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
+        # Normalize and validate dates
         if start_date < min_date:
             st.info(f"ℹ️ Reports are available starting from {min_date.strftime('%B %d, %Y')}. Start date adjusted automatically.")
+            start_date = min_date
 
         if start_date > end_date:
             st.error("❌ Start date must be before end date")
-        elif not generate_report:
+            st.session_state.reports_generated = False
+            st.stop()
+
+        # If button clicked, mark generated and remember the range
+        if generate_report_clicked:
+            st.session_state.reports_generated = True
+            st.session_state.reports_last_range = (start_date, end_date)
+
+        # If range changed since last generation, require re-generate
+        if st.session_state.reports_last_range is not None:
+            last_start, last_end = st.session_state.reports_last_range
+            if start_date != last_start or end_date != last_end:
+                st.session_state.reports_generated = False
+
+        if not st.session_state.reports_generated:
             st.info("Select a date range and click Generate Report.")
-        else:
-            reports_data, rep_err = load_reports_data(start_date, end_date)
-            if rep_err:
-                st.error(f"Error loading reports data: {rep_err}")
-            elif reports_data is None or reports_data.empty:
-                st.info("📭 No data available for the selected date range")
+            st.stop()
+
+        # --- data load using the last generated range (stable across reruns) ---
+        range_start, range_end = st.session_state.reports_last_range
+        reports_data, rep_err = load_reports_data(range_start, range_end)
+        if rep_err:
+            st.error(f"Error loading reports data: {rep_err}")
+            st.stop()
+        if reports_data is None or reports_data.empty:
+            st.info("📭 No data available for the selected date range")
+            st.stop()
+
+        total_stores = len(reports_data)
+        stores_with_data = int((reports_data['effective_checks'] > 0).sum())
+        stores_no_data = total_stores - stores_with_data
+        avg_uptime = reports_data['uptime_percentage'].dropna().mean() if stores_with_data > 0 else 0.0
+
+        st.markdown("### 📊 Report Summary")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.metric("Date Range", f"{(range_end - range_start).days + 1} days")
+        with c2:
+            st.metric("Stores with Data", f"{stores_with_data}/{total_stores}")
+        with c3:
+            st.metric("Average Uptime", f"{avg_uptime:.1f}%" if stores_with_data > 0 else "N/A")
+        with c4:
+            st.metric("Period", f"{range_start.strftime('%b %d')} - {range_end.strftime('%b %d')}")
+
+        st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+        r1, r2 = st.columns([2, 2])
+        with r1:
+            available_platforms = sorted(reports_data['platform'].dropna().unique())
+            platform_options = ["All Platforms"] + available_platforms
+            platform_filter_reports = st.selectbox("Filter by Platform:", platform_options, key="reports_platform_filter")
+        with r2:
+            sort_options = ["Uptime (High to Low)", "Uptime (Low to High)", "Store Name (A-Z)", "Platform"]
+            sort_order = st.selectbox("Sort by:", sort_options, key="reports_sort_order")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        filtered_data = reports_data.copy()
+        if platform_filter_reports != "All Platforms":
+            filtered_data = filtered_data[filtered_data['platform'] == platform_filter_reports]
+
+        display_data = pd.DataFrame()
+        display_data['Branch'] = filtered_data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
+        display_data['Platform'] = filtered_data['platform']
+
+        uptime_formatted = []
+        for _, row in filtered_data.iterrows():
+            if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
+                uptime_formatted.append("📊 No Data")
             else:
-                total_stores = len(reports_data)
-                stores_with_data = int((reports_data['effective_checks'] > 0).sum())
-                stores_no_data = total_stores - stores_with_data
-                avg_uptime = reports_data['uptime_percentage'].dropna().mean() if stores_with_data > 0 else 0.0
-
-                st.markdown("### 📊 Report Summary")
-                c1, c2, c3, c4 = st.columns(4)
-                with c1:
-                    st.metric("Date Range", f"{(end_date - start_date).days + 1} days")
-                with c2:
-                    st.metric("Stores with Data", f"{stores_with_data}/{total_stores}")
-                with c3:
-                    st.metric("Average Uptime", f"{avg_uptime:.1f}%" if stores_with_data > 0 else "N/A")
-                with c4:
-                    st.metric("Period", f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d')}")
-
-                st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-                r1, r2 = st.columns([2, 2])
-                with r1:
-                    available_platforms = sorted(reports_data['platform'].dropna().unique())
-                    platform_options = ["All Platforms"] + available_platforms
-                    platform_filter_reports = st.selectbox("Filter by Platform:", platform_options, key="reports_platform_filter")
-                with r2:
-                    sort_options = ["Uptime (High to Low)", "Uptime (Low to High)", "Store Name (A-Z)", "Platform"]
-                    sort_order = st.selectbox("Sort by:", sort_options, key="reports_sort_order")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-                filtered_data = reports_data.copy()
-                if platform_filter_reports != "All Platforms":
-                    filtered_data = filtered_data[filtered_data['platform'] == platform_filter_reports]
-
-                display_data = pd.DataFrame()
-                display_data['Branch'] = filtered_data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
-                display_data['Platform'] = filtered_data['platform']
-
-                uptime_formatted = []
-                for _, row in filtered_data.iterrows():
-                    if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
-                        uptime_formatted.append("📊 No Data")
-                    else:
-                        uptime = float(row['uptime_percentage'])
-                        if uptime >= 95:
-                            uptime_formatted.append(f"🟢 {uptime:.1f}%")
-                        elif uptime >= 80:
-                            uptime_formatted.append(f"🟡 {uptime:.1f}%")
-                        else:
-                            uptime_formatted.append(f"🔴 {uptime:.1f}%")
-                display_data['Uptime'] = uptime_formatted
-
-                if sort_order == "Uptime (High to Low)":
-                    sort_values = []
-                    for _, row in filtered_data.iterrows():
-                        if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
-                            sort_values.append(-1)
-                        else:
-                            sort_values.append(float(row['uptime_percentage']))
-                    display_data['sort_helper'] = sort_values
-                    display_data = display_data.sort_values('sort_helper', ascending=False).drop('sort_helper', axis=1)
-                elif sort_order == "Uptime (Low to High)":
-                    sort_values = []
-                    for _, row in filtered_data.iterrows():
-                        if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
-                            sort_values.append(999)
-                        else:
-                            sort_values.append(float(row['uptime_percentage']))
-                    display_data['sort_helper'] = sort_values
-                    display_data = display_data.sort_values('sort_helper', ascending=True).drop('sort_helper', axis=1)
-                elif sort_order == "Store Name (A-Z)":
-                    display_data = display_data.sort_values('Branch')
-                elif sort_order == "Platform":
-                    display_data = display_data.sort_values(['Platform', 'Branch'])
-
-                st.markdown("### 📈 Store Uptime Report")
-                if len(display_data) == 0:
-                    st.info(f"No stores found for {platform_filter_reports}")
+                uptime = float(row['uptime_percentage'])
+                if uptime >= 95:
+                    uptime_formatted.append(f"🟢 {uptime:.1f}%")
+                elif uptime >= 80:
+                    uptime_formatted.append(f"🟡 {uptime:.1f}%")
                 else:
-                    st.dataframe(display_data, use_container_width=True, hide_index=True, height=420)
-                    st.markdown("**Legend:** 🟢 Excellent (≥95%) • 🟡 Good (80–94%) • 🔴 Needs Attention (<80%) • 📊 No Data Available")
+                    uptime_formatted.append(f"🔴 {uptime:.1f}%")
+        display_data['Uptime'] = uptime_formatted
 
-                    if stores_with_data > 0:
-                        high_performers = int(((filtered_data['uptime_percentage'] >= 95) & filtered_data['uptime_percentage'].notna()).sum())
-                        low_performers = int(((filtered_data['uptime_percentage'] < 80) & filtered_data['uptime_percentage'].notna()).sum())
-                        st.markdown("### 📋 Quick Insights")
-                        ic1, ic2, ic3 = st.columns(3)
-                        with ic1:
-                            st.markdown(f"**🟢 High Performers:** {high_performers} stores (≥95% uptime)")
-                        with ic2:
-                            st.markdown(f"**🔴 Need Attention:** {low_performers} stores (<80% uptime)")
-                        with ic3:
-                            if stores_no_data > 0:
-                                st.markdown(f"**📊 No Data:** {stores_no_data} stores (no activity in period)")
+        if sort_order == "Uptime (High to Low)":
+            sort_values = []
+            for _, row in filtered_data.iterrows():
+                if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
+                    sort_values.append(-1)
+                else:
+                    sort_values.append(float(row['uptime_percentage']))
+            display_data['sort_helper'] = sort_values
+            display_data = display_data.sort_values('sort_helper', ascending=False).drop('sort_helper', axis=1)
+        elif sort_order == "Uptime (Low to High)":
+            sort_values = []
+            for _, row in filtered_data.iterrows():
+                if row.get('effective_checks', 0) == 0 or pd.isna(row['uptime_percentage']):
+                    sort_values.append(999)
+                else:
+                    sort_values.append(float(row['uptime_percentage']))
+            display_data['sort_helper'] = sort_values
+            display_data = display_data.sort_values('sort_helper', ascending=True).drop('sort_helper', axis=1)
+        elif sort_order == "Store Name (A-Z)":
+            display_data = display_data.sort_values('Branch')
+        elif sort_order == "Platform":
+            display_data = display_data.sort_values(['Platform', 'Branch'])
+
+        st.markdown("### 📈 Store Uptime Report")
+        if len(display_data) == 0:
+            st.info(f"No stores found for {platform_filter_reports}")
+        else:
+            st.dataframe(display_data, use_container_width=True, hide_index=True, height=420)
+            st.markdown("**Legend:** 🟢 Excellent (≥95%) • 🟡 Good (80–94%) • 🔴 Needs Attention (<80%) • 📊 No Data Available")
+
+            if stores_with_data > 0:
+                high_performers = int(((filtered_data['uptime_percentage'] >= 95) & filtered_data['uptime_percentage'].notna()).sum())
+                low_performers = int(((filtered_data['uptime_percentage'] < 80) & filtered_data['uptime_percentage'].notna()).sum())
+                st.markdown("### 📋 Quick Insights")
+                ic1, ic2, ic3 = st.columns(3)
+                with ic1:
+                    st.markdown(f"**🟢 High Performers:** {high_performers} stores (≥95% uptime)")
+                with ic2:
+                    st.markdown(f"**🔴 Need Attention:** {low_performers} stores (<80% uptime)")
+                with ic3:
+                    if stores_no_data > 0:
+                        st.markdown(f"**📊 No Data:** {stores_no_data} stores (no activity in period)")
 
 if __name__ == "__main__":
     try:
