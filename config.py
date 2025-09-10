@@ -26,7 +26,7 @@ class Config:
     # We do NOT hard-code DATABASE_URL here. Always read at call time via get_database_url().
 
     # ---- Monitoring ----
-    MONITOR_START_HOUR = int(os.getenv('MONITOR_START_HOUR', '6'))   # 6 AM Manila
+    MONITOR_START_HOUR = int(os.getenv('MONITOR_START_HOUR', '7'))   # 6 AM Manila
     MONITOR_END_HOUR   = int(os.getenv('MONITOR_END_HOUR', '21'))    # 9 PM Manila
     CHECK_INTERVAL_MINUTES = int(os.getenv('CHECK_INTERVAL_MINUTES', '60'))
     TIMEZONE = os.getenv('TIMEZONE', 'Asia/Manila')

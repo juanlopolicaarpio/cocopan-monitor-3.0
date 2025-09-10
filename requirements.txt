@@ -16,6 +16,9 @@ streamlit>=1.28.0
 plotly>=5.17.0
 pandas>=2.2.0
 
+# Enhanced Authentication (NEW - REQUIRED for persistent login)
+streamlit-cookies-manager>=0.2.0
+
 # Time and Timezone
 pytz>=2024.1
 

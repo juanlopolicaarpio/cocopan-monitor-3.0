@@ -4,6 +4,7 @@ CocoPan Admin Dashboard - FIXED DATA SAVING + DEFAULT-ALL-ONLINE AT WINDOW START
 ✅ Saves to BOTH legacy and hourly snapshot tables
 ✅ Idempotency keyed by explicit [VA_CHECKIN] hour tag (no TZ ambiguity)
 ✅ Default state becomes "ALL ONLINE" exactly 10 minutes before each hour and until submission
+✅ Offline-first sorting in the store list and search results
 """
 # ===== Standard libs =====
 import os
@@ -237,7 +238,7 @@ def format_time_ago(checked_at) -> str:
 # VA Check-in helpers and schedule
 # ------------------------------------------------------------------------------
 def get_va_checkin_schedule():
-    return {"start_hour": 6, "end_hour": 22, "timezone": "Asia/Manila"}
+    return {"start_hour": 7, "end_hour": 21, "timezone": "Asia/Manila"}
 
 def get_current_manila_time():
     return datetime.now(pytz.timezone("Asia/Manila"))
@@ -547,19 +548,34 @@ You can review stores below; submissions are accepted during the window.
         if ql in k: return 2
         return 3
 
+    # ----------------------------
+    # OFFLINE-FIRST FILTERING (NEW)
+    # ----------------------------
+    offline_set: Set[int] = st.session_state.va_offline_stores
+
     q = st.text_input(
         "Search (prefix-friendly, 'Cocopan' ignored):",
         placeholder="Type: m → ma → may… (matches 'Cocopan Maysilo')",
-        help="Searching treats the 'Cocopan' prefix as invisible.",
+        help="Results are ordered with OFFLINE stores first. Searching treats the 'Cocopan' prefix as invisible.",
     )
 
     if q:
-        ranked = [(rank(s["name"], q), norm_name(s["name"]), s) for s in stores]
-        filtered = [t[2] for t in sorted([r for r in ranked if r[0] < 3], key=lambda x: (x[0], x[1]))]
-        st.info(f"Found {len(filtered)} matches for '{q}'. Prefix matches first.")
+        ranked = []
+        for s in stores:
+            r = rank(s["name"], q)
+            if r < 3:
+                # offline-first (0 for offline so it sorts ahead of online=1)
+                offline_primary = 0 if (s["id"] in offline_set) else 1
+                ranked.append((offline_primary, r, norm_name(s["name"]), s))
+        filtered = [t[3] for t in sorted(ranked, key=lambda x: (x[0], x[1], x[2]))]
+        st.info(f"Found {len(filtered)} matches for '{q}'. Offline first, then best prefix matches.")
     else:
-        filtered = stores
-        st.info(f"Showing all {len(filtered)} stores. Type to filter.")
+        # Show all, offline first then alphabetical by normalized name
+        filtered = sorted(
+            stores,
+            key=lambda s: (0 if (s["id"] in offline_set) else 1, norm_name(s["name"]))
+        )
+        st.info(f"Showing all {len(filtered)} stores. Ordered with OFFLINE first, then A→Z.")
 
     if not filtered:
         st.warning(f"No stores match '{q}'. Try a shorter prefix or a different term.")
@@ -601,9 +617,14 @@ You can review stores below; submissions are accepted during the window.
     if st.session_state.va_offline_stores:
         st.markdown("### 📋 Currently Marked Offline")
         idx = 1
-        for s in stores:
-            if s["id"] in st.session_state.va_offline_stores:
-                st.write(f"{idx}. 🔴 {s['name'].replace('Cocopan - ', '').replace('Cocopan ', '')}"); idx += 1
+        # show offline list A→Z for readability
+        offline_sorted = sorted(
+            [s for s in stores if s["id"] in st.session_state.va_offline_stores],
+            key=lambda s: norm_name(s["name"])
+        )
+        for s in offline_sorted:
+            st.write(f"{idx}. 🔴 {s['name'].replace('Cocopan - ', '').replace('Cocopan ', '')}")
+            idx += 1
 
     # Submit
     st.markdown("---"); st.markdown("### 📤 Submit Hourly Check-in")
