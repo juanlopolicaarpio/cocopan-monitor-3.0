@@ -651,7 +651,7 @@ You can review stores below; submissions are accepted during the window.
         st.info(f"Showing all {len(filtered)} stores. Type to filter.")
 
     if not filtered:
-        st.warning(f"No stores match "{q}". Try a shorter prefix or a different term.")
+        st.warning(f"No stores match '{q}'. Try a shorter prefix or a different term.")
 
     # Render each store with preserved state
     for s in filtered:
