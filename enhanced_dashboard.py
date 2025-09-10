@@ -9,6 +9,8 @@ CocoPan Watchtower - CLIENT DASHBOARD (COMPLETE WITH ENHANCED AUTHENTICATION)
 ✅ Fixed Foodpanda display issue with hybrid data sources
 ✅ Legend positioned properly under charts
 ✅ Foodpanda stores now appear in all tabs
+✅ No deprecated st.cache usage - all modern caching
+✅ Streamlined login UI
 """
 
 import os
@@ -681,7 +683,7 @@ def is_under_review(error_message: str) -> bool:
     return msg.startswith('[BLOCKED]') or msg.startswith('[UNKNOWN]') or msg.startswith('[ERROR]')
 
 # ======================================================================
-#                            DATA LOADERS
+#                            DATA LOADERS (UPDATED - No deprecated cache)
 # ======================================================================
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
 def load_comprehensive_data():
@@ -1097,12 +1099,7 @@ def check_email_authentication() -> bool:
             help="Enter your authorized company email address"
         )
         
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            submitted = st.form_submit_button("🚀 Access Dashboard", use_container_width=True)
-        with col2:
-            if st.form_submit_button("ℹ️ Need Access?", use_container_width=True):
-                st.info("Contact your administrator to get your email authorized for dashboard access.")
+        submitted = st.form_submit_button("🚀 Access Dashboard", use_container_width=True)
         
         if submitted:
             e = email.strip().lower()
@@ -1130,12 +1127,6 @@ def check_email_authentication() -> bool:
                 # Small delay to show success message
                 time.sleep(1)
                 st.rerun()
-
-    # Show authentication stats
-    if _COOKIE_LIB_AVAILABLE and cookies.persistent:
-        st.caption("🔐 Secure authentication with encrypted cookies enabled")
-    else:
-        st.caption("📝 Session-based authentication (will expire when browser closes)")
 
     return False
 
@@ -1641,7 +1632,8 @@ def main():
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         if st.button("🔄 Refresh All Data", use_container_width=True):
-            load_comprehensive_data.clear() 
+            # Clear all cached data using new syntax
+            st.cache_data.clear()
             st.rerun()
 
 if __name__ == "__main__":
