@@ -27,7 +27,7 @@ class Config:
 
     # ---- Monitoring ----
     MONITOR_START_HOUR = int(os.getenv('MONITOR_START_HOUR', '6'))   # 6 AM Manila
-    MONITOR_END_HOUR   = int(os.getenv('MONITOR_END_HOUR', '21'))    # 9 PM Manila
+    MONITOR_END_HOUR   = int(os.getenv('MONITOR_END_HOUR', '20'))    # 9 PM Manila
     CHECK_INTERVAL_MINUTES = int(os.getenv('CHECK_INTERVAL_MINUTES', '60'))
     TIMEZONE = os.getenv('TIMEZONE', 'Asia/Manila')
 

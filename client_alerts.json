@@ -15,8 +15,19 @@
         "robert.deguzman@cocopan.ph",
         "vida.rodriguez@cocopan.ph",
         "joy.devilla@cocopan.ph",
-        "arthurpolicarpio@gmail.com"
-      ],
+        "mavi.principe@cocopan.ph",
+        "neil.lozada@cocopan.ph",
+        "catherine.caparic@cocopan.ph",
+        "roberto.avila@cocopan.ph",
+        "gerald.salac@cocopan.ph",
+        "anthony.mamarlao@cocopan.ph",
+        "julius.dingle@cocopan.ph",
+        "rj.moreno@cocopan.ph",
+        "grace.dizon@cocopan.ph",
+        "rochell.nantona@cocopan.ph",
+        "janice.arnoco@cocopan.ph"
+      ]
+      ,
       "alert_types": [
         "store_offline",
         "store_online", 
@@ -44,9 +55,20 @@
         "gino.rodriguez@cocopan.ph",
         "robert.deguzman@cocopan.ph",
         "vida.rodriguez@cocopan.ph",
-        "joy.devilla@cocopan.ph"
-
+        "joy.devilla@cocopan.ph",
+        "mavi.principe@cocopan.ph",
+        "neil.lozada@cocopan.ph",
+        "catherine.caparic@cocopan.ph",
+        "roberto.avila@cocopan.ph",
+        "gerald.salac@cocopan.ph",
+        "anthony.mamarlao@cocopan.ph",
+        "julius.dingle@cocopan.ph",
+        "rj.moreno@cocopan.ph",
+        "grace.dizon@cocopan.ph",
+        "rochell.nantona@cocopan.ph",
+        "janice.arnoco@cocopan.ph"
       ],
+      
       "alert_types": [
         "daily_summary",
         "multiple_offline",

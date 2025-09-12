@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + FIXED FOODPANDA)
+CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + FIXED FOODPANDA + OFFLINE HOURS)
 ✅ Automatic light/dark theme detection based on user's system preference
 ✅ Smooth transitions between themes
 ✅ Fixed Foodpanda display issue with hybrid data sources
 ✅ Legend positioned properly under charts
 ✅ Foodpanda stores now appear in all tabs
+✅ Shows actual offline hours instead of first/last offline times
 """
 
 import os
@@ -793,7 +794,7 @@ def load_reports_data(start_date, end_date):
         return None, str(e)
 
 def load_downtime_today():
-    """Downtime events today (hybrid: hourly + status_checks fallback)"""
+    """Downtime events today (hybrid: hourly + status_checks fallback) - SHOWS OFFLINE HOURS"""
     try:
         with db.get_connection() as conn:
             # Try hourly data first, fallback to status_checks
@@ -803,8 +804,8 @@ def load_downtime_today():
                         s.name,
                         s.platform,
                         COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') AS downtime_events,
-                        MIN(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS first_downtime,
-                        MAX(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS last_downtime,
+                        ARRAY_AGG(ssh.effective_at ORDER BY ssh.effective_at) 
+                            FILTER (WHERE ssh.status = 'OFFLINE') AS offline_times,
                         'hourly' as data_source
                     FROM stores s
                     JOIN store_status_hourly ssh ON ssh.store_id = s.id
@@ -818,8 +819,8 @@ def load_downtime_today():
                         s.name,
                         s.platform,
                         COUNT(*) FILTER (WHERE sc.is_online = false) AS downtime_events,
-                        MIN(sc.checked_at) FILTER (WHERE sc.is_online = false) AS first_downtime,
-                        MAX(sc.checked_at) FILTER (WHERE sc.is_online = false) AS last_downtime,
+                        ARRAY_AGG(sc.checked_at ORDER BY sc.checked_at) 
+                            FILTER (WHERE sc.is_online = false) AS offline_times,
                         'status_checks' as data_source
                     FROM stores s
                     JOIN status_checks sc ON sc.store_id = s.id
@@ -834,10 +835,10 @@ def load_downtime_today():
                     GROUP BY s.id, s.name, s.platform
                     HAVING COUNT(*) FILTER (WHERE sc.is_online = false) > 0
                 )
-                SELECT name, platform, downtime_events, first_downtime, last_downtime, data_source
+                SELECT name, platform, downtime_events, offline_times, data_source
                 FROM hourly_downtime
                 UNION ALL
-                SELECT name, platform, downtime_events, first_downtime, last_downtime, data_source
+                SELECT name, platform, downtime_events, offline_times, data_source
                 FROM status_checks_downtime
                 ORDER BY downtime_events DESC
             """
@@ -1213,12 +1214,12 @@ def main():
         else:
             st.info("ℹ️ Performance analytics will appear as new monitoring data comes in. Enable 'Show stores without today's data' to see all registered stores.")
 
-    # ----- TAB 3: DOWNTIME EVENTS (HYBRID) -----
+    # ----- TAB 3: DOWNTIME EVENTS WITH OFFLINE HOURS -----
     with tab3:
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Downtime Events Analysis</div>
-            <div class="section-subtitle">Offline events and frequency patterns • Uses hourly snapshots when available, real-time checks as fallback</div>
+            <div class="section-subtitle">Offline events and specific times • Uses hourly snapshots when available, real-time checks as fallback</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1260,23 +1261,70 @@ def main():
                         sev.append(f"🟢 {n} events {source_icon}".strip())
                 disp['Offline Events'] = sev
 
-                try:
-                    data['first_downtime'] = pd.to_datetime(data['first_downtime'])
-                    data['last_downtime']  = pd.to_datetime(data['last_downtime'])
-                    ph_tz = config.get_timezone()
-                    if data['first_downtime'].dt.tz is None:
-                        data['first_downtime'] = data['first_downtime'].dt.tz_localize('UTC')
-                        data['last_downtime']  = data['last_downtime'].dt.tz_localize('UTC')
-                    data['first_downtime'] = data['first_downtime'].dt.tz_convert(ph_tz)
-                    data['last_downtime']  = data['last_downtime'].dt.tz_convert(ph_tz)
-                    disp['First Offline'] = data['first_downtime'].dt.strftime('%I:%M %p')
-                    disp['Last Offline']  = data['last_downtime'].dt.strftime('%I:%M %p')
-                except Exception:
-                    disp['First Offline'] = '—'
-                    disp['Last Offline'] = '—'
+                def format_offline_hours(offline_times_str, data_source):
+                    """Format the offline times array into readable format"""
+                    try:
+                        if pd.isna(offline_times_str) or not offline_times_str:
+                            return '—'
+                        
+                        # Parse the PostgreSQL array string (format: {2025-01-15 14:00:00,2025-01-15 15:00:00})
+                        import re
+                        times_str = str(offline_times_str).strip('{}')
+                        if not times_str:
+                            return '—'
+                        
+                        # Split by comma and parse each timestamp
+                        time_strings = [t.strip() for t in times_str.split(',')]
+                        offline_times = []
+                        
+                        ph_tz = config.get_timezone()
+                        for time_str in time_strings:
+                            try:
+                                dt = pd.to_datetime(time_str)
+                                if dt.tz is None:
+                                    dt = dt.tz_localize('UTC')
+                                dt_manila = dt.tz_convert(ph_tz)
+                                offline_times.append(dt_manila)
+                            except Exception:
+                                continue
+                        
+                        if not offline_times:
+                            return '—'
+                        
+                        # Format times based on data source
+                        if data_source == 'hourly':
+                            # For hourly data, show hours (e.g., "2:00 PM, 3:00 PM")
+                            formatted_times = [dt.strftime('%I:%M %p') for dt in offline_times]
+                        else:
+                            # For status checks, show exact times
+                            formatted_times = [dt.strftime('%I:%M %p') for dt in offline_times]
+                        
+                        # Smart truncation for long lists
+                        if len(formatted_times) <= 4:
+                            return ', '.join(formatted_times)
+                        else:
+                            shown = formatted_times[:3]
+                            remaining = len(formatted_times) - 3
+                            return f"{', '.join(shown)}... +{remaining} more"
+                        
+                    except Exception as e:
+                        logger.debug(f"Error formatting offline times: {e}")
+                        return '—'
+
+                # Format offline hours for display
+                offline_hours = []
+                for _, row in data.iterrows():
+                    formatted_hours = format_offline_hours(
+                        row.get('offline_times'), 
+                        row.get('data_source', 'unknown')
+                    )
+                    offline_hours.append(formatted_hours)
+                
+                disp['Offline Hours'] = offline_hours
 
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
                 st.markdown("**Legend:** 🟢 Low (1-2) • 🟡 Medium (3-4) • 🔴 High (5+) downtime events • ⏰ Hourly data • 📱 Real-time checks")
+                st.markdown("**Offline Hours:** Shows specific times when stores were marked offline • Long lists are truncated with '+X more' indicator")
 
     # ----- TAB 4: REPORTS (HYBRID with persistent generate state) -----
     with tab4:
