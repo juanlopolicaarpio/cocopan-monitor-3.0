@@ -793,20 +793,18 @@ def load_reports_data(start_date, end_date):
         return None, str(e)
 
 def load_downtime_today():
-    """Downtime events today with actual offline times (hybrid: hourly + status_checks fallback)"""
+    """Downtime events today (hybrid: hourly + status_checks fallback)"""
     try:
         with db.get_connection() as conn:
             # Try hourly data first, fallback to status_checks
             downtime_query = """
                 WITH hourly_downtime AS (
                     SELECT 
-                        s.id,
                         s.name,
                         s.platform,
                         COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') AS downtime_events,
-                        ARRAY_AGG(
-                            ssh.effective_at ORDER BY ssh.effective_at
-                        ) FILTER (WHERE ssh.status = 'OFFLINE') AS offline_times,
+                        MIN(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS first_downtime,
+                        MAX(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS last_downtime,
                         'hourly' as data_source
                     FROM stores s
                     JOIN store_status_hourly ssh ON ssh.store_id = s.id
@@ -817,13 +815,11 @@ def load_downtime_today():
                 ),
                 status_checks_downtime AS (
                     SELECT 
-                        s.id,
                         s.name,
                         s.platform,
                         COUNT(*) FILTER (WHERE sc.is_online = false) AS downtime_events,
-                        ARRAY_AGG(
-                            sc.checked_at ORDER BY sc.checked_at
-                        ) FILTER (WHERE sc.is_online = false) AS offline_times,
+                        MIN(sc.checked_at) FILTER (WHERE sc.is_online = false) AS first_downtime,
+                        MAX(sc.checked_at) FILTER (WHERE sc.is_online = false) AS last_downtime,
                         'status_checks' as data_source
                     FROM stores s
                     JOIN status_checks sc ON sc.store_id = s.id
@@ -838,10 +834,10 @@ def load_downtime_today():
                     GROUP BY s.id, s.name, s.platform
                     HAVING COUNT(*) FILTER (WHERE sc.is_online = false) > 0
                 )
-                SELECT name, platform, downtime_events, offline_times, data_source
+                SELECT name, platform, downtime_events, first_downtime, last_downtime, data_source
                 FROM hourly_downtime
                 UNION ALL
-                SELECT name, platform, downtime_events, offline_times, data_source
+                SELECT name, platform, downtime_events, first_downtime, last_downtime, data_source
                 FROM status_checks_downtime
                 ORDER BY downtime_events DESC
             """
@@ -852,62 +848,7 @@ def load_downtime_today():
     except Exception as e:
         return pd.DataFrame(), str(e)
 
-def format_offline_hours(offline_times_array, max_display=5):
-    """Format offline times for display with truncation"""
-    if pd.isna(offline_times_array) or not offline_times_array:
-        return "—"
-    
-    try:
-        # Handle PostgreSQL array format
-        if isinstance(offline_times_array, str):
-            # Remove curly braces and split
-            times_str = offline_times_array.strip('{}')
-            if not times_str:
-                return "—"
-            time_strings = [t.strip('"\'') for t in times_str.split(',')]
-        else:
-            time_strings = offline_times_array
-        
-        # Convert to datetime and format
-        ph_tz = config.get_timezone()
-        formatted_times = []
-        
-        for time_str in time_strings:
-            try:
-                dt = pd.to_datetime(time_str)
-                if dt.tz is None:
-                    dt = dt.tz_localize('UTC')
-                dt_ph = dt.tz_convert(ph_tz)
-                formatted_times.append(dt_ph.strftime('%I:%M %p'))
-            except Exception:
-                continue
-        
-        if not formatted_times:
-            return "—"
-        
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_times = []
-        for time in formatted_times:
-            if time not in seen:
-                seen.add(time)
-                unique_times.append(time)
-        
-        # Truncate if too many
-        if len(unique_times) <= max_display:
-            return ", ".join(unique_times)
-        else:
-            displayed = unique_times[:max_display]
-            remaining = len(unique_times) - max_display
-            return f"{', '.join(displayed)}... +{remaining} more"
-            
-    except Exception as e:
-        logger.warning(f"Error formatting offline times: {e}")
-        return "—"
-
-# Updated Tab 3 content (replace the existing Tab 3 section):
-
-# ----- TAB 3: DOWNTIME EVENTS (ENHANCED WITH OFFLINE HOURS) -----
+# ======================================================================
 #                               UI HELPERS
 # ======================================================================
 def create_donut(online_count: int, offline_count: int):
@@ -1272,84 +1213,70 @@ def main():
         else:
             st.info("ℹ️ Performance analytics will appear as new monitoring data comes in. Enable 'Show stores without today's data' to see all registered stores.")
 
-
+    # ----- TAB 3: DOWNTIME EVENTS (HYBRID) -----
     with tab3:
-            st.markdown(f"""
-            <div class="section-header">
-                <div class="section-title">Downtime Events Analysis</div>
-                <div class="section-subtitle">Detailed offline periods and timing patterns • Shows actual hours when stores were offline</div>
-            </div>
-            """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="section-header">
+            <div class="section-title">Downtime Events Analysis</div>
+            <div class="section-subtitle">Offline events and frequency patterns • Uses hourly snapshots when available, real-time checks as fallback</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-            downtime, dt_err = load_downtime_today()
-            if dt_err:
-                st.error(f"Error loading downtime events: {dt_err}")
+        downtime, dt_err = load_downtime_today()
+        if dt_err:
+            st.error(f"Error loading downtime events: {dt_err}")
 
-            if downtime is None or downtime.empty:
-                st.success("✅ No downtime events recorded today.")
+        if downtime is None or downtime.empty:
+            st.success("✅ No downtime events recorded today.")
+        else:
+            st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+            platforms = sorted(downtime['platform'].dropna().unique())
+            options = ["All Platforms"] + platforms
+            pf = st.selectbox("Filter by Platform:", options, key="down_platform_filter")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            data = downtime.copy()
+            if pf != "All Platforms":
+                data = data[data['platform'] == pf]
+
+            if len(data) == 0:
+                st.info(f"📊 No downtime events for {pf} today ({last_check_time.strftime('%B %d, %Y')}).")
             else:
-                st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-                platforms = sorted(downtime['platform'].dropna().unique())
-                options = ["All Platforms"] + platforms
-                pf = st.selectbox("Filter by Platform:", options, key="down_platform_filter")
-                st.markdown('</div>', unsafe_allow_html=True)
+                disp = pd.DataFrame()
+                disp['Branch'] = data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
+                disp['Platform'] = data['platform']
 
-                data = downtime.copy()
-                if pf != "All Platforms":
-                    data = data[data['platform'] == pf]
+                sev = []
+                for i, row in data.iterrows():
+                    n = row['downtime_events']
+                    data_source = row.get('data_source', 'unknown') if 'data_source' in data.columns else 'unknown'
+                    source_icon = "⏰" if data_source == 'hourly' else "📱" if data_source == 'status_checks' else ""
+                    
+                    if n >= 5:
+                        sev.append(f"🔴 {n} events {source_icon}".strip())
+                    elif n >= 3:
+                        sev.append(f"🟡 {n} events {source_icon}".strip())
+                    else:
+                        sev.append(f"🟢 {n} events {source_icon}".strip())
+                disp['Offline Events'] = sev
 
-                if len(data) == 0:
-                    st.info(f"📊 No downtime events for {pf} today ({last_check_time.strftime('%B %d, %Y')}).")
-                else:
-                    disp = pd.DataFrame()
-                    disp['Branch'] = data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
-                    disp['Platform'] = data['platform']
+                try:
+                    data['first_downtime'] = pd.to_datetime(data['first_downtime'])
+                    data['last_downtime']  = pd.to_datetime(data['last_downtime'])
+                    ph_tz = config.get_timezone()
+                    if data['first_downtime'].dt.tz is None:
+                        data['first_downtime'] = data['first_downtime'].dt.tz_localize('UTC')
+                        data['last_downtime']  = data['last_downtime'].dt.tz_localize('UTC')
+                    data['first_downtime'] = data['first_downtime'].dt.tz_convert(ph_tz)
+                    data['last_downtime']  = data['last_downtime'].dt.tz_convert(ph_tz)
+                    disp['First Offline'] = data['first_downtime'].dt.strftime('%I:%M %p')
+                    disp['Last Offline']  = data['last_downtime'].dt.strftime('%I:%M %p')
+                except Exception:
+                    disp['First Offline'] = '—'
+                    disp['Last Offline'] = '—'
 
-            # Enhanced severity with data source indicators
-                    sev = []
-                    for i, row in data.iterrows():
-                        n = row['downtime_events']
-                        data_source = row.get('data_source', 'unknown') if 'data_source' in data.columns else 'unknown'
-                        source_icon = "⏰" if data_source == 'hourly' else "📱" if data_source == 'status_checks' else ""
-                
-                        if n >= 5:
-                            sev.append(f"🔴 {n} events {source_icon}".strip())
-                        elif n >= 3:
-                            sev.append(f"🟡 {n} events {source_icon}".strip())
-                        else:
-                            sev.append(f"🟢 {n} events {source_icon}".strip())
-                    disp['Offline Events'] = sev
-
-            # NEW: Format offline hours with times
-                    offline_hours_formatted = []
-                    for i, row in data.iterrows():
-                        formatted_hours = format_offline_hours(row.get('offline_times', None))
-                        offline_hours_formatted.append(formatted_hours)
-                    disp['Offline Hours'] = offline_hours_formatted
-
-                    st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
-            
-            # Enhanced legend
-                    st.markdown("""
-                    **Severity Legend:** 🟢 Low (1-2) • 🟡 Medium (3-4) • 🔴 High (5+) downtime events  
-                    **Data Sources:** ⏰ Hourly snapshots • 📱 Real-time checks  
-                    **Offline Hours:** Shows actual times when stores were detected offline (up to 5 times shown, additional times indicated with +N more)
-                    """)
-
-            # Optional: Add insights section
-                    if len(data) > 0:
-                        st.markdown("### 🔍 Quick Insights")
-                        total_events = data['downtime_events'].sum()
-                        high_freq_stores = len(data[data['downtime_events'] >= 5])
-                
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.markdown(f"**Total Offline Events:** {total_events}")
-                        with col2:
-                            st.markdown(f"**High-Frequency Issues:** {high_freq_stores} stores")
-                        with col3:
-                            most_affected = data.loc[data['downtime_events'].idxmax(), 'name'].replace('Cocopan - ', '').replace('Cocopan ', '')
-                            st.markdown(f"**Most Affected:** {most_affected}")# ======================================================================
+                st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
+                st.markdown("**Legend:** 🟢 Low (1-2) • 🟡 Medium (3-4) • 🔴 High (5+) downtime events • ⏰ Hourly data • 📱 Real-time checks")
 
     # ----- TAB 4: REPORTS (HYBRID with persistent generate state) -----
     with tab4:
