@@ -609,32 +609,63 @@ def is_under_review(error_message: str) -> bool:
 #                        ENHANCED FORMATTING FUNCTIONS
 # ======================================================================
 def format_offline_hours(offline_times_array, max_display=5):
-    """Format offline times for display with truncation - FIXED for pandas arrays"""
-    # Fix: Handle pandas Series/array boolean check properly
-    if pd.isna(offline_times_array).all() if hasattr(offline_times_array, 'all') else pd.isna(offline_times_array):
+    """Format offline times for display with truncation - COMPLETELY FIXED for pandas arrays"""
+    
+    # Handle None/NaN cases first
+    if offline_times_array is None:
         return "—"
     
-    # Fix: Convert to string first to avoid array boolean issues
-    if hasattr(offline_times_array, 'empty'):
-        if offline_times_array.empty:
+    # Handle pandas Series/array NaN check properly
+    try:
+        if hasattr(offline_times_array, '__iter__') and not isinstance(offline_times_array, str):
+            # It's an array-like object (pandas Series, numpy array, list)
+            if hasattr(offline_times_array, 'isna'):
+                # Pandas Series - check if all values are NaN
+                if offline_times_array.isna().all():
+                    return "—"
+            elif hasattr(offline_times_array, '__len__'):
+                # List or numpy array - check if empty
+                if len(offline_times_array) == 0:
+                    return "—"
+            
+            # Check if it's an empty pandas Series
+            if hasattr(offline_times_array, 'empty') and offline_times_array.empty:
+                return "—"
+                
+        else:
+            # It's a single value or string
+            if pd.isna(offline_times_array):
+                return "—"
+    except Exception:
+        # If any check fails, assume it's a single value
+        if pd.isna(offline_times_array):
             return "—"
-    elif not offline_times_array:
-        return "—"
     
     try:
-        # Handle PostgreSQL array format
+        # Handle PostgreSQL array format (string like "{time1,time2,time3}")
         if isinstance(offline_times_array, str):
             # Remove curly braces and split
             times_str = offline_times_array.strip('{}')
-            if not times_str:
+            if not times_str or times_str.strip() == '':
                 return "—"
-            time_strings = [t.strip('"\'') for t in times_str.split(',')]
+            time_strings = [t.strip('"\'') for t in times_str.split(',') if t.strip()]
         else:
-            # Handle pandas Series or list
+            # Handle pandas Series, list, or numpy array
             if hasattr(offline_times_array, 'tolist'):
+                # Pandas Series or numpy array
                 time_strings = offline_times_array.tolist()
+            elif hasattr(offline_times_array, '__iter__'):
+                # List or other iterable
+                time_strings = list(offline_times_array)
             else:
-                time_strings = offline_times_array
+                # Single value
+                time_strings = [offline_times_array]
+        
+        # Filter out None/NaN/empty values
+        time_strings = [t for t in time_strings if t is not None and not pd.isna(t) and str(t).strip() != '']
+        
+        if not time_strings:
+            return "—"
         
         # Convert to datetime and format
         ph_tz = config.get_timezone()
@@ -651,7 +682,8 @@ def format_offline_hours(offline_times_array, max_display=5):
                     dt = dt.tz_localize('UTC')
                 dt_ph = dt.tz_convert(ph_tz)
                 formatted_times.append(dt_ph.strftime('%I:%M %p'))
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Error parsing time {time_str}: {e}")
                 continue
         
         if not formatted_times:
@@ -676,7 +708,6 @@ def format_offline_hours(offline_times_array, max_display=5):
     except Exception as e:
         logger.warning(f"Error formatting offline times: {e}")
         return "—"
-
 # ======================================================================
 #                            DATA LOADERS
 # ======================================================================
