@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + FIXED FOODPANDA)
+CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + FIXED FOODPANDA + ENHANCED DOWNTIME)
 ✅ Automatic light/dark theme detection based on user's system preference
 ✅ Smooth transitions between themes
 ✅ Fixed Foodpanda display issue with hybrid data sources
 ✅ Legend positioned properly under charts
 ✅ Foodpanda stores now appear in all tabs
+✅ ENHANCED: Detailed offline hours instead of just first/last times
 """
 
 import os
@@ -605,6 +606,78 @@ def is_under_review(error_message: str) -> bool:
     return msg.startswith('[BLOCKED]') or msg.startswith('[UNKNOWN]') or msg.startswith('[ERROR]')
 
 # ======================================================================
+#                        ENHANCED FORMATTING FUNCTIONS
+# ======================================================================
+def format_offline_hours(offline_times_array, max_display=5):
+    """Format offline times for display with truncation - FIXED for pandas arrays"""
+    # Fix: Handle pandas Series/array boolean check properly
+    if pd.isna(offline_times_array).all() if hasattr(offline_times_array, 'all') else pd.isna(offline_times_array):
+        return "—"
+    
+    # Fix: Convert to string first to avoid array boolean issues
+    if hasattr(offline_times_array, 'empty'):
+        if offline_times_array.empty:
+            return "—"
+    elif not offline_times_array:
+        return "—"
+    
+    try:
+        # Handle PostgreSQL array format
+        if isinstance(offline_times_array, str):
+            # Remove curly braces and split
+            times_str = offline_times_array.strip('{}')
+            if not times_str:
+                return "—"
+            time_strings = [t.strip('"\'') for t in times_str.split(',')]
+        else:
+            # Handle pandas Series or list
+            if hasattr(offline_times_array, 'tolist'):
+                time_strings = offline_times_array.tolist()
+            else:
+                time_strings = offline_times_array
+        
+        # Convert to datetime and format
+        ph_tz = config.get_timezone()
+        formatted_times = []
+        
+        for time_str in time_strings:
+            try:
+                # Skip empty or null values
+                if pd.isna(time_str) or str(time_str).strip() == '':
+                    continue
+                    
+                dt = pd.to_datetime(time_str)
+                if dt.tz is None:
+                    dt = dt.tz_localize('UTC')
+                dt_ph = dt.tz_convert(ph_tz)
+                formatted_times.append(dt_ph.strftime('%I:%M %p'))
+            except Exception:
+                continue
+        
+        if not formatted_times:
+            return "—"
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_times = []
+        for time in formatted_times:
+            if time not in seen:
+                seen.add(time)
+                unique_times.append(time)
+        
+        # Truncate if too many
+        if len(unique_times) <= max_display:
+            return ", ".join(unique_times)
+        else:
+            displayed = unique_times[:max_display]
+            remaining = len(unique_times) - max_display
+            return f"{', '.join(displayed)}... +{remaining} more"
+            
+    except Exception as e:
+        logger.warning(f"Error formatting offline times: {e}")
+        return "—"
+
+# ======================================================================
 #                            DATA LOADERS
 # ======================================================================
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
@@ -793,18 +866,20 @@ def load_reports_data(start_date, end_date):
         return None, str(e)
 
 def load_downtime_today():
-    """Downtime events today (hybrid: hourly + status_checks fallback)"""
+    """ENHANCED: Downtime events today with actual offline times (hybrid: hourly + status_checks fallback)"""
     try:
         with db.get_connection() as conn:
             # Try hourly data first, fallback to status_checks
             downtime_query = """
                 WITH hourly_downtime AS (
                     SELECT 
+                        s.id,
                         s.name,
                         s.platform,
                         COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE') AS downtime_events,
-                        MIN(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS first_downtime,
-                        MAX(ssh.effective_at) FILTER (WHERE ssh.status = 'OFFLINE') AS last_downtime,
+                        ARRAY_AGG(
+                            ssh.effective_at ORDER BY ssh.effective_at
+                        ) FILTER (WHERE ssh.status = 'OFFLINE') AS offline_times,
                         'hourly' as data_source
                     FROM stores s
                     JOIN store_status_hourly ssh ON ssh.store_id = s.id
@@ -815,11 +890,13 @@ def load_downtime_today():
                 ),
                 status_checks_downtime AS (
                     SELECT 
+                        s.id,
                         s.name,
                         s.platform,
                         COUNT(*) FILTER (WHERE sc.is_online = false) AS downtime_events,
-                        MIN(sc.checked_at) FILTER (WHERE sc.is_online = false) AS first_downtime,
-                        MAX(sc.checked_at) FILTER (WHERE sc.is_online = false) AS last_downtime,
+                        ARRAY_AGG(
+                            sc.checked_at ORDER BY sc.checked_at
+                        ) FILTER (WHERE sc.is_online = false) AS offline_times,
                         'status_checks' as data_source
                     FROM stores s
                     JOIN status_checks sc ON sc.store_id = s.id
@@ -834,10 +911,10 @@ def load_downtime_today():
                     GROUP BY s.id, s.name, s.platform
                     HAVING COUNT(*) FILTER (WHERE sc.is_online = false) > 0
                 )
-                SELECT name, platform, downtime_events, first_downtime, last_downtime, data_source
+                SELECT name, platform, downtime_events, offline_times, data_source
                 FROM hourly_downtime
                 UNION ALL
-                SELECT name, platform, downtime_events, first_downtime, last_downtime, data_source
+                SELECT name, platform, downtime_events, offline_times, data_source
                 FROM status_checks_downtime
                 ORDER BY downtime_events DESC
             """
@@ -1213,12 +1290,12 @@ def main():
         else:
             st.info("ℹ️ Performance analytics will appear as new monitoring data comes in. Enable 'Show stores without today's data' to see all registered stores.")
 
-    # ----- TAB 3: DOWNTIME EVENTS (HYBRID) -----
+    # ----- TAB 3: ENHANCED DOWNTIME EVENTS WITH OFFLINE HOURS -----
     with tab3:
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Downtime Events Analysis</div>
-            <div class="section-subtitle">Offline events and frequency patterns • Uses hourly snapshots when available, real-time checks as fallback</div>
+            <div class="section-subtitle">Detailed offline periods and timing patterns • Shows actual hours when stores were offline</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1246,6 +1323,7 @@ def main():
                 disp['Branch'] = data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
                 disp['Platform'] = data['platform']
 
+                # Enhanced severity with data source indicators
                 sev = []
                 for i, row in data.iterrows():
                     n = row['downtime_events']
@@ -1260,23 +1338,36 @@ def main():
                         sev.append(f"🟢 {n} events {source_icon}".strip())
                 disp['Offline Events'] = sev
 
-                try:
-                    data['first_downtime'] = pd.to_datetime(data['first_downtime'])
-                    data['last_downtime']  = pd.to_datetime(data['last_downtime'])
-                    ph_tz = config.get_timezone()
-                    if data['first_downtime'].dt.tz is None:
-                        data['first_downtime'] = data['first_downtime'].dt.tz_localize('UTC')
-                        data['last_downtime']  = data['last_downtime'].dt.tz_localize('UTC')
-                    data['first_downtime'] = data['first_downtime'].dt.tz_convert(ph_tz)
-                    data['last_downtime']  = data['last_downtime'].dt.tz_convert(ph_tz)
-                    disp['First Offline'] = data['first_downtime'].dt.strftime('%I:%M %p')
-                    disp['Last Offline']  = data['last_downtime'].dt.strftime('%I:%M %p')
-                except Exception:
-                    disp['First Offline'] = '—'
-                    disp['Last Offline'] = '—'
+                # NEW: Format offline hours with times
+                offline_hours_formatted = []
+                for i, row in data.iterrows():
+                    formatted_hours = format_offline_hours(row.get('offline_times', None))
+                    offline_hours_formatted.append(formatted_hours)
+                disp['Offline Hours'] = offline_hours_formatted
 
                 st.dataframe(disp, use_container_width=True, hide_index=True, height=420)
-                st.markdown("**Legend:** 🟢 Low (1-2) • 🟡 Medium (3-4) • 🔴 High (5+) downtime events • ⏰ Hourly data • 📱 Real-time checks")
+                
+                # Enhanced legend
+                st.markdown("""
+                **Severity Legend:** 🟢 Low (1-2) • 🟡 Medium (3-4) • 🔴 High (5+) downtime events  
+                **Data Sources:** ⏰ Hourly snapshots • 📱 Real-time checks  
+                **Offline Hours:** Shows actual times when stores were detected offline (up to 5 times shown, additional times indicated with +N more)
+                """)
+
+                # Optional: Add insights section
+                if len(data) > 0:
+                    st.markdown("### 🔍 Quick Insights")
+                    total_events = data['downtime_events'].sum()
+                    high_freq_stores = len(data[data['downtime_events'] >= 5])
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.markdown(f"**Total Offline Events:** {total_events}")
+                    with col2:
+                        st.markdown(f"**High-Frequency Issues:** {high_freq_stores} stores")
+                    with col3:
+                        most_affected = data.loc[data['downtime_events'].idxmax(), 'name'].replace('Cocopan - ', '').replace('Cocopan ', '')
+                        st.markdown(f"**Most Affected:** {most_affected}")
 
     # ----- TAB 4: REPORTS (HYBRID with persistent generate state) -----
     with tab4:
