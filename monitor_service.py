@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 CocoPan Monitor Service - COMPLETE VERSION WITH CLIENT EMAIL ALERTS
+✅ FIXED: Hour slot calculation - runs at :45 but saves to NEXT hour
 ✅ Sends client emails immediately when stores go offline
 ✅ Beautiful admin alerts for verification needs
 ✅ Foodpanda VA check-in integration  
@@ -14,7 +15,7 @@ import signal
 import sys
 import random
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
@@ -367,9 +368,17 @@ class GrabFoodMonitor:
     def check_all_grabfood_stores_with_client_alerts(self):
         """UPDATED: Check stores and send immediate client emails when offline"""
         
-        # Logical-hour snapshot keys
+        # ✅ FIXED: Calculate target hour correctly
         tz = self.timezone
-        effective_at = datetime.now(tz).replace(minute=0, second=0, microsecond=0)
+        now = datetime.now(tz)
+        
+        if now.minute >= 45:
+            # Running at :45 = preparing data for NEXT hour
+            effective_at = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        else:
+            # Running early = use current hour
+            effective_at = now.replace(minute=0, second=0, microsecond=0)
+        
         run_id = uuid.uuid4()
 
         self.stats = {
@@ -383,8 +392,12 @@ class GrabFoodMonitor:
 
         current_time = config.get_current_time()
         target_hour = effective_at.hour
+        
+        # ✅ Enhanced logging to show the fix
         logger.info(f"🛒 GRABFOOD MONITORING with CLIENT ALERTS at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        logger.info(f"📋 Checking {len(self.store_urls)} GrabFood stores (target hour: {target_hour}:00)")
+        logger.info(f"📋 Checking {len(self.store_urls)} GrabFood stores")
+        logger.info(f"🎯 Current time: {now.strftime('%H:%M')}, Target hour slot: {effective_at.strftime('%H:00')}")
+        logger.info(f"💾 Data will be saved to: {effective_at.strftime('%Y-%m-%d %H:00:00')}")
 
         all_results: List[Dict[str, Any]] = []
         blocked_stores: List[str] = []
@@ -715,6 +728,9 @@ class GrabFoodMonitor:
         if error_count > 0:
             logger.warning(f"   ⚠️ {error_count} database errors")
 
+        # ✅ Enhanced logging to confirm fix
+        logger.info(f"💾 Data saved to hour slot: {effective_at.strftime('%Y-%m-%d %H:00:00')}")
+
 def signal_handler(signum, frame):
     """Handle shutdown signals gracefully"""
     logger.info(f"🛑 Received signal {signum}, shutting down...")
@@ -727,6 +743,7 @@ def main():
     logger.info("📧 FEATURE: Immediate client emails when stores go offline")
     logger.info("🎯 Target: Monitor GrabFood stores with instant offline notifications")
     logger.info("🐼 Foodpanda: Handled by VA hourly check-in system")
+    logger.info("✅ FIXED: Hour slot calculation - runs at :45 but saves to NEXT hour")
     logger.info("=" * 80)
 
     if not config.validate_timezone():
