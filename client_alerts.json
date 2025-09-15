@@ -25,7 +25,9 @@
         "rj.moreno@cocopan.ph",
         "grace.dizon@cocopan.ph",
         "rochell.nantona@cocopan.ph",
-        "janice.arnoco@cocopan.ph"
+        "janice.arnoco@cocopan.ph",
+        "Krisna.butalid@cocopan.ph"
+
       ]
       ,
       "alert_types": [
@@ -66,7 +68,8 @@
         "rj.moreno@cocopan.ph",
         "grace.dizon@cocopan.ph",
         "rochell.nantona@cocopan.ph",
-        "janice.arnoco@cocopan.ph"
+        "janice.arnoco@cocopan.ph",
+        "Krisna.butalid@cocopan.ph"
       ],
       
       "alert_types": [
@@ -137,7 +140,7 @@
     "templates": {
       "company_name": "CocoPan",
       "logo_url": "https://your-domain.com/logo.png",
-      "dashboard_url": "https://your-domain.com:8501",
+      "dashboard_url": "https://cocopanwatchtower.com",
       "support_email": "support@cocopan.com",
       "company_website": "https://cocopan.com"
     },

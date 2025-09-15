@@ -609,7 +609,7 @@ def is_under_review(error_message: str) -> bool:
 #                        ENHANCED FORMATTING FUNCTIONS
 # ======================================================================
 def format_offline_hours(offline_times_array, max_display=5):
-    """Format offline times for display with truncation - COMPLETELY FIXED for pandas arrays"""
+    """Format offline times for display with smart truncation - ENHANCED for large displays"""
     
     # Handle None/NaN cases first
     if offline_times_array is None:
@@ -697,7 +697,24 @@ def format_offline_hours(offline_times_array, max_display=5):
                 seen.add(time)
                 unique_times.append(time)
         
-        # Truncate if too many
+        # Handle display based on max_display parameter
+        if max_display >= 999:  # Show all times mode
+            if len(unique_times) <= 15:
+                # For reasonable amounts, show in a single line
+                return ", ".join(unique_times)
+            else:
+                # For many times, organize better
+                # Group times and show with line breaks for readability
+                chunks = [unique_times[i:i+10] for i in range(0, len(unique_times), 10)]
+                formatted_chunks = []
+                for i, chunk in enumerate(chunks):
+                    if i == 0:
+                        formatted_chunks.append(", ".join(chunk))
+                    else:
+                        formatted_chunks.append(f"      {', '.join(chunk)}")  # Indent continuation lines
+                return "\n".join(formatted_chunks)
+        
+        # Normal truncated display
         if len(unique_times) <= max_display:
             return ", ".join(unique_times)
         else:
@@ -708,6 +725,7 @@ def format_offline_hours(offline_times_array, max_display=5):
     except Exception as e:
         logger.warning(f"Error formatting offline times: {e}")
         return "—"
+
 # ======================================================================
 #                            DATA LOADERS
 # ======================================================================
@@ -1321,12 +1339,12 @@ def main():
         else:
             st.info("ℹ️ Performance analytics will appear as new monitoring data comes in. Enable 'Show stores without today's data' to see all registered stores.")
 
-    # ----- TAB 3: ENHANCED DOWNTIME EVENTS WITH OFFLINE HOURS -----
+    # ----- TAB 3: ENHANCED DOWNTIME EVENTS WITH EXPANDABLE OFFLINE HOURS -----
     with tab3:
         st.markdown(f"""
         <div class="section-header">
             <div class="section-title">Downtime Events Analysis</div>
-            <div class="section-subtitle">Detailed offline periods and timing patterns • Shows actual hours when stores were offline</div>
+            <div class="section-subtitle">Detailed offline periods and timing patterns • Click "Show All Times" to see complete offline history</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1338,9 +1356,21 @@ def main():
             st.success("✅ No downtime events recorded today.")
         else:
             st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-            platforms = sorted(downtime['platform'].dropna().unique())
-            options = ["All Platforms"] + platforms
-            pf = st.selectbox("Filter by Platform:", options, key="down_platform_filter")
+            col1, col2, col3 = st.columns([2, 2, 1])
+            
+            with col1:
+                platforms = sorted(downtime['platform'].dropna().unique())
+                options = ["All Platforms"] + platforms
+                pf = st.selectbox("Filter by Platform:", options, key="down_platform_filter")
+            
+            with col2:
+                sort_options = ["Most Events First", "Least Events First", "Store Name (A-Z)"]
+                sort_by = st.selectbox("Sort by:", sort_options, key="downtime_sort")
+            
+            with col3:
+                st.markdown("<br>", unsafe_allow_html=True)
+                show_full_details = st.toggle("Show All Times", value=False, key="show_all_downtime_details")
+            
             st.markdown('</div>', unsafe_allow_html=True)
 
             data = downtime.copy()
@@ -1350,6 +1380,15 @@ def main():
             if len(data) == 0:
                 st.info(f"📊 No downtime events for {pf} today ({last_check_time.strftime('%B %d, %Y')}).")
             else:
+                # Sort data based on selection
+                if sort_by == "Most Events First":
+                    data = data.sort_values('downtime_events', ascending=False)
+                elif sort_by == "Least Events First":
+                    data = data.sort_values('downtime_events', ascending=True)
+                elif sort_by == "Store Name (A-Z)":
+                    data = data.sort_values('name')
+
+                # Create summary table
                 disp = pd.DataFrame()
                 disp['Branch'] = data['name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
                 disp['Platform'] = data['platform']
@@ -1369,10 +1408,15 @@ def main():
                         sev.append(f"🟢 {n} events {source_icon}".strip())
                 disp['Offline Events'] = sev
 
-                # NEW: Format offline hours with times
+                # Format offline hours based on toggle
                 offline_hours_formatted = []
                 for i, row in data.iterrows():
-                    formatted_hours = format_offline_hours(row.get('offline_times', None))
+                    if show_full_details:
+                        # Show ALL times when toggle is on
+                        formatted_hours = format_offline_hours(row.get('offline_times', None), max_display=999)
+                    else:
+                        # Show limited times when toggle is off
+                        formatted_hours = format_offline_hours(row.get('offline_times', None), max_display=3)
                     offline_hours_formatted.append(formatted_hours)
                 disp['Offline Hours'] = offline_hours_formatted
 
@@ -1382,23 +1426,119 @@ def main():
                 st.markdown("""
                 **Severity Legend:** 🟢 Low (1-2) • 🟡 Medium (3-4) • 🔴 High (5+) downtime events  
                 **Data Sources:** ⏰ Hourly snapshots • 📱 Real-time checks  
-                **Offline Hours:** Shows actual times when stores were detected offline (up to 5 times shown, additional times indicated with +N more)
+                **Offline Hours:** Toggle "Show All Times" above to see complete offline history for each store
                 """)
 
-                # Optional: Add insights section
+                # DETAILED EXPANDABLE VIEW for stores with many offline events
+                if not show_full_details:
+                    st.markdown("### 🔍 Detailed View")
+                    st.markdown("Click on a store below to see all offline times in detail:")
+                    
+                    # Filter to stores with 4+ offline events for detailed view
+                    detailed_stores = data[data['downtime_events'] >= 4].copy()
+                    
+                    if len(detailed_stores) > 0:
+                        for idx, row in detailed_stores.iterrows():
+                            store_name = row['name'].replace('Cocopan - ', '').replace('Cocopan ', '')
+                            events_count = row['downtime_events']
+                            
+                            # Create an expander for each store with many events
+                            with st.expander(f"📋 {store_name} - {events_count} offline events (click to expand)"):
+                                st.markdown(f"**Store:** {store_name}")
+                                st.markdown(f"**Platform:** {row['platform']}")
+                                st.markdown(f"**Total Offline Events:** {events_count}")
+                                
+                                # Show ALL offline times
+                                all_times = format_offline_hours(row.get('offline_times', None), max_display=999)
+                                if all_times and all_times != "—":
+                                    st.markdown(f"**All Offline Times:** {all_times}")
+                                    
+                                    # Try to parse and show in a more organized way
+                                    try:
+                                        offline_times_array = row.get('offline_times', None)
+                                        if offline_times_array is not None:
+                                            # Handle PostgreSQL array format
+                                            if isinstance(offline_times_array, str):
+                                                times_str = offline_times_array.strip('{}')
+                                                if times_str and times_str.strip() != '':
+                                                    time_strings = [t.strip('"\'') for t in times_str.split(',') if t.strip()]
+                                                else:
+                                                    time_strings = []
+                                            else:
+                                                # Handle pandas Series, list, or numpy array
+                                                if hasattr(offline_times_array, 'tolist'):
+                                                    time_strings = offline_times_array.tolist()
+                                                elif hasattr(offline_times_array, '__iter__'):
+                                                    time_strings = list(offline_times_array)
+                                                else:
+                                                    time_strings = [offline_times_array]
+                                            
+                                            # Filter and format
+                                            time_strings = [t for t in time_strings if t is not None and not pd.isna(t) and str(t).strip() != '']
+                                            
+                                            if time_strings:
+                                                st.markdown("**Offline Timeline:**")
+                                                ph_tz = config.get_timezone()
+                                                formatted_timeline = []
+                                                
+                                                for time_str in time_strings:
+                                                    try:
+                                                        dt = pd.to_datetime(time_str)
+                                                        if dt.tz is None:
+                                                            dt = dt.tz_localize('UTC')
+                                                        dt_ph = dt.tz_convert(ph_tz)
+                                                        formatted_timeline.append(f"• {dt_ph.strftime('%I:%M %p')}")
+                                                    except Exception:
+                                                        formatted_timeline.append(f"• {time_str}")
+                                                
+                                                # Group times if there are many (e.g., show in columns)
+                                                if len(formatted_timeline) > 6:
+                                                    # Split into columns for better display
+                                                    mid_point = len(formatted_timeline) // 2
+                                                    col1, col2 = st.columns(2)
+                                                    with col1:
+                                                        for time_entry in formatted_timeline[:mid_point]:
+                                                            st.markdown(time_entry)
+                                                    with col2:
+                                                        for time_entry in formatted_timeline[mid_point:]:
+                                                            st.markdown(time_entry)
+                                                else:
+                                                    for time_entry in formatted_timeline:
+                                                        st.markdown(time_entry)
+                                    except Exception as e:
+                                        st.markdown(f"Could not parse detailed timeline: {e}")
+                                else:
+                                    st.markdown("No detailed offline times available")
+                    else:
+                        st.info("No stores with 4+ offline events today. Toggle 'Show All Times' above to see complete data for all stores.")
+
+                # Optional: Add insights section (enhanced)
                 if len(data) > 0:
                     st.markdown("### 🔍 Quick Insights")
                     total_events = data['downtime_events'].sum()
                     high_freq_stores = len(data[data['downtime_events'] >= 5])
+                    medium_freq_stores = len(data[data['downtime_events'].between(3, 4)])
                     
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         st.markdown(f"**Total Offline Events:** {total_events}")
                     with col2:
-                        st.markdown(f"**High-Frequency Issues:** {high_freq_stores} stores")
+                        st.markdown(f"**High-Frequency Issues:** {high_freq_stores} stores (5+ events)")
                     with col3:
-                        most_affected = data.loc[data['downtime_events'].idxmax(), 'name'].replace('Cocopan - ', '').replace('Cocopan ', '')
-                        st.markdown(f"**Most Affected:** {most_affected}")
+                        st.markdown(f"**Medium-Frequency Issues:** {medium_freq_stores} stores (3-4 events)")
+                    
+                    if len(data) > 0:
+                        most_affected_idx = data['downtime_events'].idxmax()
+                        most_affected = data.loc[most_affected_idx, 'name'].replace('Cocopan - ', '').replace('Cocopan ', '')
+                        most_affected_count = data.loc[most_affected_idx, 'downtime_events']
+                        st.markdown(f"**Most Affected Store:** {most_affected} ({most_affected_count} offline events)")
+
+                    # Show platform breakdown if multiple platforms
+                    if len(data['platform'].unique()) > 1:
+                        st.markdown("**Platform Breakdown:**")
+                        platform_stats = data.groupby('platform')['downtime_events'].agg(['count', 'sum']).reset_index()
+                        platform_stats.columns = ['Platform', 'Stores with Issues', 'Total Events']
+                        st.dataframe(platform_stats, use_container_width=True, hide_index=True)
 
     # ----- TAB 4: REPORTS (HYBRID with persistent generate state) -----
     with tab4:
