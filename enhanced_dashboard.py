@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + FIXED FOODPANDA + ENHANCED DOWNTIME)
+CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + CSV EXPORT)
+✅ Added comprehensive CSV export functionality to Reports tab
+✅ Export format: Store performance with detailed offline events
 ✅ Automatic light/dark theme detection based on user's system preference
 ✅ Smooth transitions between themes
 ✅ Fixed Foodpanda display issue with hybrid data sources
-✅ Legend positioned properly under charts
-✅ Foodpanda stores now appear in all tabs
-✅ ENHANCED: Detailed offline hours instead of just first/last times
+✅ Enhanced downtime analysis with expandable details
 """
 
 import os
@@ -21,6 +21,7 @@ import http.server
 import socketserver
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+import io
 
 import streamlit as st
 import pandas as pd
@@ -727,6 +728,211 @@ def format_offline_hours(offline_times_array, max_display=5):
         return "—"
 
 # ======================================================================
+#                        CSV EXPORT FUNCTIONS (NEW)
+# ======================================================================
+@st.cache_data(ttl=300)
+def load_export_data(start_date, end_date):
+    """Load comprehensive data for CSV export including downtime details"""
+    try:
+        # Enforce minimum date of September 10, 2025
+        min_date = datetime(2025, 9, 10).date()
+        if start_date < min_date:
+            start_date = min_date
+            
+        with db.get_connection() as conn:
+            export_query = """
+                WITH range_hours AS (
+                  SELECT
+                    ssh.store_id,
+                    COUNT(*)                           AS total_hours,
+                    COUNT(*) FILTER (WHERE ssh.status IN ('BLOCKED','UNKNOWN','ERROR')) AS under_review_hours,
+                    COUNT(*) FILTER (WHERE ssh.status IN ('ONLINE','OFFLINE')) AS effective_hours,
+                    COUNT(*) FILTER (WHERE ssh.status = 'ONLINE')             AS online_hours,
+                    COUNT(*) FILTER (WHERE ssh.status = 'OFFLINE')            AS offline_events,
+                    ARRAY_AGG(
+                        ssh.effective_at ORDER BY ssh.effective_at
+                    ) FILTER (WHERE ssh.status = 'OFFLINE') AS offline_times,
+                    AVG(ssh.response_ms) FILTER (WHERE ssh.response_ms IS NOT NULL) AS avg_response_time,
+                    'hourly' as data_source
+                  FROM store_status_hourly ssh
+                  WHERE DATE(ssh.effective_at AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
+                  GROUP BY ssh.store_id
+                ),
+                range_status_checks AS (
+                  SELECT
+                    sc.store_id,
+                    COUNT(*) AS total_checks,
+                    0 AS under_review_checks,
+                    COUNT(*) AS effective_checks,
+                    COUNT(*) FILTER (WHERE sc.is_online = true) AS online_checks,
+                    COUNT(*) FILTER (WHERE sc.is_online = false) AS offline_events,
+                    ARRAY_AGG(
+                        sc.checked_at ORDER BY sc.checked_at
+                    ) FILTER (WHERE sc.is_online = false) AS offline_times,
+                    AVG(sc.response_time_ms) FILTER (WHERE sc.response_time_ms IS NOT NULL) AS avg_response_time,
+                    'status_checks' as data_source
+                  FROM status_checks sc
+                  WHERE DATE(sc.checked_at AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
+                    AND sc.store_id NOT IN (
+                        SELECT DISTINCT store_id 
+                        FROM store_status_hourly ssh2
+                        WHERE DATE(ssh2.effective_at AT TIME ZONE 'Asia/Manila') BETWEEN %s AND %s
+                    )
+                  GROUP BY sc.store_id
+                )
+                SELECT
+                  s.id,
+                  COALESCE(s.name_override, s.name) AS store_name,
+                  s.platform,
+                  s.url,
+                  COALESCE(rh.total_hours, rsc.total_checks, 0) AS total_checks,
+                  COALESCE(rh.under_review_hours, rsc.under_review_checks, 0) AS under_review_checks,
+                  COALESCE(rh.effective_hours, rsc.effective_checks, 0) AS effective_checks,
+                  COALESCE(rh.online_hours, rsc.online_checks, 0) AS effective_online_checks,
+                  COALESCE(rh.offline_events, rsc.offline_events, 0) AS offline_events,
+                  CASE
+                    WHEN COALESCE(rh.effective_hours, rsc.effective_checks, 0) = 0 THEN NULL
+                    ELSE ROUND((COALESCE(rh.online_hours, rsc.online_checks, 0) * 100.0 / 
+                               NULLIF(COALESCE(rh.effective_hours, rsc.effective_checks, 0), 0)), 1)
+                  END AS uptime_percentage,
+                  COALESCE(rh.offline_times, rsc.offline_times) AS offline_times,
+                  ROUND(COALESCE(rh.avg_response_time, rsc.avg_response_time, 0)::numeric, 0) AS avg_response_time,
+                  COALESCE(rh.data_source, rsc.data_source, 'none') AS data_source
+                FROM stores s
+                LEFT JOIN range_hours rh ON rh.store_id = s.id
+                LEFT JOIN range_status_checks rsc ON rsc.store_id = s.id
+                ORDER BY uptime_percentage DESC NULLS LAST, s.name
+            """
+            export_data = pd.read_sql_query(export_query, conn, params=(start_date, end_date, start_date, end_date, start_date, end_date))
+            if not export_data.empty:
+                export_data['platform'] = export_data['platform'].apply(standardize_platform_name)
+            return export_data, None
+    except Exception as e:
+        logger.error(f"Error loading export data: {e}")
+        return None, str(e)
+
+def format_offline_times_for_export(offline_times_array, start_date, end_date):
+    """Format offline times specifically for CSV export with proper date handling"""
+    if offline_times_array is None:
+        return ""
+    
+    try:
+        # Handle PostgreSQL array format
+        if isinstance(offline_times_array, str):
+            times_str = offline_times_array.strip('{}')
+            if not times_str or times_str.strip() == '':
+                return ""
+            time_strings = [t.strip('"\'') for t in times_str.split(',') if t.strip()]
+        else:
+            if hasattr(offline_times_array, 'tolist'):
+                time_strings = offline_times_array.tolist()
+            elif hasattr(offline_times_array, '__iter__'):
+                time_strings = list(offline_times_array)
+            else:
+                time_strings = [offline_times_array]
+        
+        # Filter and format
+        time_strings = [t for t in time_strings if t is not None and not pd.isna(t) and str(t).strip() != '']
+        
+        if not time_strings:
+            return ""
+        
+        # Determine if we need to show year based on date range
+        show_year = start_date.year != end_date.year or start_date.year != datetime.now().year
+        
+        # Format for CSV export
+        ph_tz = config.get_timezone()
+        formatted_times = []
+        
+        for time_str in time_strings:
+            try:
+                dt = pd.to_datetime(time_str)
+                if dt.tz is None:
+                    dt = dt.tz_localize('UTC')
+                dt_ph = dt.tz_convert(ph_tz)
+                
+                if show_year:
+                    # Show year if spanning multiple years or not current year
+                    formatted_time = dt_ph.strftime('%b %d %Y %I:%M%p').replace(' 0', ' ').replace('AM', 'AM').replace('PM', 'PM')
+                else:
+                    # Same year - don't show year
+                    formatted_time = dt_ph.strftime('%b %d %I:%M%p').replace(' 0', ' ').replace('AM', 'AM').replace('PM', 'PM')
+                
+                formatted_times.append(formatted_time)
+            except Exception as e:
+                logger.debug(f"Error formatting time {time_str}: {e}")
+                continue
+        
+        if not formatted_times:
+            return ""
+        
+        # Join with pipe separator for clean CSV display
+        return " | ".join(formatted_times)
+        
+    except Exception as e:
+        logger.warning(f"Error formatting offline times for export: {e}")
+        return ""
+
+def create_export_csv(export_data, start_date, end_date):
+    """Create CSV DataFrame for export"""
+    if export_data is None or export_data.empty:
+        return None
+    
+    # Create clean CSV DataFrame
+    csv_data = pd.DataFrame()
+    
+    # Clean store names (remove Cocopan prefix)
+    csv_data['Store_Name'] = export_data['store_name'].str.replace('Cocopan - ', '', regex=False).str.replace('Cocopan ', '', regex=False)
+    csv_data['Platform'] = export_data['platform']
+    
+    # Format date range
+    if start_date.year == end_date.year:
+        csv_data['Period_Start'] = start_date.strftime('%b %d %Y').replace(' 0', ' ')
+        csv_data['Period_End'] = end_date.strftime('%b %d %Y').replace(' 0', ' ')
+    else:
+        csv_data['Period_Start'] = start_date.strftime('%b %d %Y').replace(' 0', ' ')
+        csv_data['Period_End'] = end_date.strftime('%b %d %Y').replace(' 0', ' ')
+    
+    # Performance metrics
+    csv_data['Uptime_Percent'] = export_data['uptime_percentage'].fillna(0).round(1)
+    csv_data['Total_Checks'] = export_data['effective_checks'].fillna(0).astype(int)
+    csv_data['Offline_Count'] = export_data['offline_events'].fillna(0).astype(int)
+    
+    # Format offline events for CSV
+    csv_data['All_Offline_Events'] = export_data['offline_times'].apply(
+        lambda x: format_offline_times_for_export(x, start_date, end_date)
+    )
+    
+    return csv_data
+
+def generate_csv_content(csv_data):
+    """Convert DataFrame to CSV string"""
+    if csv_data is None:
+        return None
+    
+    # Convert to CSV string
+    output = io.StringIO()
+    csv_data.to_csv(output, index=False, encoding='utf-8')
+    csv_content = output.getvalue()
+    output.close()
+    
+    return csv_content
+
+def create_export_filename(start_date, end_date):
+    """Create standardized filename for export"""
+    if start_date == end_date:
+        # Single day
+        date_str = start_date.strftime('%Y-%m-%d')
+    elif start_date.year == end_date.year and start_date.month == end_date.month:
+        # Same month
+        date_str = f"{start_date.strftime('%Y-%m-%d')}_{end_date.strftime('%d')}"
+    else:
+        # Different months/years
+        date_str = f"{start_date.strftime('%Y-%m-%d')}_{end_date.strftime('%Y-%m-%d')}"
+    
+    return f"uptime_report_{date_str}.csv"
+
+# ======================================================================
 #                            DATA LOADERS
 # ======================================================================
 @st.cache_data(ttl=config.DASHBOARD_AUTO_REFRESH)
@@ -1182,7 +1388,7 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🔴 Live Operations Monitor", "📊 Store Uptime Analytics", "📉 Downtime Events", "📈 Reports & Export"])
 
     # ----- TAB 1: LIVE -----
     with tab1:
@@ -1540,12 +1746,12 @@ def main():
                         platform_stats.columns = ['Platform', 'Stores with Issues', 'Total Events']
                         st.dataframe(platform_stats, use_container_width=True, hide_index=True)
 
-    # ----- TAB 4: REPORTS (HYBRID with persistent generate state) -----
+    # ----- TAB 4: REPORTS & CSV EXPORT (ENHANCED) -----
     with tab4:
         st.markdown(f"""
         <div class="section-header">
-            <div class="section-title">Store Uptime Reports</div>
-            <div class="section-subtitle">Historical uptime analysis • Uses hourly snapshots when available, real-time checks as fallback • Available from September 10, 2025</div>
+            <div class="section-title">Store Uptime Reports & Export</div>
+            <div class="section-subtitle">Historical analysis with CSV export • Available from September 10, 2025</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1553,10 +1759,10 @@ def main():
         if "reports_generated" not in st.session_state:
             st.session_state.reports_generated = False
         if "reports_last_range" not in st.session_state:
-            st.session_state.reports_last_range = None  # (start_date, end_date)
+            st.session_state.reports_last_range = None
 
         st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([2, 2, 1])
+        col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
         ph_now = config.get_current_time()
         min_date = datetime(2025, 9, 10).date()
 
@@ -1579,6 +1785,14 @@ def main():
         with col3:
             st.markdown("<br>", unsafe_allow_html=True)
             generate_report_clicked = st.button("📊 Generate Report", use_container_width=True)
+        with col4:
+            st.markdown("<br>", unsafe_allow_html=True)
+            # Export button - only show after report is generated
+            if st.session_state.reports_generated:
+                export_clicked = st.button("📥 Export CSV", use_container_width=True, type="primary")
+            else:
+                st.button("📥 Export CSV", use_container_width=True, disabled=True)
+                export_clicked = False
         st.markdown('</div>', unsafe_allow_html=True)
 
         # Normalize and validate dates
@@ -1602,8 +1816,55 @@ def main():
             if start_date != last_start or end_date != last_end:
                 st.session_state.reports_generated = False
 
+        # Handle CSV Export
+        if st.session_state.reports_generated and export_clicked:
+            range_start, range_end = st.session_state.reports_last_range
+            
+            with st.spinner("Generating CSV export..."):
+                try:
+                    # Load export data
+                    export_data, export_err = load_export_data(range_start, range_end)
+                    
+                    if export_err:
+                        st.error(f"Error loading export data: {export_err}")
+                    elif export_data is None or export_data.empty:
+                        st.warning("No data available for export in the selected date range.")
+                    else:
+                        # Create CSV
+                        csv_data = create_export_csv(export_data, range_start, range_end)
+                        
+                        if csv_data is not None:
+                            csv_content = generate_csv_content(csv_data)
+                            filename = create_export_filename(range_start, range_end)
+                            
+                            # Show preview of export
+                            st.success(f"✅ Export ready! Contains {len(csv_data)} stores with uptime data and offline events.")
+                            
+                            # CSV download button
+                            st.download_button(
+                                label=f"📥 Download {filename}",
+                                data=csv_content,
+                                file_name=filename,
+                                mime="text/csv",
+                                use_container_width=True
+                            )
+                            
+                            # Show preview
+                            st.markdown("### 📋 Export Preview")
+                            st.dataframe(csv_data.head(10), use_container_width=True, hide_index=True)
+                            
+                            if len(csv_data) > 10:
+                                st.info(f"Showing first 10 rows. Full export contains {len(csv_data)} stores.")
+                        
+                        else:
+                            st.error("Failed to create CSV export.")
+                
+                except Exception as e:
+                    st.error(f"Export error: {e}")
+                    logger.error(f"CSV export error: {e}")
+
         if not st.session_state.reports_generated:
-            st.info("Select a date range and click Generate Report.")
+            st.info("Select a date range and click Generate Report to view and export data.")
             st.stop()
 
         # --- data load using the last generated range (stable across reruns) ---
@@ -1721,6 +1982,15 @@ def main():
                 with ic3:
                     if stores_no_data_filtered > 0:
                         st.markdown(f"**📊 No Data:** {stores_no_data_filtered} stores (no activity in period)")
+
+    st.markdown("---")
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        if st.button("🔄 Refresh All Data", use_container_width=True):
+            load_comprehensive_data.clear()
+            load_reports_data.clear()
+            load_export_data.clear()
+            st.rerun()
 
 if __name__ == "__main__":
     try:
