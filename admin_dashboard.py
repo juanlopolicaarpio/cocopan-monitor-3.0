@@ -603,17 +603,21 @@ def sku_compliance_tab():
             key=f"sku_search_{store_id}_{platform}"
         )
         
-        # Load and filter SKUs
-        if search_term:
-            skus = search_skus(platform, search_term)
-            st.info(f"Found {len(skus)} products matching '{search_term}'")
-        else:
-            skus = db.get_master_skus_by_platform(platform)
-            st.info(f"Showing all {len(skus)} {platform} products")
-        
-        if not skus:
+        # Load ALL SKUs first (for calculations)
+        all_skus = db.get_master_skus_by_platform(platform)
+        if not all_skus:
             st.warning(f"No products found for {platform}. Please run the SKU population script first.")
             return
+            
+        # Filter SKUs for DISPLAY only
+        if search_term:
+            display_skus = search_skus(platform, search_term)
+            st.info(f"Found {len(display_skus)} products matching '{search_term}' (out of {len(all_skus)} total)")
+            if len(display_skus) < len(all_skus):
+                st.warning(f"⚠️ Search active - showing {len(display_skus)}/{len(all_skus)} products. Compliance calculated on ALL {len(all_skus)} products.")
+        else:
+            display_skus = all_skus
+            st.info(f"Showing all {len(all_skus)} {platform} products")
         
         # Bulk actions
         col1, col2, col3, col4 = st.columns(4)
@@ -625,7 +629,7 @@ def sku_compliance_tab():
         
         with col2:
             if st.button("❌ Mark All Out of Stock", key=f"all_out_stock_{store_id}_{platform}"):
-                st.session_state[session_key] = set(sku['sku_code'] for sku in skus)
+                st.session_state[session_key] = set(sku['sku_code'] for sku in all_skus)
                 st.success("All products marked as OUT OF STOCK")
                 st.rerun()
         
@@ -637,7 +641,7 @@ def sku_compliance_tab():
         
         with col4:
             current_oos_count = len(st.session_state[session_key])
-            total_skus = len(skus)
+            total_skus = len(all_skus)  # Always use full catalog count
             compliance_pct = ((total_skus - current_oos_count) / max(total_skus, 1)) * 100
             st.metric("Current Compliance", f"{compliance_pct:.1f}%", f"{total_skus - current_oos_count}/{total_skus} in stock")
         
@@ -657,15 +661,15 @@ def sku_compliance_tab():
         st.markdown("### 📋 Product Checklist")
         st.markdown("Check the box next to products that are **OUT OF STOCK**:")
         
-        # Group SKUs by category for better organization
+        # Group SKUs by category for better organization (use display_skus for UI)
         skus_by_category = {}
-        for sku in skus:
+        for sku in display_skus:
             category = sku.get('flow_category', 'Other')
             if category not in skus_by_category:
                 skus_by_category[category] = []
             skus_by_category[category].append(sku)
         
-        # Display SKUs by category
+        # Display SKUs by category (using filtered display_skus)
         for category, category_skus in skus_by_category.items():
             with st.expander(f"📁 {category} ({len(category_skus)} products)", expanded=True):
                 for sku in category_skus:
@@ -686,25 +690,35 @@ def sku_compliance_tab():
                         if sku_code in st.session_state[session_key]:
                             st.session_state[session_key].discard(sku_code)
         
-        # Summary before save
+        # Summary before save (always use full catalog for calculations)
         st.markdown("---")
         st.markdown("### 💾 Save Compliance Check")
         
         final_oos_count = len(st.session_state[session_key])
-        final_compliance = ((total_skus - final_oos_count) / max(total_skus, 1)) * 100
+        total_catalog_count = len(all_skus)  # Always use full catalog
+        final_compliance = ((total_catalog_count - final_oos_count) / max(total_catalog_count, 1)) * 100
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Total Products", total_skus)
+            st.metric("Total Products", total_catalog_count)
         with col2:
-            st.metric("In Stock", total_skus - final_oos_count, "✅")
+            st.metric("In Stock", total_catalog_count - final_oos_count, "✅")
         with col3:
             st.metric("Out of Stock", final_oos_count, "❌")
+        
+        # Add warning if search is active
+        if search_term:
+            st.warning(f"""
+            ⚠️ **Search Filter Active**: You are viewing {len(display_skus)} filtered products, but compliance 
+            calculation includes all {total_catalog_count} products in the catalog. Make sure you've 
+            checked all relevant products before saving.
+            """)
         
         st.markdown(f"""
         <div style="background:{'#FEF2F2' if final_compliance < 80 else '#F0FDF4'}; border:1px solid {'#FECACA' if final_compliance < 80 else '#BBF7D0'}; border-radius:8px; padding:1rem; margin:1rem 0;">
             <strong>📊 Final Compliance: {final_compliance:.1f}%</strong><br>
-            Status: {'🔴 Needs Attention' if final_compliance < 80 else '🟡 Good' if final_compliance < 95 else '🟢 Excellent'}
+            Status: {'🔴 Needs Attention' if final_compliance < 80 else '🟡 Good' if final_compliance < 95 else '🟢 Excellent'}<br>
+            <small>Calculated from full catalog of {total_catalog_count} products</small>
         </div>
         """, unsafe_allow_html=True)
         
