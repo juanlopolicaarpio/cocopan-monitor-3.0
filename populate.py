@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def get_grabfood_skus() -> List[Dict]:
     """Get all GrabFood SKUs from storefront flow document"""
     return [
-        # Best-Sellers Category
+        # Best-Sellers Category (FOR YOU as grab calls it)
         {"sku_code": "GB062", "product_name": "MILKY CHEESE DONUT", "category": "BREAD", "platform": "grabfood", "gmv_q3": 1595421.82, "flow_category": "Best-Sellers", "division": "BREAD"},
         {"sku_code": "GD028", "product_name": "VIETNAMESE COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 837763.57, "flow_category": "Best-Sellers", "division": "NON-BREAD"},
         {"sku_code": "GD113", "product_name": "MILO OVERLOAD", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 856857.15, "flow_category": "Best-Sellers", "division": "NON-BREAD"},
@@ -25,19 +25,37 @@ def get_grabfood_skus() -> List[Dict]:
         {"sku_code": "GD117", "product_name": "TWISTEA CLASSIC", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 72952.15, "flow_category": "Best-Sellers", "division": "NON-BREAD"},
         {"sku_code": "GB107", "product_name": "DOUBLE CHEESE ROLL", "category": "BREAD", "platform": "grabfood", "gmv_q3": 484849.49, "flow_category": "Best-Sellers", "division": "BREAD"},
 
+        # New Offers (Promos)
+        {"sku_code": "GP001", "product_name": "COCOPAN SAVORY SET 1", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "New Offers", "division": "PROMOS"},
+        {"sku_code": "GP002", "product_name": "COCOPAN SAVORY SET 2", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "New Offers", "division": "PROMOS"},
+        {"sku_code": "GP003", "product_name": "COCOPAN SAVORY SET 3", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "New Offers", "division": "PROMOS"},
+        {"sku_code": "GP004", "product_name": "COCOPAN SAVORY SET 4", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "New Offers", "division": "PROMOS"},
+        {"sku_code": "GP005", "product_name": "EXPRESS SWEET & CREAMY ICED COFFEE", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "New Offers", "division": "PROMOS"},
+        {"sku_code": "GP006", "product_name": "EXPRESS CLASSIC ICED COFFEE", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "New Offers", "division": "PROMOS"},
+
+        # Bundles (Promos)
+        {"sku_code": "GP007", "product_name": "BUILD A BOX (SUPERBOX 13PCS)", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "Bundles", "division": "PROMOS"},
+        {"sku_code": "GP008", "product_name": "SUPERBOX (ASSORTED 13PCS)", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "Bundles", "division": "PROMOS"},
+        {"sku_code": "GP009", "product_name": "BUILD A BOX (SNACK BOX 10PCS)", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "Bundles", "division": "PROMOS"},
+        {"sku_code": "GP010", "product_name": "SNACK BOX (ASSORTED 10PCS)", "category": "PROMOS", "platform": "grabfood", "gmv_q3": 0.0, "flow_category": "Bundles", "division": "PROMOS"},
+
         # Classic Favorites
+        {"sku_code": "GB001", "product_name": "PAN DE COCO", "category": "BREAD", "platform": "grabfood", "gmv_q3": 758896.86, "flow_category": "Classic Favorites", "division": "BREAD"},
+        {"sku_code": "GB107", "product_name": "DOUBLE CHEESE ROLL", "category": "BREAD", "platform": "grabfood", "gmv_q3": 484849.49, "flow_category": "Classic Favorites", "division": "BREAD"},
         {"sku_code": "GB004", "product_name": "GRAB CHEESE ROLL", "category": "BREAD", "platform": "grabfood", "gmv_q3": 503125.58, "flow_category": "Classic Favorites", "division": "BREAD"},
         {"sku_code": "GB006", "product_name": "GRAB SPANISH BREAD", "category": "BREAD", "platform": "grabfood", "gmv_q3": 420680.43, "flow_category": "Classic Favorites", "division": "BREAD"},
         {"sku_code": "GB008", "product_name": "GRAB CHOCO ROLL", "category": "BREAD", "platform": "grabfood", "gmv_q3": 224814.50, "flow_category": "Classic Favorites", "division": "BREAD"},
         {"sku_code": "GB104", "product_name": "GRAB PAN DE SAL (10 PCS)", "category": "BREAD", "platform": "grabfood", "gmv_q3": 116562.35, "flow_category": "Classic Favorites", "division": "BREAD"},
 
         # Sweet Favorites
+        {"sku_code": "GB110", "product_name": "CINNAMON ROLL DELUXE", "category": "BREAD", "platform": "grabfood", "gmv_q3": 601297.50, "flow_category": "Sweet Favorites", "division": "BREAD"},
         {"sku_code": "GB028", "product_name": "GRAB CINNAMON ROLL CLASSIC", "category": "BREAD", "platform": "grabfood", "gmv_q3": 237303.49, "flow_category": "Sweet Favorites", "division": "BREAD"},
         {"sku_code": "GB069", "product_name": "GRAB COFFEE BUN", "category": "BREAD", "platform": "grabfood", "gmv_q3": 271841.20, "flow_category": "Sweet Favorites", "division": "BREAD"},
         {"sku_code": "GB103", "product_name": "GRAB BLUEBERRY MUFFIN", "category": "BREAD", "platform": "grabfood", "gmv_q3": 145822.51, "flow_category": "Sweet Favorites", "division": "BREAD"},
         {"sku_code": "GB096", "product_name": "GRAB CHOCO CHIP MUFFIN", "category": "BREAD", "platform": "grabfood", "gmv_q3": 177441.38, "flow_category": "Sweet Favorites", "division": "BREAD"},
 
         # Donuts
+        {"sku_code": "GB062", "product_name": "MILKY CHEESE DONUT", "category": "BREAD", "platform": "grabfood", "gmv_q3": 1595421.82, "flow_category": "Donuts", "division": "BREAD"},
         {"sku_code": "GB074", "product_name": "GRAB CHOCO CHEESE DONUT", "category": "BREAD", "platform": "grabfood", "gmv_q3": 328551.42, "flow_category": "Donuts", "division": "BREAD"},
         {"sku_code": "GB061", "product_name": "GRAB CHEESE BURST DONUT", "category": "BREAD", "platform": "grabfood", "gmv_q3": 116089.50, "flow_category": "Donuts", "division": "BREAD"},
         {"sku_code": "GB034", "product_name": "GRAB SUGAR DONUT", "category": "BREAD", "platform": "grabfood", "gmv_q3": 257118.31, "flow_category": "Donuts", "division": "BREAD"},
@@ -59,49 +77,51 @@ def get_grabfood_skus() -> List[Dict]:
         {"sku_code": "GB097", "product_name": "GRAB DAILY LOAF - RAISIN", "category": "BREAD", "platform": "grabfood", "gmv_q3": 61865.00, "flow_category": "Daily Loaf", "division": "BREAD"},
         {"sku_code": "GB099", "product_name": "GRAB DAILY LOAF - ITALIAN HERB", "category": "BREAD", "platform": "grabfood", "gmv_q3": 77281.75, "flow_category": "Daily Loaf", "division": "BREAD"},
 
-        # Coffee - Vietnamese Coffee
-        {"sku_code": "GD029", "product_name": "GRAB ICED VIETNAMESE COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 154414.29, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD083", "product_name": "GRAB ICED VIETNAMESE COFFEE MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 122307.86, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD039", "product_name": "GRAB ICED VIETNAMESE COFFEE XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 194295.00, "flow_category": "Coffee", "division": "NON-BREAD"},
+        # Brewed Coffee - Vietnamese Coffee
+        {"sku_code": "GD028", "product_name": "GRAB HOT VIETNAMESE COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 24811.43, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD029", "product_name": "GRAB ICED VIETNAMESE COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 154414.29, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD083", "product_name": "GRAB ICED VIETNAMESE COFFEE MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 122307.86, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD039", "product_name": "GRAB ICED VIETNAMESE COFFEE XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 194295.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
 
-        # Coffee - Cafe Espanol
-        {"sku_code": "GD048", "product_name": "GRAB HOT CAFE ESPANOL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 14000.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD049", "product_name": "GRAB ICED CAFE ESPANOL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 99660.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD087", "product_name": "GRAB ICED CAFE ESPANOL MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 54927.86, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD050", "product_name": "GRAB ICED CAFE ESPANOL XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 111470.00, "flow_category": "Coffee", "division": "NON-BREAD"},
+        # Brewed Coffee - Cafe Espanol
+        {"sku_code": "GD048", "product_name": "GRAB HOT CAFE ESPANOL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 14000.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD049", "product_name": "GRAB ICED CAFE ESPANOL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 99660.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD087", "product_name": "GRAB ICED CAFE ESPANOL MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 54927.86, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD050", "product_name": "GRAB ICED CAFE ESPANOL XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 111470.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
 
-        # Coffee - Creamy Vanilla
-        {"sku_code": "GD004", "product_name": "GRAB HOT CREAMY VANILLA", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 14020.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD008", "product_name": "GRAB ICED CREAMY VANILLA", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 106345.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD081", "product_name": "GRAB ICED CREAMY VANILLA MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 56325.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD036", "product_name": "GRAB ICED CREAMY VANILLA XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 103972.14, "flow_category": "Coffee", "division": "NON-BREAD"},
+        # Brewed Coffee - Creamy Vanilla
+        {"sku_code": "GD004", "product_name": "GRAB HOT CREAMY VANILLA", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 14020.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD008", "product_name": "GRAB ICED CREAMY VANILLA", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 106345.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD081", "product_name": "GRAB ICED CREAMY VANILLA MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 56325.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD036", "product_name": "GRAB ICED CREAMY VANILLA XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 103972.14, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
 
-        # Coffee - Salted Caramel
-        {"sku_code": "GD051", "product_name": "GRAB HOT SALTED CARAMEL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 14905.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD052", "product_name": "GRAB ICED SALTED CARAMEL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 79977.86, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD088", "product_name": "GRAB ICED SALTED CARAMEL MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 62567.86, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD053", "product_name": "GRAB ICED SALTED CARAMEL XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 92177.14, "flow_category": "Coffee", "division": "NON-BREAD"},
+        # Brewed Coffee - Salted Caramel
+        {"sku_code": "GD051", "product_name": "GRAB HOT SALTED CARAMEL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 14905.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD052", "product_name": "GRAB ICED SALTED CARAMEL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 79977.86, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD088", "product_name": "GRAB ICED SALTED CARAMEL MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 62567.86, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD053", "product_name": "GRAB ICED SALTED CARAMEL XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 92177.14, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
 
-        # Coffee - Dark Chocolate
-        {"sku_code": "GD033", "product_name": "GRAB HOT DARK CHOCOLATE COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 13377.86, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD034", "product_name": "GRAB ICED DARK CHOCOLATE COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 74610.71, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD084", "product_name": "GRAB ICED DARK CHOCOLATE COFFEE MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 60665.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD041", "product_name": "GRAB ICED DARK CHOCOLATE COFFEE XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 89427.14, "flow_category": "Coffee", "division": "NON-BREAD"},
+        # Brewed Coffee - Dark Chocolate
+        {"sku_code": "GD033", "product_name": "GRAB HOT DARK CHOCOLATE COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 13377.86, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD034", "product_name": "GRAB ICED DARK CHOCOLATE COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 74610.71, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD084", "product_name": "GRAB ICED DARK CHOCOLATE COFFEE MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 60665.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD041", "product_name": "GRAB ICED DARK CHOCOLATE COFFEE XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 89427.14, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
 
-        # Coffee - Signature Milky
-        {"sku_code": "GD104", "product_name": "GRAB HOT SIGNATURE MILKY COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 11840.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD105", "product_name": "GRAB ICED SIGNATURE MILKY COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 40501.43, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD107", "product_name": "GRAB ICED SIGNATURE MILKY COFFEE MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 21380.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD106", "product_name": "GRAB ICED SIGNATURE MILKY COFFEE XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 30740.00, "flow_category": "Coffee", "division": "NON-BREAD"},
+        # Brewed Coffee - Signature Milky
+        {"sku_code": "GD104", "product_name": "GRAB HOT SIGNATURE MILKY COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 11840.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD105", "product_name": "GRAB ICED SIGNATURE MILKY COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 40501.43, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD107", "product_name": "GRAB ICED SIGNATURE MILKY COFFEE MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 21380.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD106", "product_name": "GRAB ICED SIGNATURE MILKY COFFEE XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 30740.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
 
-        # Coffee - Signature Black
-        {"sku_code": "GD003", "product_name": "GRAB HOT SIGNATURE BLACK COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 10735.00, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD007", "product_name": "GRAB ICED SIGNATURE BLACK COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 23748.57, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD080", "product_name": "GRAB ICED SIGNATURE BLACK COFFEE MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 26754.28, "flow_category": "Coffee", "division": "NON-BREAD"},
-        {"sku_code": "GD035", "product_name": "GRAB ICED SIGNATURE BLACK COFFEE XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 23885.72, "flow_category": "Coffee", "division": "NON-BREAD"},
+        # Brewed Coffee - Signature Black
+        {"sku_code": "GD003", "product_name": "GRAB HOT SIGNATURE BLACK COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 10735.00, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD007", "product_name": "GRAB ICED SIGNATURE BLACK COFFEE", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 23748.57, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD080", "product_name": "GRAB ICED SIGNATURE BLACK COFFEE MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 26754.28, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
+        {"sku_code": "GD035", "product_name": "GRAB ICED SIGNATURE BLACK COFFEE XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 23885.72, "flow_category": "Brewed Coffee", "division": "NON-BREAD"},
 
         # Chocolate - Milo
         {"sku_code": "GD130", "product_name": "GRAB HOT MILO OVERLOAD", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 10280.00, "flow_category": "Chocolate", "division": "NON-BREAD"},
+        {"sku_code": "GD113", "product_name": "GRAB MILO OVRLOAD ICED", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 166642.86, "flow_category": "Chocolate", "division": "NON-BREAD"},
         {"sku_code": "GD115", "product_name": "GRAB MILO OVRLOAD ICED MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 199171.43, "flow_category": "Chocolate", "division": "NON-BREAD"},
         {"sku_code": "GD114", "product_name": "GRAB MILO OVRLOAD ICED XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 172450.00, "flow_category": "Chocolate", "division": "NON-BREAD"},
 
@@ -112,6 +132,7 @@ def get_grabfood_skus() -> List[Dict]:
         {"sku_code": "GD037", "product_name": "GRAB ICED RICH CHOCO XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 67669.20, "flow_category": "Chocolate", "division": "NON-BREAD"},
 
         # Matcha
+        {"sku_code": "GD057", "product_name": "GRAB ICED MATCHA MILK", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 125907.86, "flow_category": "Matcha", "division": "NON-BREAD"},
         {"sku_code": "GD089", "product_name": "GRAB ICED MATCHA MILK MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 96707.86, "flow_category": "Matcha", "division": "NON-BREAD"},
         {"sku_code": "GD059", "product_name": "GRAB ICED MATCHA MILK XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 136146.60, "flow_category": "Matcha", "division": "NON-BREAD"},
         {"sku_code": "GD058", "product_name": "GRAB ICED MATCHA STRAWBERRY", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 66500.00, "flow_category": "Matcha", "division": "NON-BREAD"},
@@ -131,10 +152,10 @@ def get_grabfood_skus() -> List[Dict]:
         {"sku_code": "GD069", "product_name": "GRAB LEMON PASSION COOLER", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 41290.71, "flow_category": "Coolers", "division": "NON-BREAD"},
         {"sku_code": "GD093", "product_name": "GRAB LEMON PASSION COOLER MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 37029.29, "flow_category": "Coolers", "division": "NON-BREAD"},
         {"sku_code": "GD070", "product_name": "GRAB LEMON PASSION COOLER XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 37425.00, "flow_category": "Coolers", "division": "NON-BREAD"},
+        {"sku_code": "GD117", "product_name": "GRAB COCOPAN TWISTEA", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 29189.93, "flow_category": "Coolers", "division": "NON-BREAD"},
         {"sku_code": "GD119", "product_name": "GRAB COCOPAN TWISTEA MX", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 27665.00, "flow_category": "Coolers", "division": "NON-BREAD"},
         {"sku_code": "GD118", "product_name": "GRAB COCOPAN TWISTEA XL", "category": "NON-BREAD", "platform": "grabfood", "gmv_q3": 20835.72, "flow_category": "Coolers", "division": "NON-BREAD"},
     ]
-
 def get_foodpanda_skus() -> List[Dict]:
     """Get all Foodpanda SKUs from storefront flow document"""
     return [

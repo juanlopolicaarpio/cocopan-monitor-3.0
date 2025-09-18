@@ -1,0 +1,742 @@
+[
+  {
+    "store_name": "Cocopan Maysilo Delivery",
+    "store_url": "https://food.grab.com/ph/en/restaurant/cocopan-maysilo-delivery/2-C6TATTL2UF2UDA",
+    "success": true,
+    "page_length": 438019,
+    "scraped_products_count": 8,
+    "scraped_products": [
+      {
+        "name": "Cocopan - Maysilo",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 4",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 3",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 2",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 1",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 12 Italian Cheese Roll  +   1 Express Classic Iced Coffee (16oz)",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Choco Roll",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Spanish Bread",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      }
+    ],
+    "sku_matches": [
+      {
+        "sku_code": "GB110",
+        "expected_name": "CINNAMON ROLL DELUXE",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB107",
+        "expected_name": "DOUBLE CHEESE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB103",
+        "expected_name": "GRAB BLUEBERRY MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB061",
+        "expected_name": "GRAB CHEESE BURST DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB004",
+        "expected_name": "GRAB CHEESE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB095",
+        "expected_name": "GRAB CHEESY HAM ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB102",
+        "expected_name": "GRAB CHEESY SAUSAGE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB112",
+        "expected_name": "GRAB CHICKEN ASADO BUN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB074",
+        "expected_name": "GRAB CHOCO CHEESE DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB096",
+        "expected_name": "GRAB CHOCO CHIP MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      }
+    ],
+    "html_preview": "<!DOCTYPE html><html lang=\"en\" class=\"async-hide\"><head><meta charSet=\"utf-8\"/><meta name=\"google\" content=\"notranslate\"/><meta http-equiv=\"Content-Security-Policy\" content=\"script-src &#x27;unsafe-eval&#x27; &#x27;unsafe-inline&#x27; &#x27;self&#x27; www.googletagmanager.com www.google.com scribe-web-sdk.grab.com static.hotjar.com www.google-analytics.com connect.facebook.net websdk.appsflyer.com www.gstatic.com script.hotjar.com *.sentry.io cdn.ravenjs.com food.grab.com www.googleadservices.com googleads.g.doubleclick.net cdn-apac.onetrust.com blob: data: *.awswaf.com;worker-src https://food.grab.com blob: data:;\"/><script>(function(w){\n    w.dataLayer = w.dataLayer || [];\n    w.dataLayer.push({ userLogin: false, safeID: '', address: 'Manila', newUser: 'false' });\n  })(window);</script><style>.async-hide { opacity: 0 !important}</style><script>(function(a,s,y,n,c,h,i,d,e){s.className+=' '+y;h.start=1*new Date;\n          h.end=i=function(){s.className=s.className.replace(RegExp(' ?'+y),'')};\n          (a[n]=a[n]||[]).hide=h;setTimeout(function(){s.className='';h.end=null},c);h.timeout=c;\n          })(window,document.documentElement,'async-hide','dataLayer',1500,{'GTM-KMVG85X':true});</script><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\n          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],\n          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n          })(window,document,'script','dataLayer','GTM-KMVG85X');</script><script defer=\"\" src=\"https://scribe-web-sdk.grab.com/scribe_bundle.min.js\"></script><script>(function(arr){window.scribesdk=window.scribesdk||{};arr.forEach(function(a){window.scribesdk[a]=window.scribesdk[a]||function(){(window.scribesdk.q=window.scribesdk.q||[]).push([a,...arguments])}})})(['initialize','sendEvent','setAuthToken','setFacets','usePlugin'])</script><script>\n          (f"
+  },
+  {
+    "store_name": "Cocopan Anonas Delivery",
+    "store_url": "https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN",
+    "success": true,
+    "page_length": 486473,
+    "scraped_products_count": 8,
+    "scraped_products": [
+      {
+        "name": "Cocopan - Anonas",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Double Cheese Roll",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Double Cheese RollDouble Cheese Roll! Cheesy and crunchy on the outside, melty and cheesy on the inside\u2014every bite is pure comfort and indulgence!",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 2",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 3",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 4",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 1",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 12 Italian Cheese Roll  +   1 Express Classic Iced Coffee (16oz)",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      }
+    ],
+    "sku_matches": [
+      {
+        "sku_code": "GB110",
+        "expected_name": "CINNAMON ROLL DELUXE",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB107",
+        "expected_name": "DOUBLE CHEESE ROLL",
+        "status": "available",
+        "found_match": true,
+        "match_confidence": 1.0,
+        "matched_product_name": "Double Cheese Roll"
+      },
+      {
+        "sku_code": "GB103",
+        "expected_name": "GRAB BLUEBERRY MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB061",
+        "expected_name": "GRAB CHEESE BURST DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB004",
+        "expected_name": "GRAB CHEESE ROLL",
+        "status": "available",
+        "found_match": true,
+        "match_confidence": 0.6666666666666666,
+        "matched_product_name": "Double Cheese Roll"
+      },
+      {
+        "sku_code": "GB095",
+        "expected_name": "GRAB CHEESY HAM ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB102",
+        "expected_name": "GRAB CHEESY SAUSAGE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB112",
+        "expected_name": "GRAB CHICKEN ASADO BUN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB074",
+        "expected_name": "GRAB CHOCO CHEESE DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB096",
+        "expected_name": "GRAB CHOCO CHIP MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      }
+    ],
+    "html_preview": "<!DOCTYPE html><html lang=\"en\" class=\"async-hide\"><head><meta charSet=\"utf-8\"/><meta name=\"google\" content=\"notranslate\"/><meta http-equiv=\"Content-Security-Policy\" content=\"script-src &#x27;unsafe-eval&#x27; &#x27;unsafe-inline&#x27; &#x27;self&#x27; www.googletagmanager.com www.google.com scribe-web-sdk.grab.com static.hotjar.com www.google-analytics.com connect.facebook.net websdk.appsflyer.com www.gstatic.com script.hotjar.com *.sentry.io cdn.ravenjs.com food.grab.com www.googleadservices.com googleads.g.doubleclick.net cdn-apac.onetrust.com blob: data: *.awswaf.com;worker-src https://food.grab.com blob: data:;\"/><script>(function(w){\n    w.dataLayer = w.dataLayer || [];\n    w.dataLayer.push({ userLogin: false, safeID: '', address: 'Manila', newUser: 'false' });\n  })(window);</script><style>.async-hide { opacity: 0 !important}</style><script>(function(a,s,y,n,c,h,i,d,e){s.className+=' '+y;h.start=1*new Date;\n          h.end=i=function(){s.className=s.className.replace(RegExp(' ?'+y),'')};\n          (a[n]=a[n]||[]).hide=h;setTimeout(function(){s.className='';h.end=null},c);h.timeout=c;\n          })(window,document.documentElement,'async-hide','dataLayer',1500,{'GTM-KMVG85X':true});</script><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\n          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],\n          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n          })(window,document,'script','dataLayer','GTM-KMVG85X');</script><script defer=\"\" src=\"https://scribe-web-sdk.grab.com/scribe_bundle.min.js\"></script><script>(function(arr){window.scribesdk=window.scribesdk||{};arr.forEach(function(a){window.scribesdk[a]=window.scribesdk[a]||function(){(window.scribesdk.q=window.scribesdk.q||[]).push([a,...arguments])}})})(['initialize','sendEvent','setAuthToken','setFacets','usePlugin'])</script><script>\n          (f"
+  },
+  {
+    "store_name": "Cocopan Altura Santa Mesa Delivery",
+    "store_url": "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6",
+    "success": true,
+    "page_length": 493145,
+    "scraped_products_count": 8,
+    "scraped_products": [
+      {
+        "name": "Cocopan - Altura Santa Mesa",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Snack Box (Assorted 10 Pcs) + 10 php (Mango Sunrise)",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Spanish Bread",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Spanish BreadSpanish bread is a Filipino bread roll with a traditional sweet filling made of bread crumbs, mantikilya and brown sugar. Muy delicioso!",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Build A Box (Snack Box 10 Pcs) + 10 php (Mango Sunrise)",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Double Cheese Roll",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Double Cheese RollDouble Cheese Roll Cheesy and crunchy on the outside melty and cheesy on the inside every bite is pure comfort and indulgence",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 1",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      }
+    ],
+    "sku_matches": [
+      {
+        "sku_code": "GB110",
+        "expected_name": "CINNAMON ROLL DELUXE",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB107",
+        "expected_name": "DOUBLE CHEESE ROLL",
+        "status": "available",
+        "found_match": true,
+        "match_confidence": 1.0,
+        "matched_product_name": "Double Cheese Roll"
+      },
+      {
+        "sku_code": "GB103",
+        "expected_name": "GRAB BLUEBERRY MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB061",
+        "expected_name": "GRAB CHEESE BURST DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB004",
+        "expected_name": "GRAB CHEESE ROLL",
+        "status": "available",
+        "found_match": true,
+        "match_confidence": 0.6666666666666666,
+        "matched_product_name": "Double Cheese Roll"
+      },
+      {
+        "sku_code": "GB095",
+        "expected_name": "GRAB CHEESY HAM ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB102",
+        "expected_name": "GRAB CHEESY SAUSAGE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB112",
+        "expected_name": "GRAB CHICKEN ASADO BUN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB074",
+        "expected_name": "GRAB CHOCO CHEESE DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB096",
+        "expected_name": "GRAB CHOCO CHIP MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      }
+    ],
+    "html_preview": "<!DOCTYPE html><html lang=\"en\" class=\"async-hide\"><head><meta charSet=\"utf-8\"/><meta name=\"google\" content=\"notranslate\"/><meta http-equiv=\"Content-Security-Policy\" content=\"script-src &#x27;unsafe-eval&#x27; &#x27;unsafe-inline&#x27; &#x27;self&#x27; www.googletagmanager.com www.google.com scribe-web-sdk.grab.com static.hotjar.com www.google-analytics.com connect.facebook.net websdk.appsflyer.com www.gstatic.com script.hotjar.com *.sentry.io cdn.ravenjs.com food.grab.com www.googleadservices.com googleads.g.doubleclick.net cdn-apac.onetrust.com blob: data: *.awswaf.com;worker-src https://food.grab.com blob: data:;\"/><script>(function(w){\n    w.dataLayer = w.dataLayer || [];\n    w.dataLayer.push({ userLogin: false, safeID: '', address: 'Manila', newUser: 'false' });\n  })(window);</script><style>.async-hide { opacity: 0 !important}</style><script>(function(a,s,y,n,c,h,i,d,e){s.className+=' '+y;h.start=1*new Date;\n          h.end=i=function(){s.className=s.className.replace(RegExp(' ?'+y),'')};\n          (a[n]=a[n]||[]).hide=h;setTimeout(function(){s.className='';h.end=null},c);h.timeout=c;\n          })(window,document.documentElement,'async-hide','dataLayer',1500,{'GTM-KMVG85X':true});</script><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\n          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],\n          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n          })(window,document,'script','dataLayer','GTM-KMVG85X');</script><script defer=\"\" src=\"https://scribe-web-sdk.grab.com/scribe_bundle.min.js\"></script><script>(function(arr){window.scribesdk=window.scribesdk||{};arr.forEach(function(a){window.scribesdk[a]=window.scribesdk[a]||function(){(window.scribesdk.q=window.scribesdk.q||[]).push([a,...arguments])}})})(['initialize','sendEvent','setAuthToken','setFacets','usePlugin'])</script><script>\n          (f"
+  },
+  {
+    "store_name": "Cocopan Bf Holy Spirit Delivery",
+    "store_url": "https://food.grab.com/ph/en/restaurant/cocopan-bf-holy-spirit-delivery/2-C6V2PEAEEE5DEN",
+    "success": true,
+    "page_length": 484902,
+    "scraped_products_count": 8,
+    "scraped_products": [
+      {
+        "name": "Cocopan - BF Holy Spirit",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Snack Box (Assorted 10 Pcs) + 10 php (Mango Sunrise)",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cheese Roll",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cheese RollSugar and cheese, please! Put them together and you have this yummy cheese roll.",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Superbox (Assorted 13 Pcs) Free Mango Sunrise",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Snack Box (Assorted 10 Pcs) + 10 php (Mango Sunrise)Enjoy a curated mix of 10 COCOPAN favorites, handpicked for the ultimate treat experience.",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Build A Box (Superbox 13 Pcs) Free Mango Sunrise",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Build A Box (Snack Box 10Pcs) + 10 php (Mango Sunrise)",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      }
+    ],
+    "sku_matches": [
+      {
+        "sku_code": "GB110",
+        "expected_name": "CINNAMON ROLL DELUXE",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB107",
+        "expected_name": "DOUBLE CHEESE ROLL",
+        "status": "available",
+        "found_match": true,
+        "match_confidence": 0.6666666666666666,
+        "matched_product_name": "Cheese Roll"
+      },
+      {
+        "sku_code": "GB103",
+        "expected_name": "GRAB BLUEBERRY MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB061",
+        "expected_name": "GRAB CHEESE BURST DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB004",
+        "expected_name": "GRAB CHEESE ROLL",
+        "status": "available",
+        "found_match": true,
+        "match_confidence": 1.0,
+        "matched_product_name": "Cheese Roll"
+      },
+      {
+        "sku_code": "GB095",
+        "expected_name": "GRAB CHEESY HAM ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB102",
+        "expected_name": "GRAB CHEESY SAUSAGE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB112",
+        "expected_name": "GRAB CHICKEN ASADO BUN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB074",
+        "expected_name": "GRAB CHOCO CHEESE DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB096",
+        "expected_name": "GRAB CHOCO CHIP MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      }
+    ],
+    "html_preview": "<!DOCTYPE html><html lang=\"en\" class=\"async-hide\"><head><meta charSet=\"utf-8\"/><meta name=\"google\" content=\"notranslate\"/><meta http-equiv=\"Content-Security-Policy\" content=\"script-src &#x27;unsafe-eval&#x27; &#x27;unsafe-inline&#x27; &#x27;self&#x27; www.googletagmanager.com www.google.com scribe-web-sdk.grab.com static.hotjar.com www.google-analytics.com connect.facebook.net websdk.appsflyer.com www.gstatic.com script.hotjar.com *.sentry.io cdn.ravenjs.com food.grab.com www.googleadservices.com googleads.g.doubleclick.net cdn-apac.onetrust.com blob: data: *.awswaf.com;worker-src https://food.grab.com blob: data:;\"/><script>(function(w){\n    w.dataLayer = w.dataLayer || [];\n    w.dataLayer.push({ userLogin: false, safeID: '', address: 'Manila', newUser: 'false' });\n  })(window);</script><style>.async-hide { opacity: 0 !important}</style><script>(function(a,s,y,n,c,h,i,d,e){s.className+=' '+y;h.start=1*new Date;\n          h.end=i=function(){s.className=s.className.replace(RegExp(' ?'+y),'')};\n          (a[n]=a[n]||[]).hide=h;setTimeout(function(){s.className='';h.end=null},c);h.timeout=c;\n          })(window,document.documentElement,'async-hide','dataLayer',1500,{'GTM-KMVG85X':true});</script><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\n          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],\n          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n          })(window,document,'script','dataLayer','GTM-KMVG85X');</script><script defer=\"\" src=\"https://scribe-web-sdk.grab.com/scribe_bundle.min.js\"></script><script>(function(arr){window.scribesdk=window.scribesdk||{};arr.forEach(function(a){window.scribesdk[a]=window.scribesdk[a]||function(){(window.scribesdk.q=window.scribesdk.q||[]).push([a,...arguments])}})})(['initialize','sendEvent','setAuthToken','setFacets','usePlugin'])</script><script>\n          (f"
+  },
+  {
+    "store_name": "Cocopan Vicas Camarin Delivery",
+    "store_url": "https://food.grab.com/ph/en/restaurant/cocopan-vicas-camarin-delivery/2-C6TATLDTTE4BT2",
+    "success": true,
+    "page_length": 467921,
+    "scraped_products_count": 8,
+    "scraped_products": [
+      {
+        "name": "Cocopan - Vicas Camarin",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Snack Box (Assorted 10 Pcs) + 10 php ( Mango Sunrise)",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Build A Box (Superbox 13 Pcs) Free Mango Sunrise",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 2",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 1",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 12 Italian Cheese Roll  +   1 Express Classic Iced Coffee (16oz)",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 4",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      },
+      {
+        "name": "Cocopan Savory Set 3",
+        "price": null,
+        "is_available": true,
+        "detection_method": "text_search|default_available",
+        "confidence": 0.7
+      }
+    ],
+    "sku_matches": [
+      {
+        "sku_code": "GB110",
+        "expected_name": "CINNAMON ROLL DELUXE",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB107",
+        "expected_name": "DOUBLE CHEESE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB103",
+        "expected_name": "GRAB BLUEBERRY MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB061",
+        "expected_name": "GRAB CHEESE BURST DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB004",
+        "expected_name": "GRAB CHEESE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB095",
+        "expected_name": "GRAB CHEESY HAM ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB102",
+        "expected_name": "GRAB CHEESY SAUSAGE ROLL",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB112",
+        "expected_name": "GRAB CHICKEN ASADO BUN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB074",
+        "expected_name": "GRAB CHOCO CHEESE DONUT",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      },
+      {
+        "sku_code": "GB096",
+        "expected_name": "GRAB CHOCO CHIP MUFFIN",
+        "status": "not_found",
+        "found_match": false,
+        "match_confidence": 0.0,
+        "matched_product_name": null
+      }
+    ],
+    "html_preview": "<!DOCTYPE html><html lang=\"en\" class=\"async-hide\"><head><meta charSet=\"utf-8\"/><meta name=\"google\" content=\"notranslate\"/><meta http-equiv=\"Content-Security-Policy\" content=\"script-src &#x27;unsafe-eval&#x27; &#x27;unsafe-inline&#x27; &#x27;self&#x27; www.googletagmanager.com www.google.com scribe-web-sdk.grab.com static.hotjar.com www.google-analytics.com connect.facebook.net websdk.appsflyer.com www.gstatic.com script.hotjar.com *.sentry.io cdn.ravenjs.com food.grab.com www.googleadservices.com googleads.g.doubleclick.net cdn-apac.onetrust.com blob: data: *.awswaf.com;worker-src https://food.grab.com blob: data:;\"/><script>(function(w){\n    w.dataLayer = w.dataLayer || [];\n    w.dataLayer.push({ userLogin: false, safeID: '', address: 'Manila', newUser: 'false' });\n  })(window);</script><style>.async-hide { opacity: 0 !important}</style><script>(function(a,s,y,n,c,h,i,d,e){s.className+=' '+y;h.start=1*new Date;\n          h.end=i=function(){s.className=s.className.replace(RegExp(' ?'+y),'')};\n          (a[n]=a[n]||[]).hide=h;setTimeout(function(){s.className='';h.end=null},c);h.timeout=c;\n          })(window,document.documentElement,'async-hide','dataLayer',1500,{'GTM-KMVG85X':true});</script><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\n          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],\n          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n          })(window,document,'script','dataLayer','GTM-KMVG85X');</script><script defer=\"\" src=\"https://scribe-web-sdk.grab.com/scribe_bundle.min.js\"></script><script>(function(arr){window.scribesdk=window.scribesdk||{};arr.forEach(function(a){window.scribesdk[a]=window.scribesdk[a]||function(){(window.scribesdk.q=window.scribesdk.q||[]).push([a,...arguments])}})})(['initialize','sendEvent','setAuthToken','setFacets','usePlugin'])</script><script>\n          (f"
+  }
+]
