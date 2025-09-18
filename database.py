@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-CocoPan Database Module (Railway-ready) — WITH ADMIN HELPERS
+CocoPan Database Module (Railway-ready) — WITH ADMIN HELPERS + SKU COMPLIANCE
 - No hard-coded DB URL; always uses config.get_database_url()
 - psycopg2 ThreadedConnectionPool for writes/updates
 - SQLAlchemy Engine for all pandas reads (fixes pandas warning)
 - TCP keepalives + pool_pre_ping + pool_recycle to auto-heal EOF/peer resets
 - Keeps your hourly upserts & admin helpers (get_database_stats, get_stores_needing_attention, set_store_name_override)
+- NEW: SKU Compliance monitoring tables and methods
 """
 import os
 import time
 import logging
 from contextlib import contextmanager
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from datetime import datetime
 
 import sqlite3
 import psycopg2
@@ -171,6 +173,7 @@ class DatabaseManager:
         with self.get_connection() as conn:
             cur = conn.cursor()
             if self.db_type == "postgresql":
+                # Original tables
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS stores (
                         id SERIAL PRIMARY KEY,
@@ -228,7 +231,66 @@ class DatabaseManager:
                         last_probe_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+                
+                # NEW: SKU Compliance tables
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS master_skus (
+                        id SERIAL PRIMARY KEY,
+                        sku_code VARCHAR(50) NOT NULL,
+                        product_name VARCHAR(255) NOT NULL,
+                        platform VARCHAR(50) NOT NULL CHECK (platform IN ('grabfood', 'foodpanda')),
+                        category VARCHAR(100) NOT NULL,
+                        division VARCHAR(100),
+                        flow_category VARCHAR(100),
+                        gmv_q3 DECIMAL(15,2),
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(sku_code, platform)
+                    )
+                """)
+                
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS store_sku_checks (
+                        id SERIAL PRIMARY KEY,
+                        store_id INTEGER NOT NULL REFERENCES stores(id),
+                        platform VARCHAR(50) NOT NULL,
+                        check_date DATE NOT NULL,
+                        out_of_stock_skus TEXT[], -- Array of SKU codes that are out of stock
+                        total_skus_checked INTEGER NOT NULL DEFAULT 0,
+                        out_of_stock_count INTEGER NOT NULL DEFAULT 0,
+                        compliance_percentage DECIMAL(5,2) NOT NULL DEFAULT 0.0,
+                        checked_by VARCHAR(255) NOT NULL,
+                        checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        notes TEXT,
+                        UNIQUE(store_id, platform, check_date)
+                    )
+                """)
+                
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS sku_compliance_summary (
+                        id SERIAL PRIMARY KEY,
+                        summary_date DATE NOT NULL,
+                        platform VARCHAR(50) NOT NULL,
+                        total_stores_checked INTEGER NOT NULL DEFAULT 0,
+                        stores_100_percent INTEGER NOT NULL DEFAULT 0,
+                        stores_80_plus_percent INTEGER NOT NULL DEFAULT 0,
+                        stores_below_80_percent INTEGER NOT NULL DEFAULT 0,
+                        average_compliance_percentage DECIMAL(5,2) NOT NULL DEFAULT 0.0,
+                        total_out_of_stock_items INTEGER NOT NULL DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(summary_date, platform)
+                    )
+                """)
+                
+                # Create indexes for SKU tables
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_master_skus_platform ON master_skus(platform)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_master_skus_code ON master_skus(sku_code)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_store_sku_checks_store_date ON store_sku_checks(store_id, check_date)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_store_sku_checks_platform ON store_sku_checks(platform)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_sku_compliance_summary_date ON sku_compliance_summary(summary_date)")
+                
             else:
+                # SQLite versions
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS stores (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -285,6 +347,57 @@ class DatabaseManager:
                         errors        INTEGER NOT NULL,
                         unknown       INTEGER NOT NULL,
                         last_probe_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # NEW: SKU tables for SQLite
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS master_skus (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        sku_code TEXT NOT NULL,
+                        product_name TEXT NOT NULL,
+                        platform TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        division TEXT,
+                        flow_category TEXT,
+                        gmv_q3 REAL,
+                        is_active BOOLEAN DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(sku_code, platform)
+                    )
+                """)
+                
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS store_sku_checks (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        store_id INTEGER NOT NULL,
+                        platform TEXT NOT NULL,
+                        check_date TEXT NOT NULL,
+                        out_of_stock_skus TEXT, -- JSON string for SQLite
+                        total_skus_checked INTEGER NOT NULL DEFAULT 0,
+                        out_of_stock_count INTEGER NOT NULL DEFAULT 0,
+                        compliance_percentage REAL NOT NULL DEFAULT 0.0,
+                        checked_by TEXT NOT NULL,
+                        checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        notes TEXT,
+                        FOREIGN KEY (store_id) REFERENCES stores (id),
+                        UNIQUE(store_id, platform, check_date)
+                    )
+                """)
+                
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS sku_compliance_summary (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        summary_date TEXT NOT NULL,
+                        platform TEXT NOT NULL,
+                        total_stores_checked INTEGER NOT NULL DEFAULT 0,
+                        stores_100_percent INTEGER NOT NULL DEFAULT 0,
+                        stores_80_plus_percent INTEGER NOT NULL DEFAULT 0,
+                        stores_below_80_percent INTEGER NOT NULL DEFAULT 0,
+                        average_compliance_percentage REAL NOT NULL DEFAULT 0.0,
+                        total_out_of_stock_items INTEGER NOT NULL DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(summary_date, platform)
                     )
                 """)
             conn.commit()
@@ -380,6 +493,452 @@ class DatabaseManager:
                     time.sleep(self.retry_delay)
                 else:
                     return False
+
+    # ---------- NEW: SKU Compliance Methods ----------
+
+    def get_master_skus_by_platform(self, platform: str) -> List[Dict]:
+        """Get all SKUs for a specific platform (grabfood/foodpanda)"""
+        try:
+            with self.get_connection() as conn:
+                cur = conn.cursor()
+                if self.db_type == "postgresql":
+                    cur.execute("""
+                        SELECT id, sku_code, product_name, category, division, flow_category, gmv_q3
+                        FROM master_skus 
+                        WHERE platform = %s AND is_active = TRUE
+                        ORDER BY product_name
+                    """, (platform,))
+                else:
+                    cur.execute("""
+                        SELECT id, sku_code, product_name, category, division, flow_category, gmv_q3
+                        FROM master_skus 
+                        WHERE platform = ? AND is_active = 1
+                        ORDER BY product_name
+                    """, (platform,))
+                
+                rows = cur.fetchall()
+                skus = []
+                for row in rows:
+                    if self.db_type == "postgresql":
+                        skus.append({
+                            'id': row[0],
+                            'sku_code': row[1],
+                            'product_name': row[2],
+                            'category': row[3],
+                            'division': row[4],
+                            'flow_category': row[5],
+                            'gmv_q3': float(row[6]) if row[6] else 0.0
+                        })
+                    else:
+                        skus.append({
+                            'id': row['id'],
+                            'sku_code': row['sku_code'],
+                            'product_name': row['product_name'],
+                            'category': row['category'],
+                            'division': row['division'],
+                            'flow_category': row['flow_category'],
+                            'gmv_q3': float(row['gmv_q3']) if row['gmv_q3'] else 0.0
+                        })
+                return skus
+        except Exception as e:
+            logger.error(f"❌ get_master_skus_by_platform failed: {e}")
+            return []
+
+    def search_master_skus(self, platform: str, search_term: str) -> List[Dict]:
+        """Search products by name for a specific platform"""
+        try:
+            search_term = f"%{search_term}%"
+            with self.get_connection() as conn:
+                cur = conn.cursor()
+                if self.db_type == "postgresql":
+                    cur.execute("""
+                        SELECT id, sku_code, product_name, category, division, flow_category, gmv_q3
+                        FROM master_skus 
+                        WHERE platform = %s AND is_active = TRUE
+                          AND (product_name ILIKE %s OR sku_code ILIKE %s)
+                        ORDER BY 
+                            CASE WHEN product_name ILIKE %s THEN 1 ELSE 2 END,
+                            product_name
+                    """, (platform, search_term, search_term, f"{search_term}%"))
+                else:
+                    cur.execute("""
+                        SELECT id, sku_code, product_name, category, division, flow_category, gmv_q3
+                        FROM master_skus 
+                        WHERE platform = ? AND is_active = 1
+                          AND (product_name LIKE ? OR sku_code LIKE ?)
+                        ORDER BY product_name
+                    """, (platform, search_term, search_term))
+                
+                rows = cur.fetchall()
+                skus = []
+                for row in rows:
+                    if self.db_type == "postgresql":
+                        skus.append({
+                            'id': row[0],
+                            'sku_code': row[1],
+                            'product_name': row[2],
+                            'category': row[3],
+                            'division': row[4],
+                            'flow_category': row[5],
+                            'gmv_q3': float(row[6]) if row[6] else 0.0
+                        })
+                    else:
+                        skus.append({
+                            'id': row['id'],
+                            'sku_code': row['sku_code'],
+                            'product_name': row['product_name'],
+                            'category': row['category'],
+                            'division': row['division'],
+                            'flow_category': row['flow_category'],
+                            'gmv_q3': float(row['gmv_q3']) if row['gmv_q3'] else 0.0
+                        })
+                return skus
+        except Exception as e:
+            logger.error(f"❌ search_master_skus failed: {e}")
+            return []
+
+    def get_store_sku_status_today(self, store_id: int, platform: str) -> Optional[Dict]:
+        """Get current day's SKU check status for a store"""
+        try:
+            today = datetime.now().date()
+            with self.get_connection() as conn:
+                cur = conn.cursor()
+                if self.db_type == "postgresql":
+                    cur.execute("""
+                        SELECT out_of_stock_skus, total_skus_checked, out_of_stock_count, 
+                               compliance_percentage, checked_by, checked_at
+                        FROM store_sku_checks 
+                        WHERE store_id = %s AND platform = %s AND check_date = %s
+                    """, (store_id, platform, today))
+                else:
+                    cur.execute("""
+                        SELECT out_of_stock_skus, total_skus_checked, out_of_stock_count, 
+                               compliance_percentage, checked_by, checked_at
+                        FROM store_sku_checks 
+                        WHERE store_id = ? AND platform = ? AND check_date = ?
+                    """, (store_id, platform, today.isoformat()))
+                
+                row = cur.fetchone()
+                if row:
+                    if self.db_type == "postgresql":
+                        return {
+                            'out_of_stock_skus': row[0] or [],
+                            'total_skus_checked': row[1],
+                            'out_of_stock_count': row[2],
+                            'compliance_percentage': float(row[3]),
+                            'checked_by': row[4],
+                            'checked_at': row[5]
+                        }
+                    else:
+                        import json
+                        return {
+                            'out_of_stock_skus': json.loads(row['out_of_stock_skus']) if row['out_of_stock_skus'] else [],
+                            'total_skus_checked': row['total_skus_checked'],
+                            'out_of_stock_count': row['out_of_stock_count'],
+                            'compliance_percentage': float(row['compliance_percentage']),
+                            'checked_by': row['checked_by'],
+                            'checked_at': row['checked_at']
+                        }
+                return None
+        except Exception as e:
+            logger.error(f"❌ get_store_sku_status_today failed: {e}")
+            return None
+
+    def save_sku_compliance_check(self, store_id: int, platform: str, 
+                                out_of_stock_ids: List[str], checked_by: str) -> bool:
+        """Save complete SKU compliance check"""
+        try:
+            today = datetime.now().date()
+            
+            # Get total SKUs for this platform
+            total_skus = len(self.get_master_skus_by_platform(platform))
+            out_of_stock_count = len(out_of_stock_ids)
+            compliance_pct = ((total_skus - out_of_stock_count) / max(total_skus, 1)) * 100.0
+            
+            with self.get_connection() as conn:
+                cur = conn.cursor()
+                if self.db_type == "postgresql":
+                    cur.execute("""
+                        INSERT INTO store_sku_checks 
+                        (store_id, platform, check_date, out_of_stock_skus, total_skus_checked,
+                         out_of_stock_count, compliance_percentage, checked_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (store_id, platform, check_date) 
+                        DO UPDATE SET
+                            out_of_stock_skus = EXCLUDED.out_of_stock_skus,
+                            total_skus_checked = EXCLUDED.total_skus_checked,
+                            out_of_stock_count = EXCLUDED.out_of_stock_count,
+                            compliance_percentage = EXCLUDED.compliance_percentage,
+                            checked_by = EXCLUDED.checked_by,
+                            checked_at = CURRENT_TIMESTAMP
+                    """, (store_id, platform, today, out_of_stock_ids, total_skus, 
+                         out_of_stock_count, compliance_pct, checked_by))
+                else:
+                    import json
+                    cur.execute("""
+                        INSERT OR REPLACE INTO store_sku_checks 
+                        (store_id, platform, check_date, out_of_stock_skus, total_skus_checked,
+                         out_of_stock_count, compliance_percentage, checked_by)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (store_id, platform, today.isoformat(), json.dumps(out_of_stock_ids), 
+                         total_skus, out_of_stock_count, compliance_pct, checked_by))
+                
+                conn.commit()
+                
+                # Update daily summary
+                self._update_daily_sku_summary(platform, today, conn)
+                return True
+                
+        except Exception as e:
+            logger.error(f"❌ save_sku_compliance_check failed: {e}")
+            return False
+
+    def _update_daily_sku_summary(self, platform: str, check_date, conn):
+        """Update daily SKU compliance summary"""
+        try:
+            cur = conn.cursor()
+            if self.db_type == "postgresql":
+                cur.execute("""
+                    WITH daily_stats AS (
+                        SELECT 
+                            COUNT(*) as total_stores,
+                            COUNT(*) FILTER (WHERE compliance_percentage = 100.0) as stores_100,
+                            COUNT(*) FILTER (WHERE compliance_percentage >= 80.0) as stores_80_plus,
+                            COUNT(*) FILTER (WHERE compliance_percentage < 80.0) as stores_below_80,
+                            AVG(compliance_percentage) as avg_compliance,
+                            SUM(out_of_stock_count) as total_oos
+                        FROM store_sku_checks
+                        WHERE platform = %s AND check_date = %s
+                    )
+                    INSERT INTO sku_compliance_summary 
+                    (summary_date, platform, total_stores_checked, stores_100_percent,
+                     stores_80_plus_percent, stores_below_80_percent, average_compliance_percentage,
+                     total_out_of_stock_items)
+                    SELECT %s, %s, total_stores, stores_100, stores_80_plus, stores_below_80,
+                           avg_compliance, total_oos
+                    FROM daily_stats
+                    ON CONFLICT (summary_date, platform)
+                    DO UPDATE SET
+                        total_stores_checked = EXCLUDED.total_stores_checked,
+                        stores_100_percent = EXCLUDED.stores_100_percent,
+                        stores_80_plus_percent = EXCLUDED.stores_80_plus_percent,
+                        stores_below_80_percent = EXCLUDED.stores_below_80_percent,
+                        average_compliance_percentage = EXCLUDED.average_compliance_percentage,
+                        total_out_of_stock_items = EXCLUDED.total_out_of_stock_items
+                """, (platform, check_date, check_date, platform))
+            else:
+                # SQLite version - simplified
+                cur.execute("""
+                    INSERT OR REPLACE INTO sku_compliance_summary
+                    (summary_date, platform, total_stores_checked, average_compliance_percentage,
+                     total_out_of_stock_items)
+                    SELECT ?, ?, COUNT(*), AVG(compliance_percentage), SUM(out_of_stock_count)
+                    FROM store_sku_checks
+                    WHERE platform = ? AND check_date = ?
+                """, (check_date.isoformat(), platform, platform, check_date.isoformat()))
+            
+            conn.commit()
+            
+        except Exception as e:
+            logger.error(f"❌ _update_daily_sku_summary failed: {e}")
+
+    def get_sku_compliance_dashboard(self) -> List[Dict]:
+        """Get today's compliance summary for all stores"""
+        try:
+            today = datetime.now().date()
+            with self.get_connection() as conn:
+                cur = conn.cursor()
+                if self.db_type == "postgresql":
+                    cur.execute("""
+                        SELECT s.id, s.name, s.platform, ssc.compliance_percentage,
+                               ssc.out_of_stock_count, ssc.checked_by, ssc.checked_at
+                        FROM stores s
+                        LEFT JOIN store_sku_checks ssc ON s.id = ssc.store_id 
+                            AND ssc.check_date = %s
+                            AND s.platform = ssc.platform
+                        WHERE s.platform IN ('grabfood', 'foodpanda')
+                        ORDER BY s.platform, ssc.compliance_percentage DESC NULLS LAST, s.name
+                    """, (today,))
+                else:
+                    cur.execute("""
+                        SELECT s.id, s.name, s.platform, ssc.compliance_percentage,
+                               ssc.out_of_stock_count, ssc.checked_by, ssc.checked_at
+                        FROM stores s
+                        LEFT JOIN store_sku_checks ssc ON s.id = ssc.store_id 
+                            AND ssc.check_date = ?
+                            AND s.platform = ssc.platform
+                        WHERE s.platform IN ('grabfood', 'foodpanda')
+                        ORDER BY s.platform, ssc.compliance_percentage DESC, s.name
+                    """, (today.isoformat(),))
+                
+                rows = cur.fetchall()
+                dashboard_data = []
+                for row in rows:
+                    if self.db_type == "postgresql":
+                        dashboard_data.append({
+                            'store_id': row[0],
+                            'store_name': row[1],
+                            'platform': row[2],
+                            'compliance_percentage': float(row[3]) if row[3] is not None else None,
+                            'out_of_stock_count': row[4] or 0,
+                            'checked_by': row[5],
+                            'checked_at': row[6]
+                        })
+                    else:
+                        dashboard_data.append({
+                            'store_id': row['id'],
+                            'store_name': row['name'],
+                            'platform': row['platform'],
+                            'compliance_percentage': float(row['compliance_percentage']) if row['compliance_percentage'] is not None else None,
+                            'out_of_stock_count': row['out_of_stock_count'] or 0,
+                            'checked_by': row['checked_by'],
+                            'checked_at': row['checked_at']
+                        })
+                
+                return dashboard_data
+        except Exception as e:
+            logger.error(f"❌ get_sku_compliance_dashboard failed: {e}")
+            return []
+
+    def get_out_of_stock_details(self, store_id: Optional[int] = None) -> List[Dict]:
+        """Get detailed out-of-stock report"""
+        try:
+            today = datetime.now().date()
+            with self.get_connection() as conn:
+                cur = conn.cursor()
+                base_query = """
+                    SELECT s.name as store_name, s.platform, ms.sku_code, ms.product_name,
+                           ms.category, ms.division, ssc.checked_by, ssc.checked_at
+                    FROM store_sku_checks ssc
+                    JOIN stores s ON ssc.store_id = s.id
+                    JOIN master_skus ms ON ms.sku_code = ANY(ssc.out_of_stock_skus) 
+                        AND ms.platform = ssc.platform
+                    WHERE ssc.check_date = %s
+                """
+                
+                if self.db_type == "postgresql":
+                    if store_id:
+                        cur.execute(base_query + " AND s.id = %s ORDER BY s.name, ms.product_name", 
+                                  (today, store_id))
+                    else:
+                        cur.execute(base_query + " ORDER BY s.name, ms.product_name", (today,))
+                else:
+                    # SQLite version - need to handle JSON differently
+                    if store_id:
+                        cur.execute("""
+                            SELECT s.name as store_name, s.platform, ssc.out_of_stock_skus,
+                                   ssc.checked_by, ssc.checked_at
+                            FROM store_sku_checks ssc
+                            JOIN stores s ON ssc.store_id = s.id
+                            WHERE ssc.check_date = ? AND s.id = ?
+                            ORDER BY s.name
+                        """, (today.isoformat(), store_id))
+                    else:
+                        cur.execute("""
+                            SELECT s.name as store_name, s.platform, ssc.out_of_stock_skus,
+                                   ssc.checked_by, ssc.checked_at
+                            FROM store_sku_checks ssc
+                            JOIN stores s ON ssc.store_id = s.id
+                            WHERE ssc.check_date = ?
+                            ORDER BY s.name
+                        """, (today.isoformat(),))
+                
+                rows = cur.fetchall()
+                details = []
+                
+                if self.db_type == "postgresql":
+                    for row in rows:
+                        details.append({
+                            'store_name': row[0],
+                            'platform': row[1],
+                            'sku_code': row[2],
+                            'product_name': row[3],
+                            'category': row[4],
+                            'division': row[5],
+                            'checked_by': row[6],
+                            'checked_at': row[7]
+                        })
+                else:
+                    # For SQLite, we need to expand the JSON array manually
+                    import json
+                    for row in rows:
+                        try:
+                            oos_skus = json.loads(row['out_of_stock_skus']) if row['out_of_stock_skus'] else []
+                            for sku_code in oos_skus:
+                                # Get SKU details
+                                cur.execute("""
+                                    SELECT sku_code, product_name, category, division
+                                    FROM master_skus 
+                                    WHERE sku_code = ? AND platform = ?
+                                """, (sku_code, row['platform']))
+                                sku_row = cur.fetchone()
+                                if sku_row:
+                                    details.append({
+                                        'store_name': row['store_name'],
+                                        'platform': row['platform'],
+                                        'sku_code': sku_row['sku_code'],
+                                        'product_name': sku_row['product_name'],
+                                        'category': sku_row['category'],
+                                        'division': sku_row['division'],
+                                        'checked_by': row['checked_by'],
+                                        'checked_at': row['checked_at']
+                                    })
+                        except Exception as e:
+                            logger.error(f"Error processing SQLite OOS details: {e}")
+                
+                return details
+        except Exception as e:
+            logger.error(f"❌ get_out_of_stock_details failed: {e}")
+            return []
+
+    def bulk_add_master_skus(self, sku_list: List[Dict]) -> bool:
+        """Bulk add master SKU data"""
+        try:
+            with self.get_connection() as conn:
+                cur = conn.cursor()
+                for sku in sku_list:
+                    if self.db_type == "postgresql":
+                        cur.execute("""
+                            INSERT INTO master_skus 
+                            (sku_code, product_name, platform, category, division, flow_category, gmv_q3)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (sku_code, platform) DO UPDATE SET
+                                product_name = EXCLUDED.product_name,
+                                category = EXCLUDED.category,
+                                division = EXCLUDED.division,
+                                flow_category = EXCLUDED.flow_category,
+                                gmv_q3 = EXCLUDED.gmv_q3
+                        """, (
+                            sku['sku_code'],
+                            sku['product_name'],
+                            sku['platform'],
+                            sku['category'],
+                            sku.get('division'),
+                            sku.get('flow_category'),
+                            sku.get('gmv_q3')
+                        ))
+                    else:
+                        cur.execute("""
+                            INSERT OR REPLACE INTO master_skus 
+                            (sku_code, product_name, platform, category, division, flow_category, gmv_q3)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            sku['sku_code'],
+                            sku['product_name'],
+                            sku['platform'],
+                            sku['category'],
+                            sku.get('division'),
+                            sku.get('flow_category'),
+                            sku.get('gmv_q3')
+                        ))
+                
+                conn.commit()
+                logger.info(f"✅ Bulk added {len(sku_list)} SKUs successfully")
+                return True
+                
+        except Exception as e:
+            logger.error(f"❌ bulk_add_master_skus failed: {e}")
+            return False
 
     # ---------- READ APIs (pandas via SQLAlchemy engine; fixes pandas warning) ----------
 
@@ -547,6 +1106,10 @@ class DatabaseManager:
                 cur.execute("SELECT COUNT(*) FROM status_checks")
                 total_checks = cur.fetchone()[0]
 
+                # SKU stats
+                cur.execute("SELECT COUNT(*) FROM master_skus")
+                total_skus = cur.fetchone()[0]
+
                 # latest summary (most recent report_time)
                 if self.db_type == "postgresql":
                     cur.execute("""
@@ -583,6 +1146,7 @@ class DatabaseManager:
                     "store_count": int(store_count),
                     "platforms": platforms,
                     "total_checks": int(total_checks),
+                    "total_skus": int(total_skus),
                     "latest_summary": latest_summary,
                     "db_type": self.db_type,
                     "timezone": self.timezone,
@@ -593,6 +1157,7 @@ class DatabaseManager:
                 "store_count": 0,
                 "platforms": {},
                 "total_checks": 0,
+                "total_skus": 0,
                 "latest_summary": None,
                 "db_type": self.db_type,
                 "timezone": self.timezone,

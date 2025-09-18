@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-CocoPan Admin Dashboard - FIXED DATA SAVING + DEFAULT-ALL-ONLINE AT WINDOW START
-✅ Saves to BOTH legacy and hourly snapshot tables
-✅ Idempotency keyed by explicit [VA_CHECKIN] hour tag (no TZ ambiguity)
-✅ Default state becomes "ALL ONLINE" exactly 10 minutes before each hour and until submission
-✅ Offline-first sorting in the store list and search results
+CocoPan Admin Dashboard - DOCUMENT 2 + SKU COMPLIANCE
+✅ Keeps all Document 2 logic unchanged (PostgreSQL only)
+✅ Adds SKU Compliance functionality as new features
+✅ Store Verification (from Document 2)
+✅ VA Hourly Check-in (from Document 2) 
+✅ SKU Compliance Checker (new from Document 1)
 """
 # ===== Standard libs =====
 import os
@@ -17,7 +18,7 @@ import http.server
 import socketserver
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Set
+from typing import List, Set, Dict
 
 # ===== Third-party =====
 import pytz
@@ -33,7 +34,7 @@ from config import config
 from database import db
 
 # ------------------------------------------------------------------------------
-# Health check endpoint (hardened)
+# Health check endpoint (hardened) - FROM DOCUMENT 2
 # ------------------------------------------------------------------------------
 _HEALTH_THREAD_STARTED = False
 _HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8504"))
@@ -77,7 +78,7 @@ if os.getenv("RAILWAY_ENVIRONMENT") == "production" and not _HEALTH_THREAD_START
         logger.exception("Failed to start health server thread")
 
 # ------------------------------------------------------------------------------
-# Streamlit page config
+# Streamlit page config - FROM DOCUMENT 2
 # ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="CocoPan Admin",
@@ -87,7 +88,7 @@ st.set_page_config(
 )
 
 # ------------------------------------------------------------------------------
-# Email Authentication
+# Email Authentication - FROM DOCUMENT 2
 # ------------------------------------------------------------------------------
 def load_authorized_admin_emails():
     try:
@@ -139,7 +140,7 @@ def check_admin_email_authentication():
     return True
 
 # ------------------------------------------------------------------------------
-# Foodpanda stores
+# Foodpanda stores - FROM DOCUMENT 2 (UNCHANGED)
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def load_foodpanda_stores():
@@ -187,7 +188,76 @@ def extract_store_name_from_url(url: str) -> str:
         return "Cocopan Foodpanda Store"
 
 # ------------------------------------------------------------------------------
-# Existing admin actions (verification tab)
+# NEW: Load all stores for SKU compliance (ADDITION FROM DOCUMENT 1)
+# ------------------------------------------------------------------------------
+@st.cache_data(ttl=300)
+def load_all_stores():
+    stores = []
+    try:
+        with open("branch_urls.json", "r") as f:
+            data = json.load(f)
+        urls = data.get("urls", [])
+        for url in urls:
+            if not url or url.startswith("Can't find") or url.startswith("foodpanda.ph/restaurant/rusp/cocopan-moonwalk"):
+                continue
+            try:
+                platform = "foodpanda" if "foodpanda" in url else "grabfood"
+                with db.get_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute("SELECT id, name, platform FROM stores WHERE url = %s", (url,))
+                    row = cur.fetchone()
+                    if row:
+                        store_id, store_name, store_platform = row[0], row[1], row[2]
+                    else:
+                        store_name = extract_store_name_from_url_extended(url)
+                        store_id = db.get_or_create_store(store_name, url)
+                        store_platform = platform
+                    stores.append({
+                        "id": store_id, 
+                        "name": store_name, 
+                        "url": url, 
+                        "platform": store_platform or platform
+                    })
+            except Exception as e:
+                logger.error(f"Error ensuring store in DB for {url}: {e}")
+                stores.append({
+                    "id": None, 
+                    "name": extract_store_name_from_url_extended(url), 
+                    "url": url,
+                    "platform": "foodpanda" if "foodpanda" in url else "grabfood"
+                })
+        logger.info(f"📋 Loaded {len(stores)} total stores")
+        return stores
+    except Exception as e:
+        logger.error(f"❌ Failed to load stores list: {e}")
+        return stores
+
+def extract_store_name_from_url_extended(url: str) -> str:
+    """Extended version for both platforms"""
+    try:
+        if "foodpanda.ph" in url:
+            m = re.search(r"/restaurant/[^/]+/([^/?#]+)", url)
+            if m:
+                raw = m.group(1)
+                name = raw.replace("-", " ").replace("_", " ").title()
+                return name if name.lower().startswith("cocopan") else f"Cocopan {name}"
+        elif "foodpanda.page.link" in url:
+            uid = url.split("/")[-1][:8] if "/" in url else "store"
+            return f"Cocopan Foodpanda {uid.upper()}"
+        elif "food.grab.com" in url:
+            m = re.search(r"/restaurant/([^/]+)/", url)
+            if m:
+                raw = m.group(1).replace("-delivery", "").replace("cocopan-", "")
+                name = raw.replace("-", " ").replace("_", " ").title()
+                return f"Cocopan {name}"
+        elif "r.grab.com" in url:
+            return "Cocopan Grab Store"
+        return "Cocopan Store"
+    except Exception:
+        return "Cocopan Store"
+
+# ------------------------------------------------------------------------------
+# Existing admin actions (verification tab) - FROM DOCUMENT 2 (UNCHANGED)
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=60)
 def load_stores_needing_attention() -> pd.DataFrame:
@@ -235,7 +305,7 @@ def format_time_ago(checked_at) -> str:
         return "Unknown"
 
 # ------------------------------------------------------------------------------
-# VA Check-in helpers and schedule
+# VA Check-in helpers and schedule - FROM DOCUMENT 2 (UNCHANGED)
 # ------------------------------------------------------------------------------
 def get_va_checkin_schedule():
     return {"start_hour": 7, "end_hour": 21, "timezone": "Asia/Manila"}
@@ -281,13 +351,13 @@ def get_next_checkin_time():
             return (now + timedelta(days=1)).replace(hour=sched["start_hour"], minute=0, second=0, microsecond=0)
         return now.replace(hour=h + 1, minute=0, second=0, microsecond=0)
 
-# NEW: explicit hour tag to avoid TZ confusion
+# NEW: explicit hour tag to avoid TZ confusion - FROM DOCUMENT 2 (UNCHANGED)
 def _va_hour_tag(hour_slot: datetime) -> str:
     # hour_slot is Manila-aligned; tag uses Manila wall time text
     return f"[VA_CHECKIN] {hour_slot.strftime('%Y-%m-%d %H:00')}"
 
 # ------------------------------------------------------------------------------
-# DB reads using the hour tag (no timestamp windows)
+# DB reads using the hour tag - FROM DOCUMENT 2 (UNCHANGED)
 # ------------------------------------------------------------------------------
 def load_submitted_va_state(hour_slot: datetime) -> Set[int]:
     """Return set of store_ids marked OFFLINE for the exact hour tag."""
@@ -365,7 +435,7 @@ def debug_va_timestamps():
         logger.error(f"Debug timestamps error: {e}")
 
 # ------------------------------------------------------------------------------
-# Save using the hour tag as idempotency key
+# Save using the hour tag as idempotency key - FROM DOCUMENT 2 (UNCHANGED)
 # ------------------------------------------------------------------------------
 def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hour_slot: datetime) -> bool:
     try:
@@ -446,7 +516,233 @@ def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hou
         return False
 
 # ------------------------------------------------------------------------------
-# VA Check-in UI Tab
+# NEW: SKU Compliance Functions (ADDITION FROM DOCUMENT 1)
+# ------------------------------------------------------------------------------
+def clean_product_name(name: str) -> str:
+    if not name:
+        return ""
+    # Remove platform prefixes
+    cleaned = name.replace("GRAB ", "").replace("FOODPANDA ", "")
+    return cleaned
+
+def search_skus(platform: str, search_term: str) -> List[Dict]:
+    if search_term and len(search_term.strip()) > 0:
+        return db.search_master_skus(platform, search_term.strip())
+    else:
+        return db.get_master_skus_by_platform(platform)
+
+# ------------------------------------------------------------------------------
+# NEW: SKU Compliance Tab UI (ADDITION FROM DOCUMENT 1)
+# ------------------------------------------------------------------------------
+def sku_compliance_tab():
+    st.markdown(f"""
+    <div class="section-header" style="background:#fff; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem 1.1rem; margin:1.1rem 0 .9rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+        <div style="font-size:1.1rem; font-weight:600; color:#1E293B; margin:0;">📦 SKU Compliance Checker</div>
+        <div style="font-size:.85rem; color:#64748B; margin:.25rem 0 0 0;">Check product availability at stores • VA Tool</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 🔍 Store Product Checker")
+    st.markdown("Select a store and platform, then check which products are out of stock.")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        platform = st.selectbox(
+            "Select Platform:",
+            ["grabfood", "foodpanda"],
+            format_func=lambda x: "🛒 GrabFood" if x == "grabfood" else "🍔 Foodpanda",
+            key="sku_platform_select"
+        )
+    
+    with col2:
+        # Load stores for selected platform
+        all_stores = load_all_stores()
+        platform_stores = [s for s in all_stores if s["platform"] == platform and s["id"]]
+        
+        if not platform_stores:
+            st.error(f"No {platform} stores found in database.")
+            return
+            
+        store_options = {f"{s['name']} (ID: {s['id']})": s for s in platform_stores}
+        selected_store_display = st.selectbox(
+            "Select Store:",
+            options=list(store_options.keys()),
+            key="sku_store_select"
+        )
+        
+    if selected_store_display:
+        selected_store = store_options[selected_store_display]
+        store_id = selected_store["id"]
+        store_name = selected_store["name"]
+        store_url = selected_store["url"]
+        
+        st.markdown(f"""
+        <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:1rem; margin:1rem 0;">
+            <strong>📍 Selected Store:</strong> {store_name}<br>
+            <strong>🏪 Platform:</strong> {'🛒 GrabFood' if platform == 'grabfood' else '🍔 Foodpanda'}<br>
+            <strong>🔗 Store URL:</strong> <a href="{store_url}" target="_blank">Open Store</a>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Load existing check data for today
+        existing_check = db.get_store_sku_status_today(store_id, platform)
+        
+        # Initialize session state for SKU selections
+        session_key = f"sku_check_{store_id}_{platform}"
+        if session_key not in st.session_state:
+            if existing_check:
+                st.session_state[session_key] = set(existing_check.get('out_of_stock_skus', []))
+            else:
+                st.session_state[session_key] = set()
+        
+        # Search functionality
+        search_term = st.text_input(
+            "🔍 Search Products:",
+            placeholder="Type product name to search...",
+            key=f"sku_search_{store_id}_{platform}"
+        )
+        
+        # Load and filter SKUs
+        if search_term:
+            skus = search_skus(platform, search_term)
+            st.info(f"Found {len(skus)} products matching '{search_term}'")
+        else:
+            skus = db.get_master_skus_by_platform(platform)
+            st.info(f"Showing all {len(skus)} {platform} products")
+        
+        if not skus:
+            st.warning(f"No products found for {platform}. Please run the SKU population script first.")
+            return
+        
+        # Bulk actions
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            if st.button("✅ Mark All In Stock", key=f"all_in_stock_{store_id}_{platform}"):
+                st.session_state[session_key] = set()
+                st.success("All products marked as IN STOCK")
+                st.rerun()
+        
+        with col2:
+            if st.button("❌ Mark All Out of Stock", key=f"all_out_stock_{store_id}_{platform}"):
+                st.session_state[session_key] = set(sku['sku_code'] for sku in skus)
+                st.success("All products marked as OUT OF STOCK")
+                st.rerun()
+        
+        with col3:
+            if existing_check and st.button("🔄 Reset to Last Saved", key=f"reset_{store_id}_{platform}"):
+                st.session_state[session_key] = set(existing_check.get('out_of_stock_skus', []))
+                st.success("Reset to last saved state")
+                st.rerun()
+        
+        with col4:
+            current_oos_count = len(st.session_state[session_key])
+            total_skus = len(skus)
+            compliance_pct = ((total_skus - current_oos_count) / max(total_skus, 1)) * 100
+            st.metric("Current Compliance", f"{compliance_pct:.1f}%", f"{total_skus - current_oos_count}/{total_skus} in stock")
+        
+        # Display existing check info
+        if existing_check:
+            st.markdown(f"""
+            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:1rem; margin:1rem 0;">
+                <strong>📋 Previously Saved Check:</strong><br>
+                • Compliance: {existing_check['compliance_percentage']:.1f}%<br>
+                • Out of Stock: {existing_check['out_of_stock_count']} items<br>
+                • Checked by: {existing_check['checked_by']}<br>
+                • Checked at: {existing_check['checked_at']}
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # SKU checklist
+        st.markdown("### 📋 Product Checklist")
+        st.markdown("Check the box next to products that are **OUT OF STOCK**:")
+        
+        # Group SKUs by category for better organization
+        skus_by_category = {}
+        for sku in skus:
+            category = sku.get('flow_category', 'Other')
+            if category not in skus_by_category:
+                skus_by_category[category] = []
+            skus_by_category[category].append(sku)
+        
+        # Display SKUs by category
+        for category, category_skus in skus_by_category.items():
+            with st.expander(f"📁 {category} ({len(category_skus)} products)", expanded=True):
+                for sku in category_skus:
+                    sku_code = sku['sku_code']
+                    product_name = clean_product_name(sku['product_name'])
+                    
+                    is_out_of_stock = st.checkbox(
+                        f"**{product_name}** ({sku_code})",
+                        value=sku_code in st.session_state[session_key],
+                        key=f"sku_{sku_code}_{store_id}_{platform}",
+                        help=f"GMV Q3: ₱{sku.get('gmv_q3', 0):,.2f}"
+                    )
+                    
+                    if is_out_of_stock:
+                        if sku_code not in st.session_state[session_key]:
+                            st.session_state[session_key].add(sku_code)
+                    else:
+                        if sku_code in st.session_state[session_key]:
+                            st.session_state[session_key].discard(sku_code)
+        
+        # Summary before save
+        st.markdown("---")
+        st.markdown("### 💾 Save Compliance Check")
+        
+        final_oos_count = len(st.session_state[session_key])
+        final_compliance = ((total_skus - final_oos_count) / max(total_skus, 1)) * 100
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Products", total_skus)
+        with col2:
+            st.metric("In Stock", total_skus - final_oos_count, "✅")
+        with col3:
+            st.metric("Out of Stock", final_oos_count, "❌")
+        
+        st.markdown(f"""
+        <div style="background:{'#FEF2F2' if final_compliance < 80 else '#F0FDF4'}; border:1px solid {'#FECACA' if final_compliance < 80 else '#BBF7D0'}; border-radius:8px; padding:1rem; margin:1rem 0;">
+            <strong>📊 Final Compliance: {final_compliance:.1f}%</strong><br>
+            Status: {'🔴 Needs Attention' if final_compliance < 80 else '🟡 Good' if final_compliance < 95 else '🟢 Excellent'}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Save button
+        if st.button("💾 Save Compliance Check", type="primary", use_container_width=True):
+            try:
+                out_of_stock_list = list(st.session_state[session_key])
+                success = db.save_sku_compliance_check(
+                    store_id=store_id,
+                    platform=platform,
+                    out_of_stock_ids=out_of_stock_list,
+                    checked_by=st.session_state.admin_email
+                )
+                
+                if success:
+                    st.success(f"""
+                    ✅ **Compliance check saved successfully!**
+                    
+                    📊 **Summary:**
+                    - Store: {store_name}
+                    - Platform: {platform.title()}
+                    - Compliance: {final_compliance:.1f}%
+                    - Out of Stock: {final_oos_count} items
+                    - Checked by: {st.session_state.admin_email}
+                    
+                    The compliance data has been saved to the database.
+                    """)
+                    time.sleep(1)
+                    
+                else:
+                    st.error("❌ Failed to save compliance check. Please try again.")
+                    
+            except Exception as e:
+                st.error(f"❌ Error saving compliance check: {e}")
+                logger.error(f"SKU compliance save error: {e}")
+
+# ------------------------------------------------------------------------------
+# VA Check-in UI Tab - FROM DOCUMENT 2 (UNCHANGED)
 # ------------------------------------------------------------------------------
 def enhanced_va_checkin_tab():
     debug_va_timestamps()
@@ -667,7 +963,7 @@ You can review stores below; submissions are accepted during the window.
         cols[i].metric(_fmt_hour(h), status)
 
 # ------------------------------------------------------------------------------
-# Styles
+# Styles - FROM DOCUMENT 2 (UNCHANGED)
 # ------------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -692,7 +988,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
-# Main
+# Main - MODIFIED TO ADD SKU TAB
 # ------------------------------------------------------------------------------
 def main():
     if not check_admin_email_authentication():
@@ -713,7 +1009,8 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["🔧 Store Verification", "🐼 VA Hourly Check-in"])
+    # MODIFIED: Added SKU Compliance tab
+    tab1, tab2, tab3 = st.tabs(["🔧 Store Verification", "🐼 VA Hourly Check-in", "📦 SKU Compliance"])
 
     with tab1:
         df = load_stores_needing_attention()
@@ -790,11 +1087,19 @@ def main():
     with tab2:
         enhanced_va_checkin_tab()
 
+    # NEW: SKU Compliance Tab
+    with tab3:
+        sku_compliance_tab()
+
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
+        # MODIFIED: Clear both cache functions
         if st.button("🔄 Refresh All Data", use_container_width=True):
-            load_stores_needing_attention.clear(); load_foodpanda_stores.clear(); st.rerun()
+            load_stores_needing_attention.clear()
+            load_foodpanda_stores.clear()
+            load_all_stores.clear()
+            st.rerun()
 
 if __name__ == "__main__":
     try:
