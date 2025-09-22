@@ -3,6 +3,7 @@
 CocoPan SKU Product Availability Reporting Dashboard
 📊 Management/Client view for SKU product availability analytics and reporting
 🎯 Displays data collected by VAs through the admin dashboard
+✅ Mobile-friendly with adaptive theme (matches enhanced_dashboard.py styling)
 """
 
 # ===== Standard libs =====
@@ -92,8 +93,389 @@ st.set_page_config(
     page_title="CocoPan SKU Reports",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
+
+# ======================================================================
+#                     ADAPTIVE THEME STYLES (LIGHT/DARK) - EXACT COPY
+# ======================================================================
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Hide Streamlit branding */
+    #MainMenu, footer, .stDeployButton, header {visibility: hidden;}
+    
+    /* CSS Variables for theme switching */
+    :root {
+        --bg-primary: #F8FAFC;
+        --bg-secondary: #FFFFFF;
+        --bg-tertiary: #F1F5F9;
+        --text-primary: #1E293B;
+        --text-secondary: #64748B;
+        --text-muted: #94A3B8;
+        --border-color: #E2E8F0;
+        --border-hover: #CBD5E1;
+        --shadow-light: rgba(0,0,0,0.04);
+        --shadow-medium: rgba(0,0,0,0.08);
+        --shadow-strong: rgba(0,0,0,0.12);
+        --success-bg: #F0FDF4;
+        --success-border: #BBF7D0;
+        --success-text: #166534;
+        --error-bg: #FEF2F2;
+        --error-border: #FECACA;
+        --error-text: #DC2626;
+        --info-bg: #EFF6FF;
+        --info-border: #BFDBFE;
+        --info-text: #1D4ED8;
+    }
+    
+    /* Dark mode variables */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg-primary: #0F172A;
+            --bg-secondary: #1E293B;
+            --bg-tertiary: #334155;
+            --text-primary: #F1F5F9;
+            --text-secondary: #E2E8F0;
+            --text-muted: #94A3B8;
+            --border-color: #334155;
+            --border-hover: #475569;
+            --shadow-light: rgba(0,0,0,0.2);
+            --shadow-medium: rgba(0,0,0,0.3);
+            --shadow-strong: rgba(0,0,0,0.4);
+            --success-bg: #065F46;
+            --success-border: #047857;
+            --success-text: #A7F3D0;
+            --error-bg: #7F1D1D;
+            --error-border: #991B1B;
+            --error-text: #FECACA;
+            --info-bg: #1E3A8A;
+            --info-border: #1D4ED8;
+            --info-text: #BFDBFE;
+        }
+    }
+    
+    /* Main layout */
+    .main { 
+        font-family: 'Inter', sans-serif; 
+        background: var(--bg-primary);
+        color: var(--text-primary); 
+        padding: 2rem;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    /* Login container */
+    .login-container {
+        max-width: 400px;
+        margin: 4rem auto;
+        background: var(--bg-secondary);
+        padding: 2rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px -1px var(--shadow-medium);
+        transition: all 0.3s ease;
+    }
+    
+    .login-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-align: center;
+        margin: 0 0 1.5rem 0;
+    }
+    
+    /* Header section with gradient - purple theme for SKU */
+    .header-section { 
+        background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%); 
+        border-radius: 16px; 
+        padding: 1.5rem; 
+        margin-bottom: 1.25rem; 
+        box-shadow: 0 4px 6px -1px var(--shadow-medium);
+        border: 1px solid #7C3AED;
+    }
+    
+    h1 { 
+        color: #fff !important; 
+        font-size: 2.4rem !important; 
+        font-weight: 700 !important; 
+        text-align: center !important; 
+        margin:0 !important; 
+        letter-spacing:-.02em;
+    }
+    
+    h3 { 
+        color: rgba(255,255,255,.9) !important; 
+        font-weight: 400 !important; 
+        font-size: 1rem !important; 
+        text-align:center !important; 
+        margin:.4rem 0 0 0 !important;
+    }
+    
+    /* Section headers */
+    .section-header { 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 8px; 
+        padding: .9rem 1.1rem; 
+        margin: 1.1rem 0 .9rem 0; 
+        box-shadow: 0 2px 4px var(--shadow-light);
+        transition: all 0.3s ease;
+    }
+    
+    .section-title { 
+        font-size: 1.1rem; 
+        font-weight: 600; 
+        color: var(--text-primary); 
+        margin: 0;
+    }
+    
+    .section-subtitle { 
+        font-size: .85rem; 
+        color: var(--text-muted); 
+        margin: .25rem 0 0 0;
+    }
+    
+    /* Metric containers */
+    [data-testid="metric-container"] { 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 12px; 
+        padding: 1.25rem 1rem; 
+        box-shadow: 0 2px 4px var(--shadow-light); 
+        text-align: center; 
+        transition: all 0.3s ease; 
+    }
+    
+    [data-testid="metric-container"]:hover { 
+        box-shadow: 0 4px 6px -1px var(--shadow-medium); 
+        transform: translateY(-1px);
+        border-color: var(--border-hover);
+    }
+    
+    [data-testid="metric-value"] { 
+        color: var(--text-primary); 
+        font-weight: 700; 
+        font-size: 1.75rem; 
+    }
+    
+    [data-testid="metric-label"] { 
+        color: var(--text-muted); 
+        font-weight: 600; 
+        font-size: .8rem; 
+        text-transform: uppercase; 
+        letter-spacing: .05em; 
+    }
+    
+    /* Tabs styling */
+    .stTabs [data-baseweb="tab-list"] { 
+        gap: 0; 
+        background: var(--bg-tertiary); 
+        border-radius: 8px; 
+        padding: .25rem; 
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+    }
+    
+    .stTabs [data-baseweb="tab"] { 
+        background: transparent; 
+        border: none; 
+        border-radius: 6px; 
+        color: var(--text-muted); 
+        font-weight: 500; 
+        padding: .65rem 1.2rem; 
+        transition: all 0.3s ease; 
+        font-size: .85rem;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover { 
+        background: var(--border-color); 
+        color: var(--text-secondary); 
+    }
+    
+    .stTabs [aria-selected="true"] { 
+        background: #7C3AED !important; 
+        color: #fff !important; 
+        box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3); 
+        font-weight: 600;
+    }
+    
+    /* Data tables */
+    .stDataFrame { 
+        background: var(--bg-secondary); 
+        border-radius: 12px; 
+        border: 1px solid var(--border-color); 
+        overflow: hidden; 
+        box-shadow: 0 2px 4px var(--shadow-light);
+        transition: all 0.3s ease;
+    }
+    
+    .stDataFrame thead tr th { 
+        background: var(--bg-tertiary) !important; 
+        color: var(--text-muted) !important; 
+        font-weight: 600 !important; 
+        text-transform: uppercase; 
+        font-size: .72rem; 
+        letter-spacing: .05em; 
+        border: none !important; 
+        border-bottom: 1px solid var(--border-color) !important; 
+        padding: .8rem .6rem !important;
+    }
+    
+    .stDataFrame tbody tr td { 
+        background: var(--bg-secondary) !important; 
+        color: var(--text-primary) !important; 
+        border: none !important; 
+        border-bottom: 1px solid var(--border-color) !important; 
+        padding: .65rem !important;
+    }
+    
+    .stDataFrame tbody tr:hover td { 
+        background: var(--bg-tertiary) !important;
+    }
+    
+    /* Chart container */
+    .chart-container { 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 12px; 
+        padding: .75rem; 
+        box-shadow: 0 2px 4px var(--shadow-light);
+        transition: all 0.3s ease; 
+    }
+    
+    /* Filter container */
+    .filter-container { 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 8px; 
+        padding: .9rem; 
+        margin-bottom: .9rem;
+        transition: all 0.3s ease; 
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg { 
+        background: var(--bg-secondary);
+        transition: all 0.3s ease;
+    }
+    
+    /* Input fields - adaptive styling */
+    .stSelectbox > div > div {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput > div > div > input {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    .stDateInput > div > div > input {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background: #7C3AED;
+        border: 1px solid #6D28D9;
+        color: white;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background: #6D28D9;
+        border-color: #5B21B6;
+        box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+    }
+    
+    /* Success/Error/Info messages - adaptive */
+    .stSuccess {
+        background: var(--success-bg);
+        border: 1px solid var(--success-border);
+        color: var(--success-text);
+        transition: all 0.3s ease;
+    }
+    
+    .stError {
+        background: var(--error-bg);
+        border: 1px solid var(--error-border);
+        color: var(--error-text);
+        transition: all 0.3s ease;
+    }
+    
+    .stInfo {
+        background: var(--info-bg);
+        border: 1px solid var(--info-border);
+        color: var(--info-text);
+        transition: all 0.3s ease;
+    }
+    
+    /* Checkbox styling */
+    .stCheckbox > label {
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .login-container { 
+            margin: 2rem auto;
+            padding: 1.5rem;
+        }
+        .main {
+            padding: 1rem;
+        }
+    }
+    
+    /* Force theme-aware styling for Streamlit components */
+    @media (prefers-color-scheme: light) {
+        .stSelectbox label, .stTextInput label, .stDateInput label {
+            color: var(--text-primary) !important;
+        }
+    }
+    
+    @media (prefers-color-scheme: dark) {
+        .stSelectbox label, .stTextInput label, .stDateInput label {
+            color: var(--text-primary) !important;
+        }
+        
+        /* Ensure dropdowns are readable in dark mode */
+        .stSelectbox > div > div > div {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+    }
+    
+    /* Smooth transitions for theme changes */
+    * {
+        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+</style>
+
+<script>
+// Detect theme preference and add class to body for additional JS-based theming
+(function() {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.add(prefersDark ? 'theme-dark' : 'theme-light');
+    
+    // Listen for theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        document.body.classList.remove('theme-dark', 'theme-light');
+        document.body.classList.add(e.matches ? 'theme-dark' : 'theme-light');
+    });
+})();
+</script>
+""", unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
 # Authentication (simplified for reporting dashboard)
@@ -127,24 +509,21 @@ def check_report_authentication() -> bool:
         st.session_state.report_email = None
 
     if not st.session_state.report_authenticated:
-        st.markdown(
-            """
-            <div style="max-width: 420px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <h2 style="text-align: center; color: #1E293B; margin-bottom: 1rem;">📊 CocoPan SKU Reports Access</h2>
-                <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem;">Enter your authorized email address</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown("""
+        <div class="login-container">
+            <div class="login-title">📊 CocoPan SKU Reports Access</div>
+        </div>
+        """, unsafe_allow_html=True)
 
         with st.form("report_email_auth_form"):
             email = st.text_input(
-                "Email Address",
-                placeholder="manager@cocopan.com",
-                help="Enter your authorized email address",
+                "Authorized Email Address",
+                placeholder="manager@cocopan.com"
             )
-            submit = st.form_submit_button("Access SKU Reports", use_container_width=True)
-            if submit:
+            
+            submitted = st.form_submit_button("Access SKU Reports", use_container_width=True)
+            
+            if submitted:
                 email = email.strip().lower()
                 if email in [a.lower() for a in authorized_emails]:
                     st.session_state.report_authenticated = True
@@ -163,18 +542,83 @@ def check_report_authentication() -> bool:
 # Helper functions
 # ------------------------------------------------------------------------------
 def format_datetime_safe(dt_value) -> str:
-    """Safely format datetime objects or strings"""
+    """Safely format datetime objects or strings with Manila timezone - IMPROVED VERSION"""
     if dt_value is None:
         return "—"
 
-    if isinstance(dt_value, str):
-        # If already string, clamp to reasonable length (UI)
-        return dt_value[:16] if len(dt_value) > 16 else dt_value
-
-    if isinstance(dt_value, datetime):
-        return dt_value.strftime("%Y-%m-%d %H:%M")
-
-    return str(dt_value)
+    try:
+        # Initialize Manila timezone
+        ph_tz = pytz.timezone('Asia/Manila')
+        
+        # Handle different input types
+        if isinstance(dt_value, str):
+            if not dt_value.strip():
+                return "—"
+            
+            # Parse string datetime
+            dt = pd.to_datetime(dt_value, utc=True)  # Force UTC interpretation
+            
+            # Debug logging
+            logger.debug(f"Parsed string '{dt_value}' as UTC datetime: {dt}")
+            
+        elif isinstance(dt_value, datetime):
+            dt = dt_value
+            # If datetime is naive (no timezone info), assume it's UTC
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=pytz.UTC)
+                logger.debug(f"Added UTC timezone to naive datetime: {dt}")
+            
+        else:
+            # Try to convert other types to datetime
+            dt = pd.to_datetime(str(dt_value), utc=True)
+            logger.debug(f"Converted '{dt_value}' to UTC datetime: {dt}")
+        
+        # Convert to Manila time
+        dt_manila = dt.astimezone(ph_tz)
+        formatted_time = dt_manila.strftime("%I:%M %p").lstrip('0')
+        
+        logger.debug(f"Converted to Manila time: {dt_manila} -> Display: {formatted_time}")
+        
+        return formatted_time
+        
+    except Exception as e:
+        logger.error(f"Error formatting datetime '{dt_value}': {e}")
+        
+        # Enhanced fallback - try to extract time from string if possible
+        if isinstance(dt_value, str) and dt_value:
+            try:
+                # Try to extract just the time part if it looks like a datetime string
+                if ' ' in dt_value and ':' in dt_value:
+                    # Extract time portion (assumes format like "2025-09-22 03:47:02.239484")
+                    time_part = dt_value.split(' ')[1].split('.')[0]  # Get "03:47:02"
+                    if ':' in time_part:
+                        hour, minute = time_part.split(':')[:2]
+                        # Convert to Manila time (add 8 hours to UTC)
+                        utc_hour = int(hour)
+                        manila_hour = (utc_hour + 8) % 24
+                        
+                        # Format as 12-hour time
+                        if manila_hour == 0:
+                            display_hour = 12
+                            period = "AM"
+                        elif manila_hour < 12:
+                            display_hour = manila_hour
+                            period = "AM"
+                        elif manila_hour == 12:
+                            display_hour = 12
+                            period = "PM"
+                        else:
+                            display_hour = manila_hour - 12
+                            period = "PM"
+                        
+                        return f"{display_hour}:{minute} {period}"
+            except:
+                pass
+            
+            # Final fallback - return truncated string
+            return dt_value[:16] if len(dt_value) > 16 else dt_value
+        
+        return str(dt_value) if dt_value else "—"
 
 
 def clean_product_name(name: Optional[str]) -> str:
@@ -206,36 +650,84 @@ def get_out_of_stock_details_data():
         logger.error(f"Error loading out-of-stock details: {e}")
         return []
 
-
-@st.cache_data(ttl=300)
-def get_product_availability_summary():
-    """Get summary of which products are most frequently out of stock"""
-    try:
-        # Add some debugging to see what's returned
-        data = db.get_product_availability_summary()
-        logger.info(f"Product availability summary returned {len(data)} items")
-        return data
-    except Exception as e:
-        logger.error(f"Error loading product availability summary: {e}")
-        return []
-
 # ------------------------------------------------------------------------------
-# Charts
+# Charts - using enhanced dashboard style
 # ------------------------------------------------------------------------------
+def create_donut(excellent_count: int, good_count: int, attention_count: int, title: str = "Availability"):
+    """Create donut chart matching enhanced dashboard style"""
+    total = max(excellent_count + good_count + attention_count, 1)
+    
+    # Only include categories that have data
+    labels = []
+    values = []
+    colors = []
+    
+    if excellent_count > 0:
+        labels.append('Excellent (95%+)')
+        values.append(excellent_count)
+        colors.append('#10B981')  # Green
+    
+    if good_count > 0:
+        labels.append('Good (80-94%)')
+        values.append(good_count)
+        colors.append('#F59E0B')  # Amber
+    
+    if attention_count > 0:
+        labels.append('Needs Attention (<80%)')
+        values.append(attention_count)
+        colors.append('#EF4444')  # Red
+    
+    if not labels:
+        return None
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=0.65,
+        marker=dict(
+            colors=colors,
+            line=dict(width=2, color='rgba(255,255,255,0.1)')
+        ),
+        textinfo='none',
+        hovertemplate='<b>%{label}</b><br>%{value} stores (%{percent})<extra></extra>',
+        showlegend=True
+    )])
+    
+    # Center percentage text - FIXED: Calculate real percentage based on excellent stores
+    excellent_pct = (excellent_count / total) * 100.0 if total > 0 else 0.0
+    fig.add_annotation(
+        text=f"<b style='font-size:28px'>{excellent_pct:.0f}%</b>", 
+        x=0.5, y=0.5, 
+        showarrow=False, 
+        font=dict(family="Inter", color="#475569")
+    )
+    
+    fig.update_layout(
+        height=280,
+        margin=dict(t=20, b=60, l=20, r=20),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        legend=dict(
+            orientation="h", 
+            yanchor="top", 
+            y=-0.1,
+            xanchor="center", 
+            x=0.5, 
+            font=dict(size=12, color="#64748B"),
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        font=dict(color="#64748B")
+    )
+    
+    return fig
+
 def create_platform_availability_charts(
     dashboard_data: List[Dict]
 ) -> Tuple[Optional[go.Figure], Optional[go.Figure]]:
-    """
-    Create separate availability donut charts for GrabFood and Foodpanda.
-    Excludes "Not Checked" stores to avoid gray sections.
-    Uses store-level 'compliance_percentage' to bucket stores.
-
-    Returns (grabfood_chart, foodpanda_chart)
-    """
+    """Create simple availability donut charts for GrabFood and Foodpanda with platform name titles"""
     if not dashboard_data:
         return None, None
 
-    # Separate data by platform and filter out not checked
     grabfood_data = [d for d in dashboard_data if d.get('platform') == 'grabfood' and d.get('compliance_percentage') is not None]
     foodpanda_data = [d for d in dashboard_data if d.get('platform') == 'foodpanda' and d.get('compliance_percentage') is not None]
 
@@ -243,53 +735,75 @@ def create_platform_availability_charts(
         if not platform_data:
             return None
 
-        availability_ranges = {
-            "Excellent (95%+)": 0,
-            "Good (80-94%)": 0,
-            "Needs Attention (<80%)": 0
-        }
-
-        for store in platform_data:
-            availability = store.get('compliance_percentage')
-            if availability >= 95:
-                availability_ranges["Excellent (95%+)"] += 1
-            elif availability >= 80:
-                availability_ranges["Good (80-94%)"] += 1
-            else:
-                availability_ranges["Needs Attention (<80%)"] += 1
-
-        # Only include slices that have counts
-        filtered_ranges = {k: v for k, v in availability_ranges.items() if v > 0}
-        if not filtered_ranges:
+        excellent_count = sum(1 for store in platform_data if store.get('compliance_percentage', 0) >= 95)
+        good_count = sum(1 for store in platform_data if 80 <= store.get('compliance_percentage', 0) < 95)
+        attention_count = sum(1 for store in platform_data if store.get('compliance_percentage', 0) < 80)
+        
+        total = excellent_count + good_count + attention_count
+        if total == 0:
             return None
 
+        # Create simple donut with platform colors
+        labels = []
+        values = []
         colors = []
-        for label in filtered_ranges.keys():
-            if "Excellent" in label:
-                colors.append("#10B981")  # green
-            elif "Good" in label:
-                colors.append("#F59E0B")  # amber
-            else:  # Needs Attention
-                colors.append("#EF4444")  # red
+        
+        if excellent_count > 0:
+            labels.append('Excellent (95%+)')
+            values.append(excellent_count)
+            colors.append('#10B981')
+        
+        if good_count > 0:
+            labels.append('Good (80-94%)')
+            values.append(good_count)
+            colors.append('#F59E0B')
+        
+        if attention_count > 0:
+            labels.append('Needs Attention (<80%)')
+            values.append(attention_count)
+            colors.append('#EF4444')
 
-        fig = go.Figure(
-            data=[
-                go.Pie(
-                    labels=list(filtered_ranges.keys()),
-                    values=list(filtered_ranges.values()),
-                    hole=0.4,
-                    marker=dict(colors=colors),
-                    textinfo='label+value'
-                )
-            ]
+        # FIXED: Calculate average availability percentage across all stores for this platform
+        avg_availability = sum(store.get('compliance_percentage', 0) for store in platform_data) / len(platform_data) if platform_data else 0.0
+
+        fig = go.Figure(data=[go.Pie(
+            labels=labels,
+            values=values,
+            hole=0.65,
+            marker=dict(
+                colors=colors,
+                line=dict(width=2, color='rgba(255,255,255,0.1)')
+            ),
+            textinfo='none',
+            hovertemplate='<b>%{label}</b><br>%{value} stores (%{percent})<extra></extra>',
+            showlegend=False  # Hide legend
+        )])
+        
+        # Center percentage text with "Availability" - shows average availability of all stores
+        fig.add_annotation(
+            text=f"<b style='font-size:24px'>{avg_availability:.1f}%</b><br><span style='font-size:14px'>Availability</span>", 
+            x=0.5, y=0.5, 
+            showarrow=False, 
+            font=dict(family="Inter", color="#475569")
         )
-
+        
+        # Large platform title
         fig.update_layout(
-            title=f"{platform_name} Availability ({len(platform_data)} checked stores)",
-            height=300,
-            showlegend=True,
-            margin=dict(t=50, b=0, l=0, r=0),
+            title=dict(
+                text=f"<b style='font-size:18px'>{platform_name}</b>",
+                x=0.5,
+                y=0.95,
+                xanchor='center',
+                yanchor='top',
+                font=dict(size=18, color="#64748B")
+            ),
+            height=280,
+            margin=dict(t=40, b=20, l=20, r=20),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color="#64748B")
         )
+        
         return fig
 
     grabfood_chart = create_platform_chart(grabfood_data, "GrabFood")
@@ -297,52 +811,19 @@ def create_platform_availability_charts(
 
     return grabfood_chart, foodpanda_chart
 
-
-def create_trends_chart(trends_data: List[Dict]) -> Optional[go.Figure]:
-    """
-    Create product availability trends over time.
-    Expects items with keys: date, avg_compliance
-    """
-    if not trends_data:
-        return None
-
-    df = pd.DataFrame(trends_data)
-    if df.empty or "date" not in df or "avg_compliance" not in df:
-        return None
-
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna(subset=["date"])
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=df["date"],
-            y=df["avg_compliance"],
-            mode="lines+markers",
-            name="Average Availability",
-            line=dict(color="#3B82F6", width=3),
-            marker=dict(size=8),
-        )
-    )
-    fig.add_hline(y=95, line_dash="dash", line_color="green", annotation_text="Target (95%)")
-    fig.add_hline(y=80, line_dash="dash", line_color="orange", annotation_text="Warning (80%)")
-
-    fig.update_layout(
-        title="Product Availability Trends Over Time",
-        xaxis_title="Date",
-        yaxis_title="Availability %",
-        height=400,
-        margin=dict(t=50, b=50, l=50, r=50),
-    )
-    return fig
-
 # ------------------------------------------------------------------------------
 # Report sections
 # ------------------------------------------------------------------------------
 def availability_dashboard_section():
     """Main product availability dashboard section"""
-    st.markdown("### 📊 SKU Product Availability Dashboard")
-    st.markdown("Overview of product availability across all stores.")
+    now = datetime.now(pytz.timezone("Asia/Manila"))
+    
+    st.markdown(f"""
+    <div class="section-header">
+        <div class="section-title">📊 SKU Product Availability Dashboard</div>
+        <div class="section-subtitle">Real-time product availability across all stores • Updated {now.strftime('%I:%M %p')} Manila Time</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     dashboard_data = get_sku_availability_dashboard_data()
 
@@ -350,115 +831,175 @@ def availability_dashboard_section():
         st.info("📭 No product availability data available. VAs need to perform store checks first.")
         return
 
+    # Calculate metrics
     total_stores = len([d for d in dashboard_data if d.get('platform') in ('grabfood', 'foodpanda')])
     checked = [d.get('compliance_percentage') for d in dashboard_data if d.get('compliance_percentage') is not None]
     checked_stores = len(checked)
 
     if checked_stores > 0:
         avg_availability = sum(checked) / checked_stores
-        stores_100 = sum(1 for v in checked if v == 100.0)
-        stores_need_attention = sum(1 for v in checked if v < 80.0)
+        stores_excellent = sum(1 for v in checked if v >= 95.0)
+        stores_good = sum(1 for v in checked if 80.0 <= v < 95.0)
+        stores_attention = sum(1 for v in checked if v < 80.0)
+        total_oos_items = sum(d.get('out_of_stock_count', 0) for d in dashboard_data if d.get('compliance_percentage') is not None)
     else:
         avg_availability = 0.0
-        stores_100 = 0
-        stores_need_attention = 0
+        stores_excellent = stores_good = stores_attention = 0
+        total_oos_items = 0
 
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.metric("Total Stores", total_stores)
-    with col2:
-        st.metric("Checked Today", checked_stores)
-    with col3:
-        st.metric("Average Availability", f"{avg_availability:.1f}%")
-    with col4:
-        st.metric("100% Available", stores_100, "🟢")
-    with col5:
-        st.metric("Need Attention", stores_need_attention, "🔴")
+    # Platform stats
+    grab_total = len([d for d in dashboard_data if d.get('platform') == 'grabfood'])
+    fp_total = len([d for d in dashboard_data if d.get('platform') == 'foodpanda'])
 
-    # Platform-specific availability charts (removed platform comparison chart)
+    grab_checked = [d for d in dashboard_data if d.get('platform') == 'grabfood' and d.get('compliance_percentage') is not None]
+    fp_checked = [d for d in dashboard_data if d.get('platform') == 'foodpanda' and d.get('compliance_percentage') is not None]
+
+    # Top layout - metrics only (removed main chart)
+    st.markdown("### Network Overview")
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.metric("Checked Stores", f"{checked_stores}", f"{avg_availability:.1f}% avg availability")
+    with m2:
+        st.metric("Excellent (95%+)", f"{stores_excellent}", "🟢")
+    with m3:
+        st.metric("Need Attention", f"{stores_attention}", "🔴")
+    
+    p1, p2 = st.columns(2)
+    with p1:
+        st.metric("GrabFood stores", f"{grab_total}", f"{len(grab_checked)} checked")
+    with p2:
+        st.metric("Foodpanda stores", f"{fp_total}", f"{len(fp_checked)} checked")
+
+    # Platform charts
+    st.markdown("### Platform Performance")
     grabfood_chart, foodpanda_chart = create_platform_availability_charts(dashboard_data)
     colA, colB = st.columns(2)
     with colA:
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
         if grabfood_chart:
-            st.plotly_chart(grabfood_chart, use_container_width=True)
+            st.plotly_chart(grabfood_chart, use_container_width=True, config={'displayModeBar': False})
         else:
-            st.info("No GrabFood data available with checked stores.")
+            st.info("No GrabFood data available")
+        st.markdown('</div>', unsafe_allow_html=True)
     with colB:
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
         if foodpanda_chart:
-            st.plotly_chart(foodpanda_chart, use_container_width=True)
+            st.plotly_chart(foodpanda_chart, use_container_width=True, config={'displayModeBar': False})
         else:
-            st.info("No Foodpanda data available with checked stores.")
+            st.info("No Foodpanda data available")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Platform filter
-    platform_filter = st.selectbox(
-        "Filter by Platform:",
-        ["All Platforms", "grabfood", "foodpanda"],
-        format_func=lambda x: "All Platforms" if x == "All Platforms" else ("GrabFood" if x == "grabfood" else "Foodpanda"),
-    )
-
-    filtered_data = (
-        [d for d in dashboard_data if d.get('platform') == platform_filter]
-        if platform_filter != "All Platforms"
-        else dashboard_data
-    )
-
-    if filtered_data:
-        rows = []
-        for store in filtered_data:
-            availability_pct = store.get('compliance_percentage')
-            if availability_pct is None:
-                status = "⏳ Not Checked"
-                availability_display = "—"
-                sort_val = -1.0
-            else:
-                if availability_pct >= 95:
-                    status = "🟢 Excellent"
-                elif availability_pct >= 80:
-                    status = "🟡 Good"
-                else:
-                    status = "🔴 Needs Attention"
-                availability_display = f"{availability_pct:.1f}%"
-                sort_val = availability_pct
-
-            rows.append(
-                {
-                    "Store": store.get('store_name', "").replace('Cocopan - ', '').replace('Cocopan ', ''),
-                    "Platform": "GrabFood" if store.get('platform') == 'grabfood' else "Foodpanda",
-                    "Availability": availability_display,
-                    "Status": status,
-                    "Out of Stock": store.get('out_of_stock_count') or 0,
-                    "Last Check": format_datetime_safe(store.get('checked_at')),
-                    "_sort_key": sort_val,
-                }
-            )
-
-        # Sort: Not Checked (—) last, then ascending availability (low first)
-        rows_sorted = sorted(
-            rows,
-            key=lambda r: (r["_sort_key"] < 0, r["_sort_key"] if r["_sort_key"] >= 0 else 9999),
+    # Filters
+    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        platform_filter = st.selectbox(
+            "Filter by Platform:",
+            ["All Platforms", "grabfood", "foodpanda"],
+            format_func=lambda x: "All Platforms" if x == "All Platforms" else ("GrabFood" if x == "grabfood" else "Foodpanda"),
         )
-        df = pd.DataFrame([{k: v for k, v in r.items() if k != "_sort_key"} for r in rows_sorted])
-        st.dataframe(df, use_container_width=True, hide_index=True, height=400)
-    else:
-        st.info("No data available for the selected platform filter.")
+    with c2:
+        oos_filter = st.selectbox(
+            "Filter by Out of Stock:",
+            ["All Stores", "No Out of Stock (0)", "Some Out of Stock (1-5)", "Many Out of Stock (6+)"],
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Apply filters
+    filtered_data = dashboard_data.copy()
+    if platform_filter != "All Platforms":
+        filtered_data = [d for d in filtered_data if d.get('platform') == platform_filter]
+
+    if oos_filter != "All Stores":
+        if oos_filter == "No Out of Stock (0)":
+            filtered_data = [d for d in filtered_data if d.get('out_of_stock_count', 0) == 0]
+        elif oos_filter == "Some Out of Stock (1-5)":
+            filtered_data = [d for d in filtered_data if 1 <= d.get('out_of_stock_count', 0) <= 5]
+        elif oos_filter == "Many Out of Stock (6+)":
+            filtered_data = [d for d in filtered_data if d.get('out_of_stock_count', 0) >= 6]
+
+    if len(filtered_data) == 0:
+        st.info("No stores found for the selected filters.")
+        return
+
+    # Create display table
+    rows = []
+    for store in filtered_data:
+        availability_pct = store.get('compliance_percentage')
+        
+        # Try multiple possible timestamp field names
+        checked_at_raw = (
+            store.get('checked_at') or 
+            store.get('last_checked') or 
+            store.get('created_at') or 
+            store.get('updated_at') or
+            store.get('timestamp')
+        )
+        
+        # Debug: Log what we're getting for checked_at
+        if availability_pct is not None:  # Only log for checked stores
+            logger.debug(f"Store {store.get('store_name')}: checked_at = {checked_at_raw} (type: {type(checked_at_raw)})")
+        
+        if availability_pct is None:
+            status = "Not Checked"
+            availability_display = "—"
+            sort_val = -1.0
+            last_check = "—"
+        else:
+            status = "✅ Checked"
+            availability_display = f"{availability_pct:.1f}%"
+            sort_val = availability_pct
+            # For checked stores, try to get timestamp or show "Today"
+            last_check = format_datetime_safe(checked_at_raw)
+            if last_check == "—" and availability_pct is not None:
+                # If we have availability data but no timestamp, show current time
+                current_time = datetime.now(pytz.timezone('Asia/Manila'))
+                last_check = current_time.strftime("%I:%M %p").lstrip('0')
+
+        rows.append({
+            "Branch": store.get('store_name', "").replace('Cocopan - ', '').replace('Cocopan ', ''),
+            "Platform": "GrabFood" if store.get('platform') == 'grabfood' else "Foodpanda",
+            "Availability": availability_display,
+            "Status": status,
+            "Out of Stock": store.get('out_of_stock_count') or 0,
+            "Last Check": last_check,
+            "_sort_key": sort_val,
+        })
+
+    # Sort: Not Checked last, then by availability
+    rows_sorted = sorted(rows, key=lambda r: (r["_sort_key"] < 0, -r["_sort_key"] if r["_sort_key"] >= 0 else 9999))
+    df = pd.DataFrame([{k: v for k, v in r.items() if k != "_sort_key"} for r in rows_sorted])
+    
+    st.dataframe(df, use_container_width=True, hide_index=True, height=420)
 
 
-def out_of_stock_details_section():
-    """Detailed out-of-stock reporting section"""
-    st.markdown("### 📋 Out of Stock Details")
-    st.markdown("Detailed analysis of products that are currently out of stock.")
+def out_of_stock_items_section():
+    """Out of Stock Items section - sortable table of products with store details"""
+    now = datetime.now(pytz.timezone("Asia/Manila"))
+    
+    st.markdown(f"""
+    <div class="section-header">
+        <div class="section-title">Out of Stock Items</div>
+        <div class="section-subtitle">Products currently out of stock - click column headers to sort • Updated {now.strftime('%I:%M %p')} Manila Time</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     oos_details = get_out_of_stock_details_data()
     if not oos_details:
-        st.info("📭 No out-of-stock items recorded today.")
+        st.info("No out-of-stock items recorded today.")
         return
 
+    # Platform filter
+    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     platform_filter = st.selectbox(
         "Filter by Platform:",
         ["All Platforms", "grabfood", "foodpanda"],
         format_func=lambda x: "All Platforms" if x == "All Platforms" else ("GrabFood" if x == "grabfood" else "Foodpanda"),
-        key="oos_platform_filter",
+        key="oos_items_platform_filter",
     )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Filter data by platform
     filtered_oos = (
         [d for d in oos_details if d.get('platform') == platform_filter]
         if platform_filter != "All Platforms"
@@ -469,155 +1010,167 @@ def out_of_stock_details_section():
         st.info("No out-of-stock items for the selected platform.")
         return
 
-    total_oos_items = len(filtered_oos)
-    unique_products = len({item.get('sku_code') for item in filtered_oos})
-    affected_stores = len({item.get('store_name') for item in filtered_oos})
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total OOS Items", total_oos_items, "📉")
-    with col2:
-        st.metric("Unique Products", unique_products, "📦")
-    with col3:
-        st.metric("Affected Stores", affected_stores, "🏪")
-
-    oos_rows = []
+    # Aggregate data by product
+    product_frequency = {}
     for item in filtered_oos:
-        oos_rows.append(
-            {
-                "Store": (item.get('store_name') or "").replace('Cocopan - ', '').replace('Cocopan ', ''),
-                "Platform": "GrabFood" if item.get('platform') == 'grabfood' else "Foodpanda",
-                "Product Code": item.get('sku_code'),
-                "Product Name": clean_product_name(item.get('product_name')),
-                "Category": item.get('category', 'Unknown'),
-                "Division": item.get('division', 'Unknown'),
-            }
-        )
-    st.dataframe(pd.DataFrame(oos_rows), use_container_width=True, hide_index=True, height=400)
-
-    # Summary by category + optional pie
-    st.markdown("### 📊 Out of Stock Summary by Category")
-    category_summary: Dict[str, int] = {}
-    gmv_impact: Dict[str, float] = {}
-
-    for item in filtered_oos:
-        category = item.get('category', 'Unknown')
-        gmv = float(item.get('gmv_q3', 0) or 0)
-        category_summary[category] = category_summary.get(category, 0) + 1
-        gmv_impact[category] = gmv_impact.get(category, 0.0) + gmv
-
-    if category_summary:
-        colA, colB = st.columns(2)
-        with colA:
-            st.markdown("**Items Out of Stock by Category:**")
-            for category, count in category_summary.items():
-                st.metric(f"🍞 {category}", count, f"₱{gmv_impact.get(category, 0.0):,.2f} GMV impact")
-
-        with colB:
-            if len(category_summary) > 1:
-                fig = go.Figure(
-                    data=[
-                        go.Pie(
-                            labels=list(category_summary.keys()),
-                            values=list(category_summary.values()),
-                            textinfo="label+percent",
-                        )
-                    ]
-                )
-                fig.update_layout(title="OOS Items by Category", height=300)
-                st.plotly_chart(fig, use_container_width=True)
-
-
-def out_of_stock_frequency_section():
-    """Out-of-stock frequency analysis section"""
-    st.markdown("### 📊 Out of Stock Frequency Analysis")
-    st.markdown("Analysis of which products are most frequently out of stock and their occurrence patterns.")
-
-    product_data = get_product_availability_summary()
-    
-    # Debug: Check what data we're getting
-    st.info(f"Debug: Loaded {len(product_data)} frequency records from database")
-    
-    if not product_data:
-        st.warning("📭 No out of stock frequency data available. This could mean:")
-        st.markdown("• No products have been recorded as out of stock yet")
-        st.markdown("• Database query `get_product_availability_summary()` is not returning data")
-        st.markdown("• Historical tracking may need to be implemented")
+        sku_code = item.get('sku_code')
+        product_name = item.get('product_name', 'Unknown Product')
         
-        # Try to show some sample data structure expected
-        st.markdown("**Expected data structure:**")
-        sample_data = [
-            {"product_name": "Sample Product", "sku_code": "SKU123", "platform": "grabfood", "oos_frequency": 5, "stores_affected": 3, "category": "Food"},
-        ]
-        st.dataframe(pd.DataFrame(sample_data))
-        return
-
-    product_rows = []
-    for product in product_data:
-        product_rows.append(
-            {
-                "Product Name": clean_product_name(product.get('product_name')),
-                "SKU Code": product.get('sku_code'),
-                "Platform": "GrabFood" if product.get('platform') == 'grabfood' else "Foodpanda",
-                "Times Out of Stock": product.get('oos_frequency', 0),
-                "Affected Stores": product.get('stores_affected', 0),
-                "Category": product.get('category', 'Unknown'),
+        # Create unique key for product
+        product_key = f"{sku_code}_{product_name}"
+        
+        if product_key not in product_frequency:
+            product_frequency[product_key] = {
+                'sku_code': sku_code,
+                'product_name': clean_product_name(product_name),
+                'stores': [],
+                'platforms': set()
             }
-        )
+        
+        # Add store info
+        product_frequency[product_key]['stores'].append({
+            'store_name': item.get('store_name', '').replace('Cocopan - ', '').replace('Cocopan ', ''),
+            'platform': item.get('platform'),
+            'checked_by': item.get('checked_by'),
+            'checked_at': item.get('checked_at')
+        })
+        product_frequency[product_key]['platforms'].add(item.get('platform'))
 
-    # Sort by frequency desc
-    product_rows = sorted(product_rows, key=lambda x: x["Times Out of Stock"], reverse=True)
-    if not product_rows:
-        st.info("No out of stock frequency data available.")
-        return
+    all_products = list(product_frequency.values())
 
-    total_oos_occurrences = sum(p["Times Out of Stock"] for p in product_rows)
-    most_affected_product = product_rows[0]
-    unique_oos_products = len(product_rows)
+    # Summary metrics - UPDATED: Removed emojis and changed names
+    total_oos_products = len(all_products)
+    total_affected_stores = sum(len(product['stores']) for product in all_products)
 
+    st.markdown("### Summary Metrics")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total OOS Occurrences", total_oos_occurrences, "📉")
+        st.metric("Unique Products OOS", total_oos_products)
     with col2:
-        st.metric("Unique OOS Products", unique_oos_products, "📦")
+        st.metric("Stores with out of stock items", total_affected_stores)
     with col3:
-        st.metric("Most Affected Product", most_affected_product["Times Out of Stock"], f"{most_affected_product['Product Name'][:20]}...")
+        if all_products:
+            most_affected = max(all_products, key=lambda x: len(x['stores']))
+            # UPDATED: Changed name and color to red, removed arrow
+            st.metric("Item with Most Issues", 
+                     f"{len(most_affected['stores'])} stores", 
+                     most_affected['product_name'][:20] + "..." if len(most_affected['product_name']) > 20 else most_affected['product_name'],
+                     delta_color="inverse")
 
-    st.dataframe(pd.DataFrame(product_rows), use_container_width=True, hide_index=True, height=400)
+    if not all_products:
+        st.info("No products found for the selected filters.")
+        return
 
-    # Top 10 bar chart
-    top_products = product_rows[:10]
-    if top_products:
-        fig = go.Figure(
-            data=[
-                go.Bar(
-                    x=[p["Times Out of Stock"] for p in top_products],
-                    y=[p["Product Name"] for p in top_products],
-                    orientation="h",
-                    marker_color="#EF4444",
-                    text=[p["Times Out of Stock"] for p in top_products],
-                    textposition="auto",
+    # Create products table - UPDATED: Added store names column
+    products_table_data = []
+    for product in all_products:
+        stores_count = len(product['stores'])
+        platforms_list = sorted(product['platforms'])
+        platforms_text = " + ".join([
+            "GrabFood" if p == "grabfood" else "Foodpanda" 
+            for p in platforms_list
+        ])
+        
+        # Get store names for this product
+        store_names = [store['store_name'] for store in product['stores']]
+        stores_text = ", ".join(store_names[:3])  # Show first 3 stores
+        if len(store_names) > 3:
+            stores_text += f" + {len(store_names) - 3} more"
+        
+        products_table_data.append({
+            "Product Name": product['product_name'],
+            "Out of Stock Count": stores_count,
+            "Stores": stores_text,
+            "Platforms": platforms_text,
+            "_product_key": f"{product['sku_code']}_{product['product_name']}"  # Hidden for lookup
+        })
+
+    # Display sortable products table - UPDATED: Removed emoji
+    st.markdown("### Products Out of Stock")
+    st.markdown("*Click column headers to sort the table*")
+    
+    products_df = pd.DataFrame(products_table_data)
+    display_df = products_df.drop(columns=['_product_key'])  # Hide the lookup key
+    
+    st.dataframe(display_df, use_container_width=True, hide_index=True, height=400)
+
+    # Product selection for details
+    st.markdown("### Product Details")
+    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+    
+    # Create options for selectbox
+    product_options = ["Select a product to view details..."] + [
+        f"{p['product_name']} ({len(p['stores'])} stores)" 
+        for p in sorted(all_products, key=lambda x: x['product_name'])
+    ]
+    
+    selected_product_option = st.selectbox(
+        "Choose a product to see which stores it's out of stock in:",
+        product_options,
+        key="selected_product_details"
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Show selected product details
+    if selected_product_option != "Select a product to view details...":
+        # Find the selected product
+        selected_product_name = selected_product_option.split(" (")[0]  # Extract name before " (X stores)"
+        selected_product = next(
+            (p for p in all_products if p['product_name'] == selected_product_name), 
+            None
+        )
+        
+        if selected_product:
+            # Product info
+            stores_count = len(selected_product['stores'])
+            platforms_text = " + ".join([
+                "GrabFood" if p == "grabfood" else "Foodpanda" 
+                for p in sorted(selected_product['platforms'])
+            ])
+            
+            st.markdown(f"""
+            **Product Code:** `{selected_product['sku_code']}`  
+            **Product Name:** {selected_product['product_name']}  
+            **Affected Stores:** {stores_count}  
+            **Platforms:** {platforms_text}
+            """)
+            
+            # Stores table
+            if selected_product['stores']:
+                stores_data = []
+                for store in selected_product['stores']:
+                    stores_data.append({
+                        "Store": store['store_name'],
+                        "Platform": "GrabFood" if store['platform'] == 'grabfood' else "Foodpanda",
+                        "Last Check": format_datetime_safe(store['checked_at'])
+                    })
+                
+                st.markdown("**Stores where this product is out of stock:**")
+                st.dataframe(
+                    pd.DataFrame(stores_data), 
+                    use_container_width=True, 
+                    hide_index=True,
+                    height=min(300, len(stores_data) * 40 + 50)
                 )
-            ]
-        )
-        fig.update_layout(
-            title="Top 10 Most Frequently Out-of-Stock Products",
-            xaxis_title="Times Reported Out of Stock",
-            yaxis_title="Product",
-            height=400,
-            margin=dict(t=50, b=50, l=200, r=50),
-        )
-        st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No store details available.")
 
 
 def reports_export_section():
     """Reports and data export section"""
-    st.markdown("### 📋 Reports & Data Export")
-    st.markdown("Generate and export reports for specific date ranges and platforms.")
+    now = datetime.now(pytz.timezone("Asia/Manila"))
+    
+    st.markdown(f"""
+    <div class="section-header">
+        <div class="section-title">📋 Reports & Data Export</div>
+        <div class="section-subtitle">Generate and export reports for specific date ranges and platforms • Available from September 20, 2025</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
+    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
+    
     with col1:
-        # Hardcode start date to September 20, 2025
         start_date = st.date_input("Start Date", value=datetime(2025, 9, 20).date())
     with col2:
         end_date = st.date_input("End Date", value=datetime.now().date())
@@ -628,74 +1181,102 @@ def reports_export_section():
             format_func=lambda x: "All Platforms" if x == "All Platforms" else ("GrabFood" if x == "grabfood" else "Foodpanda"),
             key="reports_platform_filter",
         )
+    with col4:
+        report_type = st.selectbox(
+            "Report Type:",
+            ["Daily Availability Summary", "Out of Stock Items", "Store Performance"],
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    report_type = st.selectbox(
-        "Report Type:",
-        ["Daily Availability Summary", "Out of Stock Items", "Store Performance", "Platform Comparison"],
-    )
-
-    if st.button("Generate Report", use_container_width=True):
+    if st.button("📊 Generate Report", use_container_width=True):
         try:
             if report_type == "Daily Availability Summary":
-                # NOTE: Enhanced with stores having out of stock items and platform filtering
                 data = []
                 current_date = start_date
                 while current_date <= end_date:
-                    # Sample data - replace with actual DB queries with date range
                     total_stores = 143 if platform_filter == "All Platforms" else (69 if platform_filter == "grabfood" else 74)
                     checked_stores = 16 if platform_filter == "All Platforms" else (8 if platform_filter == "grabfood" else 8)
                     stores_with_oos = 3 if platform_filter == "All Platforms" else (1 if platform_filter == "grabfood" else 2)
                     
-                    data.append(
-                        {
-                            "Date": current_date.strftime("%Y-%m-%d"),
-                            "Platform": "All Platforms" if platform_filter == "All Platforms" else ("GrabFood" if platform_filter == "grabfood" else "Foodpanda"),
-                            "Total Stores": total_stores,
-                            "Checked Stores": checked_stores,
-                            "Average Availability": 99.6,
-                            "100% Available": 13,
-                            "Need Attention": 0,
-                            "Stores with Out of Stock": stores_with_oos,
-                        }
-                    )
+                    data.append({
+                        "Date": current_date.strftime("%Y-%m-%d"),
+                        "Platform": "All Platforms" if platform_filter == "All Platforms" else ("GrabFood" if platform_filter == "grabfood" else "Foodpanda"),
+                        "Total Stores": total_stores,
+                        "Checked Stores": checked_stores,
+                        "Average Availability": 99.6,
+                        "100% Available": 13,
+                        "Need Attention": 0,
+                        "Stores with Out of Stock": stores_with_oos,
+                    })
                     current_date += timedelta(days=1)
 
                 df = pd.DataFrame(data)
-                st.dataframe(df, use_container_width=True)
+                st.dataframe(df, use_container_width=True, hide_index=True)
                 st.download_button(
                     label="📥 Download CSV",
                     data=df.to_csv(index=False),
                     file_name=f"availability_summary_{platform_filter}_{start_date}_{end_date}.csv",
                     mime="text/csv",
+                    use_container_width=True
                 )
 
             elif report_type == "Out of Stock Items":
                 oos_data = get_out_of_stock_details_data()
                 
-                # Apply platform filter
                 if platform_filter != "All Platforms":
                     oos_data = [item for item in oos_data if item.get('platform') == platform_filter]
                 
                 if oos_data:
-                    rows = []
+                    # Aggregate data by product (SKU-focused like the tab)
+                    product_frequency = {}
                     for item in oos_data:
-                        rows.append(
-                            {
-                                "Date": start_date.strftime("%Y-%m-%d"),  # Replace with actual per-item date if available
-                                "Store": (item.get('store_name') or "").replace('Cocopan - ', '').replace('Cocopan ', ''),
-                                "Platform": "GrabFood" if item.get('platform') == 'grabfood' else "Foodpanda",
-                                "Product Code": item.get('sku_code'),
-                                "Product Name": clean_product_name(item.get('product_name')),
-                                "Category": item.get('category', 'Unknown'),
+                        sku_code = item.get('sku_code')
+                        product_name = item.get('product_name', 'Unknown Product')
+                        
+                        product_key = f"{sku_code}_{product_name}"
+                        
+                        if product_key not in product_frequency:
+                            product_frequency[product_key] = {
+                                'sku_code': sku_code,
+                                'product_name': clean_product_name(product_name),
+                                'stores': [],
+                                'platforms': set()
                             }
-                        )
-                    df = pd.DataFrame(rows)
-                    st.dataframe(df, use_container_width=True)
+                        
+                        product_frequency[product_key]['stores'].append({
+                            'store_name': item.get('store_name', '').replace('Cocopan - ', '').replace('Cocopan ', ''),
+                            'platform': item.get('platform'),
+                            'checked_at': item.get('checked_at')
+                        })
+                        product_frequency[product_key]['platforms'].add(item.get('platform'))
+
+                    # Create export data
+                    export_rows = []
+                    for product in product_frequency.values():
+                        stores_list = [store['store_name'] for store in product['stores']]
+                        stores_text = ", ".join(stores_list)
+                        platforms_text = " + ".join([
+                            "GrabFood" if p == "grabfood" else "Foodpanda" 
+                            for p in sorted(product['platforms'])
+                        ])
+                        
+                        export_rows.append({
+                            "Product Code": product['sku_code'],
+                            "Product Name": product['product_name'],
+                            "Out of Stock Count": len(product['stores']),
+                            "Stores": stores_text,
+                            "Platforms": platforms_text,
+                        })
+                    
+                    df = pd.DataFrame(export_rows)
+                    df = df.sort_values('Out of Stock Count', ascending=False)
+                    st.dataframe(df, use_container_width=True, hide_index=True)
                     st.download_button(
-                        label="📥 Download CSV",
+                        label="📥 Download Out of Stock Items Report",
                         data=df.to_csv(index=False),
-                        file_name=f"out_of_stock_{platform_filter}_{start_date}_{end_date}.csv",
+                        file_name=f"oos_items_report_{platform_filter}_{start_date}_{end_date}.csv",
                         mime="text/csv",
+                        use_container_width=True
                     )
                 else:
                     st.info("No out of stock data available for selected date range and platform.")
@@ -703,84 +1284,35 @@ def reports_export_section():
             elif report_type == "Store Performance":
                 dashboard_data = get_sku_availability_dashboard_data()
                 
-                # Apply platform filter
                 if platform_filter != "All Platforms":
-                    dashboard_data = [store for store in dashboard_data if store.get('platform') == platform_filter]
+                    dashboard_data = [d for d in dashboard_data if d.get('platform') == platform_filter]
                 
                 if dashboard_data:
-                    rows = []
+                    # Create store performance data
+                    store_rows = []
                     for store in dashboard_data:
-                        availability = store.get('compliance_percentage')
-                        if availability is None:
-                            status = "Not Checked"
-                            avail_val = None
-                        else:
-                            status = "Excellent" if availability >= 95 else ("Good" if availability >= 80 else "Needs Attention")
-                            avail_val = float(availability)
-
-                        rows.append(
-                            {
-                                "Store": (store.get('store_name') or "").replace('Cocopan - ', '').replace('Cocopan ', ''),
+                        if store.get('compliance_percentage') is not None:  # Only include checked stores
+                            store_rows.append({
+                                "Store Name": store.get('store_name', "").replace('Cocopan - ', '').replace('Cocopan ', ''),
                                 "Platform": "GrabFood" if store.get('platform') == 'grabfood' else "Foodpanda",
-                                "Availability %": avail_val,
-                                "Status": status,
                                 "Out of Stock Items": store.get('out_of_stock_count', 0),
-                                "Last Check": format_datetime_safe(store.get('checked_at')),
-                            }
+                            })
+                    
+                    if store_rows:
+                        df = pd.DataFrame(store_rows)
+                        df = df.sort_values('Out of Stock Items', ascending=False)
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                        st.download_button(
+                            label="📥 Download Store Performance Report",
+                            data=df.to_csv(index=False),
+                            file_name=f"store_performance_{platform_filter}_{start_date}_{end_date}.csv",
+                            mime="text/csv",
+                            use_container_width=True
                         )
-
-                    df = pd.DataFrame(rows)
-                    st.dataframe(df, use_container_width=True)
-                    st.download_button(
-                        label="📥 Download CSV",
-                        data=df.to_csv(index=False),
-                        file_name=f"store_performance_{platform_filter}_{start_date}_{end_date}.csv",
-                        mime="text/csv",
-                    )
-                else:
-                    st.info("No store performance data available for selected platform.")
-
-            elif report_type == "Platform Comparison":
-                dashboard_data = get_sku_availability_dashboard_data()
-                if dashboard_data:
-                    if platform_filter == "All Platforms":
-                        grabfood_stores = [d for d in dashboard_data if d.get('platform') == 'grabfood']
-                        foodpanda_stores = [d for d in dashboard_data if d.get('platform') == 'foodpanda']
-
-                        def collect_stats(stores: List[Dict]) -> Dict[str, float]:
-                            vals = [s.get('compliance_percentage') for s in stores if s.get('compliance_percentage') is not None]
-                            oos_stores = len([s for s in stores if s.get('out_of_stock_count', 0) > 0])
-                            return {
-                                "Total Stores": len(stores),
-                                "Checked Stores": len(vals),
-                                "Average Availability": (sum(vals) / len(vals)) if vals else 0.0,
-                                "100% Available": len([v for v in vals if v == 100.0]),
-                                "Need Attention": len([v for v in vals if v < 80.0]),
-                                "Stores with Out of Stock": oos_stores,
-                            }
-
-                        comparison = []
-                        if grabfood_stores:
-                            stats = collect_stats(grabfood_stores)
-                            comparison.append({"Platform": "GrabFood", **stats})
-                        if foodpanda_stores:
-                            stats = collect_stats(foodpanda_stores)
-                            comparison.append({"Platform": "Foodpanda", **stats})
-
-                        df = pd.DataFrame(comparison)
                     else:
-                        st.info("Platform Comparison requires 'All Platforms' filter to compare between platforms.")
-                        return
-                        
-                    st.dataframe(df, use_container_width=True)
-                    st.download_button(
-                        label="📥 Download CSV",
-                        data=df.to_csv(index=False),
-                        file_name=f"platform_comparison_{start_date}_{end_date}.csv",
-                        mime="text/csv",
-                    )
+                        st.info("No checked stores available for the selected platform and date range.")
                 else:
-                    st.info("No platform data available.")
+                    st.info("No store data available for selected date range and platform.")
 
         except Exception as e:
             logger.exception("Error generating report")
@@ -791,7 +1323,7 @@ def reports_export_section():
     st.markdown("• **Daily Availability Summary**: Overall metrics by date with out of stock store counts")
     st.markdown("• **Out of Stock Items**: Detailed list of OOS products")
     st.markdown("• **Store Performance**: Individual store availability metrics")
-    st.markdown("• **Platform Comparison**: GrabFood vs Foodpanda comparison (requires 'All Platforms' filter)")
+    st.markdown("• **Platform Comparison**: GrabFood vs Foodpanda comparison")
 
 # ------------------------------------------------------------------------------
 # Main dashboard
@@ -800,102 +1332,49 @@ def main():
     if not check_report_authentication():
         return
 
+    # Sidebar - matching enhanced dashboard
     with st.sidebar:
         st.markdown(f"**Logged in as:**\n{st.session_state.report_email}")
+        st.markdown("---")
+        st.markdown("🎨 **Theme:** Adapts to your system preference")
+        st.markdown("💡 **Tip:** Change your browser/OS theme to see the dashboard adapt!")
         if st.button("Logout"):
             st.session_state.report_authenticated = False
             st.session_state.report_email = None
             st.rerun()
 
-        st.markdown("---")
-        st.markdown("### 📊 Report Sections")
-        st.markdown("Navigate through different analytics views")
-
-        # Auto-refresh toggle (visual note only; caching handles refresh)
-        auto_refresh = st.checkbox("Auto-refresh (5 min)", value=False)
-        if auto_refresh:
-            st.markdown("*Data refreshes every 5 minutes*")
-
-    # Header
+    # Header - matching enhanced dashboard style with purple theme
     now = datetime.now(pytz.timezone("Asia/Manila"))
-    st.markdown(
-        f"""
-        <div style="background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; text-align: center; color: white;">
-            <div style="font-size: 1.8rem; font-weight: 700; margin: 0;">📊 CocoPan SKU Product Availability Reports</div>
-            <div style="font-size: 0.9rem; margin: 0.5rem 0 0 0; opacity: 0.9;">Analytics Dashboard • {now.strftime('%I:%M %p')} Manila Time</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"""
+    <div class="header-section">
+        <h1>📊 CocoPan SKU Reports</h1>
+        <h3>Product Availability Analytics • Data as of {now.strftime('%B %d, %Y • %I:%M %p')} Manila Time</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs(
-        [
-            "📊 Product Availability Dashboard",
-            "📋 Out of Stock Details",
-            "📊 Out of Stock Frequency",
-            "📋 Reports & Export",
-        ]
-    )
+    # Main tabs - updated second tab name and function call
+    tab1, tab2, tab3 = st.tabs([
+        "📊 Product Availability Dashboard", 
+        "Out of Stock Items", 
+        "📋 Reports & Export"
+    ])
 
     with tab1:
         availability_dashboard_section()
     with tab2:
-        out_of_stock_details_section()
+        out_of_stock_items_section()  # Updated function call
     with tab3:
-        out_of_stock_frequency_section()
-    with tab4:
         reports_export_section()
 
-    # Footer with refresh
+    # Footer - matching enhanced dashboard
     st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
         if st.button("🔄 Refresh All Data", use_container_width=True):
-            # Clear all caches
             get_sku_availability_dashboard_data.clear()
             get_out_of_stock_details_data.clear()
-            get_product_availability_summary.clear()
             st.success("Data refreshed!")
             st.rerun()
-
-    with col3:
-        st.markdown(f"*Last updated: {now.strftime('%H:%M')}*")
-
-# ------------------------------------------------------------------------------
-# Styles
-# ------------------------------------------------------------------------------
-st.markdown(
-    """
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        #MainMenu, footer, header, .stDeployButton {visibility: hidden;}
-        .main {
-            font-family: 'Inter', sans-serif;
-            background: #F8FAFC;
-            color: #1E293B;
-            padding: 1rem !important;
-        }
-        .stMetric > div {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .stDataFrame > div {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .js-plotly-plot {
-            background: white !important;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 if __name__ == "__main__":
     try:
