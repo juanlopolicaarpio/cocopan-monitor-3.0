@@ -1195,12 +1195,13 @@ class DatabaseManager:
                         FROM status_checks
                         ORDER BY store_id, checked_at DESC
                     ) sc ON s.id = sc.store_id
-                    WHERE (
+                    WHERE sc.checked_at >= NOW() - INTERVAL '24 hours'
+                      AND  (
                         sc.error_message LIKE '[BLOCKED]%%' OR
                         sc.error_message LIKE '[UNKNOWN]%%' OR
                         sc.error_message LIKE '[ERROR]%%'
                     )
-                    AND DATE(sc.checked_at AT TIME ZONE :tz) = CURRENT_DATE
+                    AND sc.checked_at >= NOW() - INTERVAL '24 hours' 
                     ORDER BY sc.checked_at DESC
                 """
                 return pd.read_sql_query(text(sql), self._ensure_sa(), params={"tz": self.timezone})
@@ -1275,7 +1276,7 @@ class DatabaseManager:
             return False
 
     # ---------- Hourly upserts (unchanged logic) ----------
-
+        
     def ensure_schema(self) -> None:
         self._create_tables()
 

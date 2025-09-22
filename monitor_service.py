@@ -110,6 +110,11 @@ class StoreNameManager:
             'Accept-Encoding': 'gzip, deflate',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',                          # ← Bot evasion header
+    'Sec-Fetch-Mode': 'navigate',                          # ← Bot evasion header
+    'Sec-Fetch-Site': 'none',                              # ← Bot evasion header
+    'Cache-Control': 'max-age=0',                          # ← Cache directive
+
         }
 
     def clean_store_name(self, name: str) -> str:
@@ -269,7 +274,7 @@ class GrabFoodMonitor:
         except Exception as e:
             logger.error(f"Failed to load URLs: {e}")
             return []
-
+    
     def check_grabfood_store(self, url: str, retry_count: int = 0) -> CheckResult:
         """Check a single GrabFood store with simple, reliable method"""
         start_time = time.time()
@@ -284,7 +289,15 @@ class GrabFoodMonitor:
                 'Accept-Encoding': 'gzip, deflate',
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
+                                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate', 
+                'Sec-Fetch-Site': 'none',
+                'Cache-Control': 'max-age=0',
+
             })
+            # Pre-request delay to avoid rate limiting (like debug version)
+            time.sleep(random.uniform(1, 3))
+
 
             try:
                 resp = session.get(url, timeout=config.REQUEST_TIMEOUT, allow_redirects=True)
@@ -417,7 +430,7 @@ class GrabFoodMonitor:
 
             # Delay between requests
             if i < len(self.store_urls):
-                time.sleep(random.uniform(1, 3))
+                time.sleep(random.uniform(4, 6))
 
         # Retry logic for blocked stores (same as before)
         retry_round = 1
