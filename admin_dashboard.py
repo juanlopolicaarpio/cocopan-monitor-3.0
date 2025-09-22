@@ -534,6 +534,9 @@ def search_skus(platform: str, search_term: str) -> List[Dict]:
 # ------------------------------------------------------------------------------
 # NEW: SKU Compliance Tab UI (ADDITION FROM DOCUMENT 1)
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# NEW: SKU Compliance Tab UI (FIXED - Product checklist right under search)
+# ------------------------------------------------------------------------------
 def sku_compliance_tab():
     st.markdown(f"""
     <div class="section-header" style="background:#fff; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem 1.1rem; margin:1.1rem 0 .9rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06);">
@@ -596,6 +599,12 @@ def sku_compliance_tab():
             else:
                 st.session_state[session_key] = set()
         
+        # Load ALL SKUs first (for calculations)
+        all_skus = db.get_master_skus_by_platform(platform)
+        if not all_skus:
+            st.warning(f"No products found for {platform}. Please run the SKU population script first.")
+            return
+        
         # Search functionality
         search_term = st.text_input(
             "🔍 Search Products:",
@@ -603,12 +612,6 @@ def sku_compliance_tab():
             key=f"sku_search_{store_id}_{platform}"
         )
         
-        # Load ALL SKUs first (for calculations)
-        all_skus = db.get_master_skus_by_platform(platform)
-        if not all_skus:
-            st.warning(f"No products found for {platform}. Please run the SKU population script first.")
-            return
-            
         # Filter SKUs for DISPLAY only
         if search_term:
             display_skus = search_skus(platform, search_term)
@@ -619,45 +622,7 @@ def sku_compliance_tab():
             display_skus = all_skus
             st.info(f"Showing all {len(all_skus)} {platform} products")
         
-        # Bulk actions
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            if st.button("✅ Mark All In Stock", key=f"all_in_stock_{store_id}_{platform}"):
-                st.session_state[session_key] = set()
-                st.success("All products marked as IN STOCK")
-                st.rerun()
-        
-        with col2:
-            if st.button("❌ Mark All Out of Stock", key=f"all_out_stock_{store_id}_{platform}"):
-                st.session_state[session_key] = set(sku['sku_code'] for sku in all_skus)
-                st.success("All products marked as OUT OF STOCK")
-                st.rerun()
-        
-        with col3:
-            if existing_check and st.button("🔄 Reset to Last Saved", key=f"reset_{store_id}_{platform}"):
-                st.session_state[session_key] = set(existing_check.get('out_of_stock_skus', []))
-                st.success("Reset to last saved state")
-                st.rerun()
-        
-        with col4:
-            current_oos_count = len(st.session_state[session_key])
-            total_skus = len(all_skus)  # Always use full catalog count
-            compliance_pct = ((total_skus - current_oos_count) / max(total_skus, 1)) * 100
-            st.metric("Current Compliance", f"{compliance_pct:.1f}%", f"{total_skus - current_oos_count}/{total_skus} in stock")
-        
-        # Display existing check info
-        if existing_check:
-            st.markdown(f"""
-            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:1rem; margin:1rem 0;">
-                <strong>📋 Previously Saved Check:</strong><br>
-                • Compliance: {existing_check['compliance_percentage']:.1f}%<br>
-                • Out of Stock: {existing_check['out_of_stock_count']} items<br>
-                • Checked by: {existing_check['checked_by']}<br>
-                • Checked at: {existing_check['checked_at']}
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # SKU checklist
+        # SKU checklist - RIGHT AFTER SEARCH
         st.markdown("### 📋 Product Checklist")
         st.markdown("Check the box next to products that are **OUT OF STOCK**:")
         
@@ -689,6 +654,47 @@ def sku_compliance_tab():
                     else:
                         if sku_code in st.session_state[session_key]:
                             st.session_state[session_key].discard(sku_code)
+        
+        # Bulk actions - AFTER CHECKLIST
+        st.markdown("---")
+        st.markdown("### ⚡ Bulk Actions")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            if st.button("✅ Mark All In Stock", key=f"all_in_stock_{store_id}_{platform}"):
+                st.session_state[session_key] = set()
+                st.success("All products marked as IN STOCK")
+                st.rerun()
+        
+        with col2:
+            if st.button("❌ Mark All Out of Stock", key=f"all_out_stock_{store_id}_{platform}"):
+                st.session_state[session_key] = set(sku['sku_code'] for sku in all_skus)
+                st.success("All products marked as OUT OF STOCK")
+                st.rerun()
+        
+        with col3:
+            if existing_check and st.button("🔄 Reset to Last Saved", key=f"reset_{store_id}_{platform}"):
+                st.session_state[session_key] = set(existing_check.get('out_of_stock_skus', []))
+                st.success("Reset to last saved state")
+                st.rerun()
+        
+        with col4:
+            current_oos_count = len(st.session_state[session_key])
+            total_skus = len(all_skus)  # Always use full catalog count
+            compliance_pct = ((total_skus - current_oos_count) / max(total_skus, 1)) * 100
+            st.metric("Current Compliance", f"{compliance_pct:.1f}%", f"{total_skus - current_oos_count}/{total_skus} in stock")
+        
+        # Display existing check info - AFTER BULK ACTIONS
+        if existing_check:
+            st.markdown("---")
+            st.markdown(f"""
+            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:1rem; margin:1rem 0;">
+                <strong>📋 Previously Saved Check:</strong><br>
+                • Compliance: {existing_check['compliance_percentage']:.1f}%<br>
+                • Out of Stock: {existing_check['out_of_stock_count']} items<br>
+                • Checked by: {existing_check['checked_by']}<br>
+                • Checked at: {existing_check['checked_at']}
+            </div>
+            """, unsafe_allow_html=True)
         
         # Summary before save (always use full catalog for calculations)
         st.markdown("---")
@@ -754,7 +760,6 @@ def sku_compliance_tab():
             except Exception as e:
                 st.error(f"❌ Error saving compliance check: {e}")
                 logger.error(f"SKU compliance save error: {e}")
-
 # ------------------------------------------------------------------------------
 # VA Check-in UI Tab - FROM DOCUMENT 2 (UNCHANGED)
 # ------------------------------------------------------------------------------
