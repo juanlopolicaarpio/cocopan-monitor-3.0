@@ -4,18 +4,25 @@ CocoPan SKU Product Availability Reporting Dashboard
 📊 Management/Client view for SKU product availability analytics and reporting
 🎯 Displays data collected by VAs through the admin dashboard
 ✅ Mobile-friendly with adaptive theme (matches enhanced_dashboard.py styling)
+✅ Cookie-based authentication (no need to login always)
+✅ Navigation back to main uptime dashboard
+✅ Fixed sorting issues and added chart legends
 """
 
 # ===== Standard libs =====
 import os
 import re
 import json
+import time
+import hmac
+import base64
+import hashlib
 import logging
 import threading
 import http.server
 import socketserver
 from datetime import datetime, timedelta
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Any
 
 # ===== Third-party =====
 import pytz
@@ -30,6 +37,16 @@ logger = logging.getLogger(__name__)
 # ===== App modules =====
 from config import config   # noqa: F401 (import kept for parity with your project)
 from database import db
+
+# =========================
+# Optional Cookie Manager
+# =========================
+try:
+    from streamlit_cookies_manager import EncryptedCookieManager as CookieManager
+    _COOKIE_LIB_AVAILABLE = True
+except Exception:
+    CookieManager = None
+    _COOKIE_LIB_AVAILABLE = False
 
 # ------------------------------------------------------------------------------
 # Health check endpoint
@@ -95,6 +112,107 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# ======================================================================
+#                            AUTH HELPERS (FROM ENHANCED DASHBOARD)
+# ======================================================================
+COOKIE_NAME = "cp_sku_auth"
+COOKIE_PREFIX = "watchtower_sku"
+TOKEN_TTL_DAYS = 30
+TOKEN_ROLLING_REFRESH_DAYS = 7
+
+def _get_secret_key() -> bytes:
+    secret = getattr(config, 'SECRET_KEY', None) or os.getenv('SECRET_KEY')
+    if not secret:
+        secret = "CHANGE_ME_IN_PROD_please"
+    return secret.encode("utf-8")
+
+def _b64url_encode(b: bytes) -> str:
+    return base64.urlsafe_b64encode(b).decode('utf-8').rstrip("=")
+
+def _b64url_decode(s: str) -> bytes:
+    pad = "=" * (-len(s) % 4)
+    return base64.urlsafe_b64decode(s + pad)
+
+def _sign(payload_b64: str) -> str:
+    sig = hmac.new(_get_secret_key(), payload_b64.encode('utf-8'), hashlib.sha256).digest()
+    return _b64url_encode(sig)
+
+def issue_token(email: str, ttl_days: int = TOKEN_TTL_DAYS) -> str:
+    now = int(time.time())
+    exp = now + int(ttl_days * 24 * 3600)
+    payload = {"email": email, "iat": now, "exp": exp}
+    payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    payload_b64 = _b64url_encode(payload_json)
+    sig_b64 = _sign(payload_b64)
+    return f"{payload_b64}.{sig_b64}"
+
+def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    try:
+        parts = token.split(".")
+        if len(parts) != 2:
+            return None
+        payload_b64, sig_b64 = parts
+        expected_sig = _sign(payload_b64)
+        if not hmac.compare_digest(sig_b64, expected_sig):
+            return None
+        payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
+        if int(payload.get("exp", 0)) < int(time.time()):
+            return None
+        return payload
+    except Exception:
+        return None
+
+def days_remaining(exp_unix: int) -> float:
+    return max(0.0, (exp_unix - int(time.time())) / 86400.0)
+
+# ---------------- Cookie Abstraction ----------------
+class CookieStore:
+    def __init__(self):
+        self.persistent = False
+        self.ready = True
+        self._cookies = None
+
+        if _COOKIE_LIB_AVAILABLE:
+            try:
+                self._cookies = CookieManager(prefix=COOKIE_PREFIX, password=os.getenv("COOKIE_PASSWORD") or "set-a-strong-cookie-password")
+                self.ready = self._cookies.ready()
+                self.persistent = True
+            except Exception as e:
+                logger.warning(f"Cookie manager unavailable, using session fallback: {e}")
+                self._cookies = None
+                self.persistent = False
+                self.ready = True
+        else:
+            if "cookie_fallback" not in st.session_state:
+                st.session_state.cookie_fallback = {}
+            self._cookies = st.session_state.cookie_fallback
+            self.persistent = False
+            self.ready = True
+
+    def get(self, key: str) -> Optional[str]:
+        if self.persistent:
+            return self._cookies.get(key)
+        return self._cookies.get(key)
+
+    def set(self, key: str, value: str, max_age_days: int = TOKEN_TTL_DAYS):
+        if self.persistent:
+            self._cookies[key] = value
+            self._cookies.save()
+        else:
+            self._cookies[key] = value
+
+    def delete(self, key: str):
+        if self.persistent:
+            try:
+                if key in self._cookies:
+                    del self._cookies[key]
+                    self._cookies.save()
+            except Exception:
+                pass
+        else:
+            if key in self._cookies:
+                del self._cookies[key]
 
 # ======================================================================
 #                     ADAPTIVE THEME STYLES (LIGHT/DARK) - EXACT COPY
@@ -354,6 +472,31 @@ st.markdown("""
         transition: all 0.3s ease; 
     }
     
+    /* Navigation link styling */
+    .nav-link {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-link:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--border-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px var(--shadow-light);
+    }
+    
+    .nav-link a {
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
     /* Sidebar styling */
     .css-1d391kg { 
         background: var(--bg-secondary);
@@ -477,15 +620,8 @@ st.markdown("""
 </script>
 """, unsafe_allow_html=True)
 
-
-# ------------------------------------------------------------------------------
-# Authentication (simplified for reporting dashboard)
-# ------------------------------------------------------------------------------
-def load_authorized_report_emails() -> List[str]:
-    """
-    Loads authorized emails from admin_alerts.json > admin_team.emails.
-    Falls back to a default list if not available.
-    """
+# ---------------- Allow-list Loader ----------------
+def load_authorized_report_emails():
     try:
         with open('client_alerts.json', 'r') as f:
             data = json.load(f)
@@ -501,41 +637,70 @@ def load_authorized_report_emails() -> List[str]:
         logger.error(f"❌ Failed to load client emails: {e}")
         return ["juanlopolicarpio@gmail.com"]
 
+# ------------------------------------------------------------------------------
+# Enhanced Authentication with Cookie Support
+# ------------------------------------------------------------------------------
 def check_report_authentication() -> bool:
+    """Enhanced authentication with cookie support - no need to login always"""
     authorized_emails = load_authorized_report_emails()
-    if "report_authenticated" not in st.session_state:
+
+    cookies = CookieStore()
+    if not cookies.ready:
+        st.error("Authentication system initializing. Please refresh.")
+        return False
+
+    if 'report_authenticated' not in st.session_state:
         st.session_state.report_authenticated = False
         st.session_state.report_email = None
 
-    if not st.session_state.report_authenticated:
-        st.markdown("""
-        <div class="login-container">
-            <div class="login-title">📊 CocoPan SKU Reports Access</div>
-        </div>
-        """, unsafe_allow_html=True)
+    # Cookie-based auto-login
+    token = cookies.get(COOKIE_NAME)
+    if token and not st.session_state.report_authenticated:
+        payload = verify_token(token)
+        if payload:
+            email = str(payload.get("email", "")).lower()
+            if email in authorized_emails:
+                st.session_state.report_authenticated = True
+                st.session_state.report_email = email
+                rem = days_remaining(int(payload.get("exp", 0)))
+                if rem <= TOKEN_ROLLING_REFRESH_DAYS:
+                    new_token = issue_token(email)
+                    cookies.set(COOKIE_NAME, new_token, max_age_days=TOKEN_TTL_DAYS)
+                return True
+        else:
+            cookies.delete(COOKIE_NAME)
 
-        with st.form("report_email_auth_form"):
-            email = st.text_input(
-                "Authorized Email Address",
-                placeholder="manager@cocopan.com"
-            )
-            
-            submitted = st.form_submit_button("Access SKU Reports", use_container_width=True)
-            
-            if submitted:
-                email = email.strip().lower()
-                if email in [a.lower() for a in authorized_emails]:
-                    st.session_state.report_authenticated = True
-                    st.session_state.report_email = email
-                    logger.info(f"✅ Report user authenticated: {email}")
-                    st.success("✅ Access granted! Redirecting…")
-                    st.rerun()
-                else:
-                    st.error("❌ Email not authorized for report access.")
-                    logger.warning(f"Unauthorized report attempt: {email}")
-        return False
+    if st.session_state.report_authenticated and st.session_state.report_email:
+        return True
 
-    return True
+    # ---- LOGIN UI ----
+    st.markdown("""
+    <div class="login-container">
+        <div class="login-title">📊 CocoPan SKU Reports</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("sku_auth_form", clear_on_submit=False):
+        email = st.text_input(
+            "Authorized Email Address",
+            placeholder="your.email@company.com"
+        )
+        
+        submitted = st.form_submit_button("Access SKU Reports", use_container_width=True)
+        
+        if submitted:
+            e = email.strip().lower()
+            if e and e in authorized_emails:
+                token = issue_token(e)
+                cookies.set(COOKIE_NAME, token, max_age_days=TOKEN_TTL_DAYS)
+                st.session_state.report_authenticated = True
+                st.session_state.report_email = e
+                st.success("✅ Access granted")
+                st.rerun()
+            else:
+                st.error("❌ Email not authorized")
+
+    return False
 
 # ------------------------------------------------------------------------------
 # Helper functions
@@ -649,8 +814,196 @@ def get_out_of_stock_details_data():
         logger.error(f"Error loading out-of-stock details: {e}")
         return []
 
+@st.cache_data(ttl=60)  # 1 minute cache - faster refresh for debugging
+def get_store_out_of_stock_items(store_id: int):
+    """Get specific out-of-stock items for a store - FIXED AND SIMPLIFIED"""
+    try:
+        with db.get_connection() as conn:
+            cur = conn.cursor()
+            today = datetime.now().date()
+            
+            if db.db_type == "postgresql":
+                # PostgreSQL version with array handling
+                cur.execute("""
+                    SELECT ssc.out_of_stock_skus, ssc.platform
+                    FROM store_sku_checks ssc
+                    WHERE ssc.store_id = %s 
+                    AND ssc.check_date = %s
+                    AND ssc.out_of_stock_count > 0
+                """, (store_id, today))
+                
+                row = cur.fetchone()
+                if row and row[0]:
+                    oos_skus = row[0]  # This is already an array in PostgreSQL
+                    platform = row[1]
+                    
+                    # Get product names for the SKU codes
+                    if oos_skus:
+                        cur.execute("""
+                            SELECT product_name 
+                            FROM master_skus 
+                            WHERE sku_code = ANY(%s) AND platform = %s
+                            ORDER BY product_name
+                        """, (oos_skus, platform))
+                        
+                        product_rows = cur.fetchall()
+                        return [row[0] for row in product_rows]
+                
+            else:
+                # SQLite version with JSON handling
+                cur.execute("""
+                    SELECT out_of_stock_skus, platform
+                    FROM store_sku_checks 
+                    WHERE store_id = ? 
+                    AND check_date = ?
+                    AND out_of_stock_count > 0
+                """, (store_id, today.isoformat()))
+                
+                row = cur.fetchone()
+                if row and row['out_of_stock_skus']:
+                    import json
+                    try:
+                        oos_skus = json.loads(row['out_of_stock_skus'])
+                        platform = row['platform']
+                        
+                        product_names = []
+                        for sku_code in oos_skus:
+                            cur.execute("""
+                                SELECT product_name FROM master_skus 
+                                WHERE sku_code = ? AND platform = ?
+                            """, (sku_code, platform))
+                            sku_row = cur.fetchone()
+                            if sku_row:
+                                product_names.append(sku_row['product_name'])
+                        
+                        return sorted(product_names)
+                    except Exception as e:
+                        logger.error(f"Error parsing JSON for store {store_id}: {e}")
+            
+            return []  # No out of stock items found
+            
+    except Exception as e:
+        logger.error(f"Error loading out-of-stock items for store {store_id}: {e}")
+        return []
+
+# NEW: Functions for historical data queries
+@st.cache_data(ttl=600)  # 10 minutes cache
+def get_sku_data_by_date_range(start_date, end_date, platform_filter="All Platforms"):
+    """Get SKU compliance data for a date range"""
+    try:
+        with db.get_connection() as conn:
+            base_query = """
+                SELECT ssc.check_date, s.name as store_name, s.platform, 
+                       ssc.compliance_percentage, ssc.out_of_stock_count,
+                       ssc.total_skus_checked, ssc.checked_at,
+                       ssc.out_of_stock_skus
+                FROM store_sku_checks ssc
+                JOIN stores s ON ssc.store_id = s.id
+                WHERE ssc.check_date BETWEEN %s AND %s
+            """
+            
+            params = [start_date, end_date]
+            
+            if platform_filter != "All Platforms":
+                base_query += " AND s.platform = %s"
+                params.append(platform_filter)
+            
+            base_query += " ORDER BY ssc.check_date DESC, s.name"
+            
+            if db.db_type == "postgresql":
+                result = pd.read_sql_query(base_query, conn, params=params)
+            else:
+                # Convert date objects to strings for SQLite
+                sqlite_params = [d.isoformat() if hasattr(d, 'isoformat') else str(d) for d in params]
+                result = pd.read_sql_query(base_query.replace('%s', '?'), conn, params=sqlite_params)
+            
+            return result.to_dict('records')
+    except Exception as e:
+        logger.error(f"Error loading SKU data by date range: {e}")
+        return []
+
+@st.cache_data(ttl=600)
+def get_out_of_stock_by_date_range(start_date, end_date, platform_filter="All Platforms"):
+    """Get out of stock items for a date range"""
+    try:
+        with db.get_connection() as conn:
+            base_query = """
+                SELECT ssc.check_date, s.name as store_name, s.platform, 
+                       ms.sku_code, ms.product_name,
+                       ssc.checked_at
+                FROM store_sku_checks ssc
+                JOIN stores s ON ssc.store_id = s.id
+                JOIN master_skus ms ON ms.sku_code = ANY(ssc.out_of_stock_skus) 
+                    AND ms.platform = ssc.platform
+                WHERE ssc.check_date BETWEEN %s AND %s
+                  AND ssc.out_of_stock_count > 0
+            """
+            
+            params = [start_date, end_date]
+            
+            if platform_filter != "All Platforms":
+                base_query += " AND s.platform = %s"
+                params.append(platform_filter)
+            
+            base_query += " ORDER BY ssc.check_date DESC, s.name, ms.product_name"
+            
+            if db.db_type == "postgresql":
+                result = pd.read_sql_query(base_query, conn, params=params)
+            else:
+                # SQLite version - handle JSON differently
+                cur = conn.cursor()
+                sqlite_base = """
+                    SELECT ssc.check_date, s.name as store_name, s.platform, 
+                           ssc.out_of_stock_skus, ssc.checked_at
+                    FROM store_sku_checks ssc
+                    JOIN stores s ON ssc.store_id = s.id
+                    WHERE ssc.check_date BETWEEN ? AND ?
+                      AND ssc.out_of_stock_count > 0
+                """
+                sqlite_params = [start_date.isoformat(), end_date.isoformat()]
+                
+                if platform_filter != "All Platforms":
+                    sqlite_base += " AND s.platform = ?"
+                    sqlite_params.append(platform_filter)
+                
+                sqlite_base += " ORDER BY ssc.check_date DESC, s.name"
+                
+                cur.execute(sqlite_base, sqlite_params)
+                rows = cur.fetchall()
+                
+                result_data = []
+                import json
+                for row in rows:
+                    try:
+                        oos_skus = json.loads(row['out_of_stock_skus']) if row['out_of_stock_skus'] else []
+                        for sku_code in oos_skus:
+                            cur.execute("""
+                                SELECT sku_code, product_name
+                                FROM master_skus 
+                                WHERE sku_code = ? AND platform = ?
+                            """, (sku_code, row['platform']))
+                            sku_row = cur.fetchone()
+                            if sku_row:
+                                result_data.append({
+                                    'check_date': row['check_date'],
+                                    'store_name': row['store_name'],
+                                    'platform': row['platform'],
+                                    'sku_code': sku_row['sku_code'],
+                                    'product_name': sku_row['product_name'],
+                                    'checked_at': row['checked_at']
+                                })
+                    except Exception as e:
+                        logger.error(f"Error processing SQLite OOS data: {e}")
+                
+                return result_data
+            
+            return result.to_dict('records')
+    except Exception as e:
+        logger.error(f"Error loading out of stock by date range: {e}")
+        return []
+
 # ------------------------------------------------------------------------------
-# Charts - using enhanced dashboard style
+# Charts - using enhanced dashboard style with legends
 # ------------------------------------------------------------------------------
 def create_donut(excellent_count: int, good_count: int, attention_count: int, title: str = "Availability"):
     """Create donut chart matching enhanced dashboard style"""
@@ -689,7 +1042,7 @@ def create_donut(excellent_count: int, good_count: int, attention_count: int, ti
         ),
         textinfo='none',
         hovertemplate='<b>%{label}</b><br>%{value} stores (%{percent})<extra></extra>',
-        showlegend=True
+        showlegend=True  # Show legend to explain colors
     )])
     
     # Center percentage text - FIXED: Calculate real percentage based on excellent stores
@@ -702,7 +1055,7 @@ def create_donut(excellent_count: int, good_count: int, attention_count: int, ti
     )
     
     fig.update_layout(
-        height=280,
+        height=320,  # Increased height for legend
         margin=dict(t=20, b=60, l=20, r=20),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -723,7 +1076,7 @@ def create_donut(excellent_count: int, good_count: int, attention_count: int, ti
 def create_platform_availability_charts(
     dashboard_data: List[Dict]
 ) -> Tuple[Optional[go.Figure], Optional[go.Figure]]:
-    """Create simple availability donut charts for GrabFood and Foodpanda with platform name titles"""
+    """Create simple availability donut charts for GrabFood and Foodpanda with platform name titles and legends"""
     if not dashboard_data:
         return None, None
 
@@ -775,7 +1128,7 @@ def create_platform_availability_charts(
             ),
             textinfo='none',
             hovertemplate='<b>%{label}</b><br>%{value} stores (%{percent})<extra></extra>',
-            showlegend=False  # Hide legend
+            showlegend=True  # CHANGED: Show legend to explain colors
         )])
         
         # Center percentage text with "Availability" - shows average availability of all stores
@@ -796,11 +1149,20 @@ def create_platform_availability_charts(
                 yanchor='top',
                 font=dict(size=18, color="#64748B")
             ),
-            height=280,
-            margin=dict(t=40, b=20, l=20, r=20),
+            height=320,  # Increased height to accommodate legend
+            margin=dict(t=40, b=60, l=20, r=20),  # More bottom margin for legend
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color="#64748B")
+            font=dict(color="#64748B"),
+            legend=dict(
+                orientation="h", 
+                yanchor="top", 
+                y=-0.1,  # Position below chart
+                xanchor="center", 
+                x=0.5, 
+                font=dict(size=10, color="#64748B"),
+                bgcolor="rgba(0,0,0,0)"
+            )
         )
         
         return fig
@@ -814,7 +1176,7 @@ def create_platform_availability_charts(
 # Report sections
 # ------------------------------------------------------------------------------
 def availability_dashboard_section():
-    """Main product availability dashboard section"""
+    """Main product availability dashboard section - SORT BY HIGHEST OUT OF STOCK FIRST WITH FIXED SORTING"""
     now = datetime.now(pytz.timezone("Asia/Manila"))
     
     st.markdown(f"""
@@ -830,46 +1192,7 @@ def availability_dashboard_section():
         st.info("📭 No product availability data available today.")
         return
 
-    # Calculate metrics
-    total_stores = len([d for d in dashboard_data if d.get('platform') in ('grabfood', 'foodpanda')])
-    checked = [d.get('compliance_percentage') for d in dashboard_data if d.get('compliance_percentage') is not None]
-    checked_stores = len(checked)
-
-    if checked_stores > 0:
-        avg_availability = sum(checked) / checked_stores
-        stores_excellent = sum(1 for v in checked if v >= 95.0)
-        stores_good = sum(1 for v in checked if 80.0 <= v < 95.0)
-        stores_attention = sum(1 for v in checked if v < 80.0)
-        total_oos_items = sum(d.get('out_of_stock_count', 0) for d in dashboard_data if d.get('compliance_percentage') is not None)
-    else:
-        avg_availability = 0.0
-        stores_excellent = stores_good = stores_attention = 0
-        total_oos_items = 0
-
-    # Platform stats
-    grab_total = len([d for d in dashboard_data if d.get('platform') == 'grabfood'])
-    fp_total = len([d for d in dashboard_data if d.get('platform') == 'foodpanda'])
-
-    grab_checked = [d for d in dashboard_data if d.get('platform') == 'grabfood' and d.get('compliance_percentage') is not None]
-    fp_checked = [d for d in dashboard_data if d.get('platform') == 'foodpanda' and d.get('compliance_percentage') is not None]
-
-    # Top layout - metrics only (removed main chart)
-    st.markdown("### Network Overview")
-    m1, m2, m3 = st.columns(3)
-    with m1:
-        st.metric("Checked Stores", f"{checked_stores}", f"{avg_availability:.1f}% avg availability")
-    with m2:
-        st.metric("Excellent (95%+)", f"{stores_excellent}", "🟢")
-    with m3:
-        st.metric("Need Attention", f"{stores_attention}", "🔴")
-    
-    p1, p2 = st.columns(2)
-    with p1:
-        st.metric("GrabFood stores", f"{grab_total}", f"{len(grab_checked)} checked")
-    with p2:
-        st.metric("Foodpanda stores", f"{fp_total}", f"{len(fp_checked)} checked")
-
-    # Platform charts
+    # Platform charts only (removed metrics section)
     st.markdown("### Platform Performance")
     grabfood_chart, foodpanda_chart = create_platform_availability_charts(dashboard_data)
     colA, colB = st.columns(2)
@@ -921,10 +1244,11 @@ def availability_dashboard_section():
         st.info("No stores found for the selected filters.")
         return
 
-    # Create display table
+    # Create enhanced display table with out-of-stock items
     rows = []
     for store in filtered_data:
         availability_pct = store.get('compliance_percentage')
+        store_id = store.get('store_id') or store.get('id')
         
         # Try multiple possible timestamp field names
         checked_at_raw = (
@@ -935,45 +1259,107 @@ def availability_dashboard_section():
             store.get('timestamp')
         )
         
-        # Debug: Log what we're getting for checked_at
-        if availability_pct is not None:  # Only log for checked stores
-            logger.debug(f"Store {store.get('store_name')}: checked_at = {checked_at_raw} (type: {type(checked_at_raw)})")
+        # Get out-of-stock items for this store - SIMPLIFIED
+        oos_items = []
+        oos_count = store.get('out_of_stock_count', 0)
+        if store_id and oos_count > 0:
+            try:
+                oos_items = get_store_out_of_stock_items(store_id)
+            except Exception as e:
+                logger.debug(f"Could not load OOS items for store {store_id}: {e}")
+        
+        # Format out-of-stock items
+        if oos_items:
+            # Clean product names and limit display
+            cleaned_items = [clean_product_name(item) for item in oos_items[:5]]
+            oos_display = ", ".join(cleaned_items)
+            if len(oos_items) > 5:
+                oos_display += f" + {len(oos_items) - 5} more"
+        elif oos_count == 0:
+            oos_display = "—"
+        else:
+            oos_display = f"{oos_count} items (details loading...)"
         
         if availability_pct is None:
             status = "Not Checked"
             availability_display = "—"
-            sort_val = -1.0
+            availability_sort = -1.0
+            availability_numeric = None  # For proper sorting
             last_check = "—"
+            time_sort = datetime.min
         else:
             status = "✅ Checked"
             availability_display = f"{availability_pct:.1f}%"
-            sort_val = availability_pct
-            # For checked stores, try to get timestamp or show "Today"
+            availability_sort = availability_pct
+            availability_numeric = availability_pct  # Store as number for sorting
+            # For checked stores, try to get timestamp
             last_check = format_datetime_safe(checked_at_raw)
             if last_check == "—" and availability_pct is not None:
-                # If we have availability data but no timestamp, show current time
                 current_time = datetime.now(pytz.timezone('Asia/Manila'))
                 last_check = current_time.strftime("%I:%M %p").lstrip('0')
+                time_sort = current_time
+            else:
+                try:
+                    # Convert time for sorting
+                    if checked_at_raw:
+                        if isinstance(checked_at_raw, str):
+                            time_sort = pd.to_datetime(checked_at_raw)
+                        else:
+                            time_sort = checked_at_raw
+                    else:
+                        time_sort = datetime.min
+                except:
+                    time_sort = datetime.min
 
         rows.append({
             "Branch": store.get('store_name', "").replace('Cocopan - ', '').replace('Cocopan ', ''),
             "Platform": "GrabFood" if store.get('platform') == 'grabfood' else "Foodpanda",
-            "Availability": availability_display,
+            "Availability": availability_numeric,  # Store as number for proper sorting
+            "Availability Display": availability_display,  # Keep display version
             "Status": status,
-            "Out of Stock": store.get('out_of_stock_count') or 0,
+            "Out of Stock Count": oos_count,
+            "Out of Stock Items": oos_display,
             "Last Check": last_check,
-            "_sort_key": sort_val,
+            "_availability_sort": availability_sort,
+            "_time_sort": time_sort,
+            "_oos_count": oos_count,  # For sorting
         })
 
-    # Sort: Not Checked last, then by availability
-    rows_sorted = sorted(rows, key=lambda r: (r["_sort_key"] < 0, -r["_sort_key"] if r["_sort_key"] >= 0 else 9999))
-    df = pd.DataFrame([{k: v for k, v in r.items() if k != "_sort_key"} for r in rows_sorted])
+    # CHANGED: Sort by highest out of stock count first, then by availability
+    rows_sorted = sorted(rows, key=lambda r: (-r["_oos_count"], r["_availability_sort"] < 0, -r["_availability_sort"] if r["_availability_sort"] >= 0 else 9999))
     
-    st.dataframe(df, use_container_width=True, hide_index=True, height=420)
+    # Create display dataframe with proper formatting
+    display_data = []
+    for r in rows_sorted:
+        display_row = {k: v for k, v in r.items() if not k.startswith("_") and k != "Availability Display"}
+        # Format availability for display but keep numeric for sorting
+        if display_row["Availability"] is None:
+            display_row["Availability"] = "—"
+        else:
+            display_row["Availability"] = f"{display_row['Availability']:.1f}%"
+        display_data.append(display_row)
+    
+    df_sorted = pd.DataFrame(display_data)
+    
+    # Configure column types for proper sorting
+    column_config = {
+        "Availability": st.column_config.TextColumn(
+            "Availability",
+            help="Product availability percentage",
+            width="medium"
+        ),
+        "Out of Stock Count": st.column_config.NumberColumn(
+            "Out of Stock Count",
+            help="Number of out of stock items",
+            format="%d"
+        )
+    }
+    
+    st.dataframe(df_sorted, use_container_width=True, hide_index=True, height=420, column_config=column_config)
 
 
 def out_of_stock_items_section():
-    """Out of Stock Items section - sortable table of products with store details"""
+    """Out of Stock Items section - sortable table of products with store details - REMOVED CHECKED BY AND CATEGORY"""
     now = datetime.now(pytz.timezone("Asia/Manila"))
     
     st.markdown(f"""
@@ -1026,32 +1412,27 @@ def out_of_stock_items_section():
                 'platforms': set()
             }
         
-        # Add store info
+        # Add store info - REMOVED CHECKED_BY
         product_frequency[product_key]['stores'].append({
             'store_name': item.get('store_name', '').replace('Cocopan - ', '').replace('Cocopan ', ''),
             'platform': item.get('platform'),
-            'checked_by': item.get('checked_by'),
             'checked_at': item.get('checked_at')
         })
         product_frequency[product_key]['platforms'].add(item.get('platform'))
 
     all_products = list(product_frequency.values())
 
-    # Summary metrics - UPDATED: Removed emojis and changed names
+    # Summary metrics
     total_oos_products = len(all_products)
-    total_affected_stores = sum(len(product['stores']) for product in all_products)
 
     st.markdown("### Summary Metrics")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         st.metric("Unique Products OOS", total_oos_products)
     with col2:
-        st.metric("Stores with out of stock items", total_affected_stores)
-    with col3:
         if all_products:
             most_affected = max(all_products, key=lambda x: len(x['stores']))
-            # UPDATED: Changed name and color to red, removed arrow
-            st.metric("Item with Most Issues", 
+            st.metric("Most Out of Stock Item", 
                      f"{len(most_affected['stores'])} stores", 
                      most_affected['product_name'][:20] + "..." if len(most_affected['product_name']) > 20 else most_affected['product_name'],
                      delta_color="inverse")
@@ -1060,7 +1441,7 @@ def out_of_stock_items_section():
         st.info("No products found for the selected filters.")
         return
 
-    # Create products table - UPDATED: Added store names column
+    # Create products table
     products_table_data = []
     for product in all_products:
         stores_count = len(product['stores'])
@@ -1084,7 +1465,7 @@ def out_of_stock_items_section():
             "_product_key": f"{product['sku_code']}_{product['product_name']}"  # Hidden for lookup
         })
 
-    # Display sortable products table - UPDATED: Removed emoji
+    # Display sortable products table
     st.markdown("### Products Out of Stock")
     st.markdown("*Click column headers to sort the table*")
     
@@ -1134,7 +1515,7 @@ def out_of_stock_items_section():
             **Platforms:** {platforms_text}
             """)
             
-            # Stores table
+            # Stores table - REMOVED CHECKED BY
             if selected_product['stores']:
                 stores_data = []
                 for store in selected_product['stores']:
@@ -1156,7 +1537,7 @@ def out_of_stock_items_section():
 
 
 def reports_export_section():
-    """Reports and data export section"""
+    """Reports and data export section - UPDATED WITH REQUESTED CHANGES"""
     now = datetime.now(pytz.timezone("Asia/Manila"))
     
     st.markdown(f"""
@@ -1190,84 +1571,136 @@ def reports_export_section():
     if st.button("📊 Generate Report", use_container_width=True):
         try:
             if report_type == "Daily Availability Summary":
-                data = []
-                current_date = start_date
-                while current_date <= end_date:
-                    total_stores = 143 if platform_filter == "All Platforms" else (69 if platform_filter == "grabfood" else 74)
-                    checked_stores = 16 if platform_filter == "All Platforms" else (8 if platform_filter == "grabfood" else 8)
-                    stores_with_oos = 3 if platform_filter == "All Platforms" else (1 if platform_filter == "grabfood" else 2)
+                # Use real database data
+                data = get_sku_data_by_date_range(start_date, end_date, platform_filter)
+                
+                if not data:
+                    st.info("No data available for the selected date range and platform.")
+                    return
+                
+                # Group by date and calculate summary stats
+                date_summary = {}
+                for record in data:
+                    check_date = record['check_date']
+                    if isinstance(check_date, str):
+                        check_date = datetime.fromisoformat(check_date).date()
                     
-                    data.append({
-                        "Date": current_date.strftime("%Y-%m-%d"),
-                        "Platform": "All Platforms" if platform_filter == "All Platforms" else ("GrabFood" if platform_filter == "grabfood" else "Foodpanda"),
-                        "Total Stores": total_stores,
-                        "Checked Stores": checked_stores,
-                        "Average Availability": 99.6,
-                        "100% Available": 13,
-                        "Need Attention": 0,
-                        "Stores with Out of Stock": stores_with_oos,
+                    if check_date not in date_summary:
+                        date_summary[check_date] = {
+                            'total_checked': 0,
+                            'total_100_percent': 0,
+                            'total_80_plus': 0,
+                            'total_below_80': 0,
+                            'compliance_sum': 0,
+                            'total_oos_items': 0,
+                            'stores_with_oos': 0
+                        }
+                    
+                    summary = date_summary[check_date]
+                    summary['total_checked'] += 1
+                    
+                    compliance = record['compliance_percentage'] or 0
+                    summary['compliance_sum'] += compliance
+                    
+                    if compliance == 100.0:
+                        summary['total_100_percent'] += 1
+                    elif compliance >= 80.0:
+                        summary['total_80_plus'] += 1
+                    else:
+                        summary['total_below_80'] += 1
+                    
+                    oos_count = record['out_of_stock_count'] or 0
+                    summary['total_oos_items'] += oos_count
+                    if oos_count > 0:
+                        summary['stores_with_oos'] += 1
+                
+                # Convert to table format
+                table_data = []
+                for date, summary in sorted(date_summary.items()):
+                    avg_compliance = summary['compliance_sum'] / max(summary['total_checked'], 1)
+                    
+                    table_data.append({
+                        "Date": date.strftime("%Y-%m-%d"),
+                        "Platform": platform_filter if platform_filter != "All Platforms" else "All",
+                        "Stores Checked": summary['total_checked'],
+                        "Average Availability": f"{avg_compliance:.1f}%",
+                        "100% Available": summary['total_100_percent'],
+                        "80%+ Available": summary['total_80_plus'],
+                        "Below 80%": summary['total_below_80'],
+                        "Total OOS Items": summary['total_oos_items'],
+                        "Stores with OOS": summary['stores_with_oos']
                     })
-                    current_date += timedelta(days=1)
 
-                df = pd.DataFrame(data)
-                st.dataframe(df, use_container_width=True, hide_index=True)
-                st.download_button(
-                    label="📥 Download CSV",
-                    data=df.to_csv(index=False),
-                    file_name=f"availability_summary_{platform_filter}_{start_date}_{end_date}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
+                if table_data:
+                    df = pd.DataFrame(table_data)
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.download_button(
+                        label="📥 Download Daily Summary CSV",
+                        data=df.to_csv(index=False),
+                        file_name=f"daily_availability_summary_{platform_filter}_{start_date}_{end_date}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                else:
+                    st.info("No data available for the selected criteria.")
 
             elif report_type == "Out of Stock Items":
-                oos_data = get_out_of_stock_details_data()
+                # CHANGED: Make it like out of stock items tab (show count and stores)
+                oos_data = get_out_of_stock_by_date_range(start_date, end_date, platform_filter)
                 
-                if platform_filter != "All Platforms":
-                    oos_data = [item for item in oos_data if item.get('platform') == platform_filter]
+                if not oos_data:
+                    st.info("No out-of-stock items found for the selected date range and platform.")
+                    return
                 
-                if oos_data:
-                    # Aggregate data by product (SKU-focused like the tab)
-                    product_frequency = {}
-                    for item in oos_data:
-                        sku_code = item.get('sku_code')
-                        product_name = item.get('product_name', 'Unknown Product')
-                        
-                        product_key = f"{sku_code}_{product_name}"
-                        
-                        if product_key not in product_frequency:
-                            product_frequency[product_key] = {
-                                'sku_code': sku_code,
-                                'product_name': clean_product_name(product_name),
-                                'stores': [],
-                                'platforms': set()
-                            }
-                        
-                        product_frequency[product_key]['stores'].append({
-                            'store_name': item.get('store_name', '').replace('Cocopan - ', '').replace('Cocopan ', ''),
-                            'platform': item.get('platform'),
-                            'checked_at': item.get('checked_at')
-                        })
-                        product_frequency[product_key]['platforms'].add(item.get('platform'))
-
-                    # Create export data
-                    export_rows = []
-                    for product in product_frequency.values():
-                        stores_list = [store['store_name'] for store in product['stores']]
-                        stores_text = ", ".join(stores_list)
-                        platforms_text = " + ".join([
-                            "GrabFood" if p == "grabfood" else "Foodpanda" 
-                            for p in sorted(product['platforms'])
-                        ])
-                        
-                        export_rows.append({
-                            "Product Code": product['sku_code'],
-                            "Product Name": product['product_name'],
-                            "Out of Stock Count": len(product['stores']),
-                            "Stores": stores_text,
-                            "Platforms": platforms_text,
-                        })
+                # Aggregate by product like the tab does
+                product_frequency = {}
+                for item in oos_data:
+                    sku_code = item['sku_code']
+                    product_name = item['product_name']
                     
-                    df = pd.DataFrame(export_rows)
+                    product_key = f"{sku_code}_{product_name}"
+                    
+                    if product_key not in product_frequency:
+                        product_frequency[product_key] = {
+                            'sku_code': sku_code,
+                            'product_name': clean_product_name(product_name),
+                            'stores': [],
+                            'platforms': set()
+                        }
+                    
+                    product_frequency[product_key]['stores'].append({
+                        'store_name': item['store_name'].replace('Cocopan - ', '').replace('Cocopan ', ''),
+                        'platform': item['platform'],
+                        'checked_at': item['checked_at'],
+                        'check_date': item['check_date']
+                    })
+                    product_frequency[product_key]['platforms'].add(item['platform'])
+
+                # Create products table like the tab
+                products_table_data = []
+                for product in product_frequency.values():
+                    stores_count = len(product['stores'])
+                    platforms_list = sorted(product['platforms'])
+                    platforms_text = " + ".join([
+                        "GrabFood" if p == "grabfood" else "Foodpanda" 
+                        for p in platforms_list
+                    ])
+                    
+                    # Get store names
+                    store_names = [store['store_name'] for store in product['stores']]
+                    stores_text = ", ".join(store_names[:3])
+                    if len(store_names) > 3:
+                        stores_text += f" + {len(store_names) - 3} more"
+                    
+                    products_table_data.append({
+                        "Product Name": product['product_name'],
+                        "Out of Stock Count": stores_count,
+                        "Stores": stores_text,
+                        "Platforms": platforms_text,
+                    })
+                
+                if products_table_data:
+                    df = pd.DataFrame(products_table_data)
                     df = df.sort_values('Out of Stock Count', ascending=False)
                     st.dataframe(df, use_container_width=True, hide_index=True)
                     st.download_button(
@@ -1278,40 +1711,91 @@ def reports_export_section():
                         use_container_width=True
                     )
                 else:
-                    st.info("No out of stock data available for selected date range and platform.")
+                    st.info("No out of stock data available.")
 
             elif report_type == "Store Performance":
-                dashboard_data = get_sku_availability_dashboard_data()
+                # CHANGED: Remove checked_by and total_sku, add OOS items list
+                data = get_sku_data_by_date_range(start_date, end_date, platform_filter)
                 
-                if platform_filter != "All Platforms":
-                    dashboard_data = [d for d in dashboard_data if d.get('platform') == platform_filter]
+                if not data:
+                    st.info("No store performance data available for the selected criteria.")
+                    return
                 
-                if dashboard_data:
-                    # Create store performance data
-                    store_rows = []
-                    for store in dashboard_data:
-                        if store.get('compliance_percentage') is not None:  # Only include checked stores
-                            store_rows.append({
-                                "Store Name": store.get('store_name', "").replace('Cocopan - ', '').replace('Cocopan ', ''),
-                                "Platform": "GrabFood" if store.get('platform') == 'grabfood' else "Foodpanda",
-                                "Out of Stock Items": store.get('out_of_stock_count', 0),
-                            })
+                # Convert to store performance format with OOS items
+                performance_data = []
+                for record in data:
+                    check_date = record['check_date']
+                    if isinstance(check_date, str):
+                        check_date = datetime.fromisoformat(check_date).date()
                     
-                    if store_rows:
-                        df = pd.DataFrame(store_rows)
-                        df = df.sort_values('Out of Stock Items', ascending=False)
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-                        st.download_button(
-                            label="📥 Download Store Performance Report",
-                            data=df.to_csv(index=False),
-                            file_name=f"store_performance_{platform_filter}_{start_date}_{end_date}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
+                    # Get OOS items for this record
+                    oos_items_list = []
+                    if record.get('out_of_stock_skus'):
+                        if db.db_type == "postgresql":
+                            # PostgreSQL - out_of_stock_skus is already a list
+                            oos_skus = record['out_of_stock_skus']
+                        else:
+                            # SQLite - parse JSON
+                            import json
+                            try:
+                                oos_skus = json.loads(record['out_of_stock_skus']) if record['out_of_stock_skus'] else []
+                            except:
+                                oos_skus = []
+                        
+                        # Get product names for SKU codes
+                        if oos_skus:
+                            with db.get_connection() as conn:
+                                cur = conn.cursor()
+                                if db.db_type == "postgresql":
+                                    cur.execute("""
+                                        SELECT product_name FROM master_skus 
+                                        WHERE sku_code = ANY(%s) AND platform = %s
+                                        ORDER BY product_name
+                                    """, (oos_skus, record['platform']))
+                                    oos_items_list = [row[0] for row in cur.fetchall()]
+                                else:
+                                    for sku_code in oos_skus:
+                                        cur.execute("""
+                                            SELECT product_name FROM master_skus 
+                                            WHERE sku_code = ? AND platform = ?
+                                        """, (sku_code, record['platform']))
+                                        sku_row = cur.fetchone()
+                                        if sku_row:
+                                            oos_items_list.append(sku_row['product_name'])
+                    
+                    # Format OOS items
+                    if oos_items_list:
+                        oos_display = ", ".join([clean_product_name(item) for item in oos_items_list[:5]])
+                        if len(oos_items_list) > 5:
+                            oos_display += f" + {len(oos_items_list) - 5} more"
                     else:
-                        st.info("No checked stores available for the selected platform and date range.")
+                        oos_display = "—"
+                    
+                    performance_data.append({
+                        "Date": check_date.strftime("%Y-%m-%d"),
+                        "Store": record['store_name'].replace('Cocopan - ', '').replace('Cocopan ', ''),
+                        "Platform": "GrabFood" if record['platform'] == 'grabfood' else "Foodpanda",
+                        "Availability %": f"{record['compliance_percentage']:.1f}%" if record['compliance_percentage'] is not None else "N/A",
+                        "Out of Stock Count": record['out_of_stock_count'] or 0,
+                        "Out of Stock Items": oos_display,
+                        "Check Time": format_datetime_safe(record['checked_at'])
+                    })
+                
+                if performance_data:
+                    df = pd.DataFrame(performance_data)
+                    # Sort by date (newest first) then by store name
+                    df = df.sort_values(['Date', 'Store'], ascending=[False, True])
+                    
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.download_button(
+                        label="📥 Download Store Performance Report",
+                        data=df.to_csv(index=False),
+                        file_name=f"store_performance_{platform_filter}_{start_date}_{end_date}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
                 else:
-                    st.info("No store data available for selected date range and platform.")
+                    st.info("No store performance data available.")
 
         except Exception as e:
             logger.exception("Error generating report")
@@ -1319,10 +1803,9 @@ def reports_export_section():
 
     st.markdown("---")
     st.markdown("**Available Report Types:**")
-    st.markdown("• **Daily Availability Summary**: Overall metrics by date with out of stock store counts")
-    st.markdown("• **Out of Stock Items**: Detailed list of OOS products")
-    st.markdown("• **Store Performance**: Individual store availability metrics")
-    st.markdown("• **Platform Comparison**: GrabFood vs Foodpanda comparison")
+    st.markdown("• **Daily Availability Summary**: Aggregated metrics by date showing compliance trends")
+    st.markdown("• **Out of Stock Items**: Product-focused view showing which items are OOS and in how many stores")
+    st.markdown("• **Store Performance**: Individual store compliance data with out of stock item details")
 
 # ------------------------------------------------------------------------------
 # Main dashboard
@@ -1331,13 +1814,35 @@ def main():
     if not check_report_authentication():
         return
 
-    # Sidebar - matching enhanced dashboard
+    # Sidebar - matching enhanced dashboard with navigation link
     with st.sidebar:
         st.markdown(f"**Logged in as:**\n{st.session_state.report_email}")
         st.markdown("---")
+        
+        # Navigation back to main dashboard - more prominent
+        st.markdown("""
+        <div class="nav-link">
+            <a href="https://cocopanwatchtower.com/" target="_blank">
+                🏢 ← Back to Uptime Dashboard
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Also add as a regular button for better visibility
+        if st.button("🏢 Back to Uptime Dashboard", use_container_width=True):
+            st.markdown("""
+            <script>
+            window.open('https://cocopanwatchtower.com/', '_blank');
+            </script>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("---")
         st.markdown("🎨 **Theme:** Adapts to your system preference")
         st.markdown("💡 **Tip:** Change your browser/OS theme to see the dashboard adapt!")
+        
+        st.markdown("---")
         if st.button("Logout"):
+            CookieStore().delete(COOKIE_NAME)
             st.session_state.report_authenticated = False
             st.session_state.report_email = None
             st.rerun()
@@ -1351,7 +1856,18 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # Main tabs - updated second tab name and function call
+    # Navigation link in main area for better visibility
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        if st.button("🏢 ← Back to Uptime Dashboard", use_container_width=True):
+            st.markdown('<meta http-equiv="refresh" content="0; url=https://cocopanwatchtower.com/">', unsafe_allow_html=True)
+            st.info("Redirecting to Uptime Dashboard...")
+    with col2:
+        pass  # Center space
+    with col3:
+        pass  # Right space
+
+    # Main tabs
     tab1, tab2, tab3 = st.tabs([
         "📊 Product Availability Dashboard", 
         "Out of Stock Items", 
@@ -1361,7 +1877,7 @@ def main():
     with tab1:
         availability_dashboard_section()
     with tab2:
-        out_of_stock_items_section()  # Updated function call
+        out_of_stock_items_section()
     with tab3:
         reports_export_section()
 
@@ -1372,6 +1888,9 @@ def main():
         if st.button("🔄 Refresh All Data", use_container_width=True):
             get_sku_availability_dashboard_data.clear()
             get_out_of_stock_details_data.clear()
+            get_sku_data_by_date_range.clear()
+            get_out_of_stock_by_date_range.clear()
+            get_store_out_of_stock_items.clear()  # Clear OOS items cache
             st.success("Data refreshed!")
             st.rerun()
 
