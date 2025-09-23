@@ -477,6 +477,7 @@ st.markdown("""
 </script>
 """, unsafe_allow_html=True)
 
+
 # ------------------------------------------------------------------------------
 # Authentication (simplified for reporting dashboard)
 # ------------------------------------------------------------------------------
@@ -486,21 +487,19 @@ def load_authorized_report_emails() -> List[str]:
     Falls back to a default list if not available.
     """
     try:
-        with open("admin_alerts.json", "r") as f:
+        with open('client_alerts.json', 'r') as f:
             data = json.load(f)
-        admin_team = data.get("admin_team", {})
-        if admin_team.get("enabled", False):
-            emails = admin_team.get("emails", [])
-            authorized_emails = [email.strip() for email in emails if email.strip()]
-            logger.info(f"✅ Loaded {len(authorized_emails)} authorized report emails")
-            return authorized_emails
-        else:
-            logger.warning("⚠️ Admin team disabled in config")
-            return ["juanlopolicarpio@gmail.com"]
+        authorized_emails = []
+        for group in data.get('clients', {}).values():
+            if group.get('enabled', False):
+                emails = [e.strip() for e in group.get('emails', []) if str(e).strip()]
+                authorized_emails.extend(emails)
+        authorized_emails = sorted(set([e.lower() for e in authorized_emails]))
+        logger.info(f"✅ Loaded {len(authorized_emails)} authorized client emails")
+        return authorized_emails
     except Exception as e:
-        logger.error(f"❌ Failed to load report emails: {e}")
+        logger.error(f"❌ Failed to load client emails: {e}")
         return ["juanlopolicarpio@gmail.com"]
-
 
 def check_report_authentication() -> bool:
     authorized_emails = load_authorized_report_emails()
