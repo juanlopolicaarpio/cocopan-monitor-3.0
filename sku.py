@@ -828,7 +828,7 @@ def availability_dashboard_section():
     dashboard_data = get_sku_availability_dashboard_data()
 
     if not dashboard_data:
-        st.info("📭 No product availability data available. VAs need to perform store checks first.")
+        st.info("📭 No product availability data available today.")
         return
 
     # Calculate metrics

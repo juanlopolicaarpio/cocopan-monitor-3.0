@@ -430,7 +430,7 @@ class GrabFoodMonitor:
 
             # Delay between requests
             if i < len(self.store_urls):
-                time.sleep(random.uniform(4, 6))
+                time.sleep(random.uniform(5, 7))
 
         # Retry logic for blocked stores (same as before)
         retry_round = 1
