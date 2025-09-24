@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-CocoPan Monitor Service - COMPLETE VERSION WITH CLIENT EMAIL ALERTS
+CocoPan Monitor Service - ENHANCED WITH GRABFOOD SKU SCRAPING
 ✅ FIXED: Hour slot calculation - runs at :45 but saves to NEXT hour
 ✅ Sends client emails immediately when stores go offline
 ✅ Beautiful admin alerts for verification needs
 ✅ Foodpanda VA check-in integration  
+✅ NEW: Daily GrabFood SKU/OOS scraping with fuzzy matching
 ✅ Production-ready with comprehensive error handling
 """
 import os
@@ -15,15 +16,26 @@ import signal
 import sys
 import random
 import uuid
+import re
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from urllib.parse import urlparse
 
 import pytz
 import requests
 from bs4 import BeautifulSoup
 import urllib3
+
+# Fuzzy matching for SKU mapping
+try:
+    from fuzzywuzzy import fuzz
+    from fuzzywuzzy import process
+    HAS_FUZZY = True
+except ImportError:
+    HAS_FUZZY = False
+    logging.warning("fuzzywuzzy not available - SKU matching will be basic")
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -93,7 +105,444 @@ class CheckResult:
     confidence: float = 1.0
 
 # ------------------------------------------------------------------------------
-# Store Name Management
+# NEW: SKU Mapping Service
+# ------------------------------------------------------------------------------
+class SKUMapper:
+    """Maps scraped product names to SKU codes using fuzzy matching"""
+    
+    def __init__(self):
+        self.grabfood_skus = self._load_grabfood_master_skus()
+        self.name_to_sku_map = self._build_name_mapping()
+        logger.info(f"📦 SKU Mapper initialized with {len(self.grabfood_skus)} GrabFood products")
+    
+    def _load_grabfood_master_skus(self) -> List[Dict]:
+        """Load GrabFood SKUs from database or fallback to hardcoded data"""
+        try:
+            # Try database first
+            skus = db.get_master_skus_by_platform('grabfood')
+            if skus:
+                logger.info(f"📦 Loaded {len(skus)} GrabFood SKUs from database")
+                return skus
+        except Exception as e:
+            logger.warning(f"Failed to load SKUs from database: {e}")
+        
+        # Fallback to hardcoded data from populate.py
+        logger.info("📦 Using hardcoded GrabFood SKU data")
+        return self._get_hardcoded_grabfood_skus()
+    
+    def _get_hardcoded_grabfood_skus(self) -> List[Dict]:
+        """Hardcoded GrabFood SKUs from populate.py as fallback"""
+        return [
+            # Key products for testing - add more as needed
+            {"sku_code": "GB062", "product_name": "MILKY CHEESE DONUT", "category": "BREAD"},
+            {"sku_code": "GD028", "product_name": "VIETNAMESE COFFEE", "category": "NON-BREAD"},
+            {"sku_code": "GD113", "product_name": "MILO OVERLOAD", "category": "NON-BREAD"},
+            {"sku_code": "GB110", "product_name": "CINNAMON ROLL DELUXE", "category": "BREAD"},
+            {"sku_code": "GB001", "product_name": "PAN DE COCO", "category": "BREAD"},
+            {"sku_code": "GD057", "product_name": "MATCHA MILK", "category": "NON-BREAD"},
+            {"sku_code": "GD117", "product_name": "TWISTEA CLASSIC", "category": "NON-BREAD"},
+            {"sku_code": "GB107", "product_name": "DOUBLE CHEESE ROLL", "category": "BREAD"},
+            {"sku_code": "GB004", "product_name": "GRAB CHEESE ROLL", "category": "BREAD"},
+            {"sku_code": "GB006", "product_name": "GRAB SPANISH BREAD", "category": "BREAD"},
+            {"sku_code": "GB008", "product_name": "GRAB CHOCO ROLL", "category": "BREAD"},
+            {"sku_code": "GB112", "product_name": "GRAB CHICKEN ASADO BUN", "category": "BREAD"},
+            {"sku_code": "GB102", "product_name": "GRAB CHEESY SAUSAGE ROLL", "category": "BREAD"},
+            {"sku_code": "GB095", "product_name": "GRAB CHEESY HAM ROLL", "category": "BREAD"},
+        ]
+    
+    def _build_name_mapping(self) -> Dict[str, str]:
+        """Build mapping from normalized names to SKU codes"""
+        mapping = {}
+        for sku in self.grabfood_skus:
+            normalized_name = self._normalize_name(sku['product_name'])
+            mapping[normalized_name] = sku['sku_code']
+        return mapping
+    
+    def _normalize_name(self, name: str) -> str:
+        """Normalize product name for matching"""
+        if not name:
+            return ""
+        
+        # Remove platform prefixes and normalize
+        name = name.upper()
+        name = re.sub(r'^(GRAB\s+|FOODPANDA\s+)', '', name)
+        name = re.sub(r'\s+', ' ', name).strip()
+        return name
+    
+    def map_scraped_names_to_skus(self, scraped_names: List[str]) -> Tuple[List[str], List[str]]:
+        """
+        Map list of scraped names to SKU codes
+        Returns: (matched_sku_codes, unknown_products)
+        """
+        matched_skus = []
+        unknown_products = []
+        
+        for scraped_name in scraped_names:
+            sku_code = self.find_sku_for_name(scraped_name)
+            if sku_code:
+                matched_skus.append(sku_code)
+                logger.debug(f"✅ Mapped: '{scraped_name}' → {sku_code}")
+            else:
+                unknown_products.append(scraped_name)
+                logger.warning(f"❓ Unknown product: '{scraped_name}'")
+        
+        return matched_skus, unknown_products
+    
+    def find_sku_for_name(self, scraped_name: str, min_confidence: int = 85) -> Optional[str]:
+        """Find SKU code for a scraped product name using fuzzy matching"""
+        if not scraped_name or not scraped_name.strip():
+            return None
+        
+        normalized_scraped = self._normalize_name(scraped_name)
+        
+        # Try exact match first
+        if normalized_scraped in self.name_to_sku_map:
+            return self.name_to_sku_map[normalized_scraped]
+        
+        # Fuzzy matching if available
+        if HAS_FUZZY:
+            best_match = process.extractOne(
+                normalized_scraped, 
+                self.name_to_sku_map.keys(),
+                scorer=fuzz.token_sort_ratio
+            )
+            
+            if best_match and best_match[1] >= min_confidence:
+                matched_name = best_match[0]
+                confidence = best_match[1]
+                sku_code = self.name_to_sku_map[matched_name]
+                logger.debug(f"🎯 Fuzzy match: '{scraped_name}' → {sku_code} (confidence: {confidence}%)")
+                return sku_code
+        
+        # Basic substring matching fallback
+        normalized_scraped_words = set(normalized_scraped.split())
+        
+        best_match_score = 0
+        best_sku = None
+        
+        for master_name, sku_code in self.name_to_sku_map.items():
+            master_words = set(master_name.split())
+            
+            # Calculate word overlap
+            common_words = normalized_scraped_words.intersection(master_words)
+            if common_words:
+                score = len(common_words) / max(len(normalized_scraped_words), len(master_words))
+                if score > best_match_score and score >= 0.6:  # 60% word overlap
+                    best_match_score = score
+                    best_sku = sku_code
+        
+        if best_sku:
+            logger.debug(f"🔍 Substring match: '{scraped_name}' → {best_sku} (score: {best_match_score:.2f})")
+        
+        return best_sku
+
+# ------------------------------------------------------------------------------
+# NEW: GrabFood SKU Scraper (based on s.py)
+# ------------------------------------------------------------------------------
+class GrabFoodSKUScraper:
+    """GrabFood SKU/OOS scraper with same reliability as store status checker"""
+    
+    def __init__(self):
+        self.sku_mapper = SKUMapper()
+        self.timezone = config.get_timezone()
+        
+        # Same headers and config as existing GrabFood monitor
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        ]
+        
+        self.ph_latlng = "14.5995,120.9842"  # Manila center
+        self.headers = {
+            "User-Agent": random.choice(self.user_agents),
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-PH,en;q=0.9",
+            "Origin": "https://food.grab.com",
+            "Referer": "https://food.grab.com/",
+            "Connection": "keep-alive",
+        }
+        
+        # Test stores
+        self.test_stores = [
+            "https://food.grab.com/ph/en/restaurant/cocopan-maysilo-delivery/2-C6TATTL2UF2UDA",
+            "https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN", 
+            "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6"
+        ]
+        
+        logger.info(f"🛒 GrabFood SKU Scraper initialized")
+        logger.info(f"📋 {len(self.test_stores)} test stores configured")
+    
+    def extract_merchant_id(self, url: str) -> Optional[str]:
+        """Extract merchant ID from GrabFood URL"""
+        try:
+            parsed = urlparse(url)
+            if "food.grab.com" not in parsed.netloc or "/ph/" not in parsed.path:
+                return None
+            
+            # Extract ID pattern like "2-C6TATTL2UF2UDA"
+            match = re.search(r"/([0-9]-[A-Z0-9]+)$", parsed.path, re.IGNORECASE)
+            return match.group(1) if match else None
+        except Exception as e:
+            logger.error(f"Error extracting merchant ID from {url}: {e}")
+            return None
+    
+    def fetch_json_with_retry(self, session: requests.Session, url: str, max_retries: int = 3) -> Optional[Dict[str, Any]]:
+        """Fetch JSON with same retry logic as existing monitor"""
+        last_err = None
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Pre-request delay like existing scraper
+                time.sleep(random.uniform(2, 3))
+                
+                try:
+                    resp = session.get(url, headers=self.headers, timeout=config.REQUEST_TIMEOUT)
+                except requests.exceptions.SSLError:
+                    resp = session.get(url, headers=self.headers, timeout=config.REQUEST_TIMEOUT, verify=False)
+                
+                if resp.status_code >= 500:
+                    last_err = f"{resp.status_code} {resp.reason}"
+                    time.sleep(2.0 * attempt)  # Backoff
+                    continue
+                
+                if resp.status_code == 403 and attempt < max_retries:
+                    time.sleep(random.uniform(2, 4))
+                    continue
+                
+                resp.raise_for_status()
+                return resp.json()
+                
+            except requests.RequestException as e:
+                last_err = str(e)
+                time.sleep(2.0 * attempt)
+        
+        logger.warning(f"⚠️ Fetch failed for {url}: {last_err}")
+        return None
+    
+    def fetch_menu_data(self, session: requests.Session, merchant_id: str, referer_url: str) -> Optional[Dict[str, Any]]:
+        """Fetch menu data from GrabFood API"""
+        api_urls = [
+            f"https://portal.grab.com/foodweb/v2/restaurant?merchantCode={merchant_id}&latlng={self.ph_latlng}",
+            f"https://portal.grab.com/foodweb/v2/merchants/{merchant_id}?latlng={self.ph_latlng}"
+        ]
+        
+        # Update referer
+        updated_headers = self.headers.copy()
+        updated_headers["Referer"] = referer_url
+        session.headers.update(updated_headers)
+        
+        for api_url in api_urls:
+            data = self.fetch_json_with_retry(session, api_url)
+            if data:
+                return data
+        
+        return None
+    
+    def extract_oos_items_from_menu(self, menu_data: Dict[str, Any]) -> List[str]:
+        """Extract out-of-stock items from menu JSON (same logic as s.py)"""
+        oos_items = []
+        
+        try:
+            # Navigate menu structure
+            for section in self._iter_menu_sections(menu_data):
+                for item in self._iter_section_items(section):
+                    name = item.get("name") or item.get("title")
+                    if not name:
+                        continue
+                    
+                    # Same logic as s.py: if not explicitly available=true, consider OOS
+                    if item.get("available") is not True:
+                        oos_items.append(name.strip())
+                        logger.debug(f"🔴 Found OOS item: {name}")
+        
+        except Exception as e:
+            logger.error(f"Error parsing menu data: {e}")
+        
+        return oos_items
+    
+    def _iter_menu_sections(self, data: Dict[str, Any]):
+        """Iterate through possible menu section locations"""
+        if not data:
+            return
+            
+        roots = [data]
+        if "data" in data and isinstance(data["data"], dict):
+            roots.append(data["data"])
+        
+        for root in roots:
+            if not isinstance(root, dict):
+                continue
+            
+            # Check menu.categories or menu.sections
+            menu = root.get("menu")
+            if isinstance(menu, dict):
+                categories = menu.get("categories") or menu.get("sections")
+                if isinstance(categories, list):
+                    for sec in categories:
+                        yield sec
+            
+            # Check merchant.menu
+            merchant = root.get("merchant")
+            if isinstance(merchant, dict):
+                m_menu = merchant.get("menu")
+                if isinstance(m_menu, dict):
+                    categories = m_menu.get("categories") or m_menu.get("sections")
+                    if isinstance(categories, list):
+                        for sec in categories:
+                            yield sec
+                
+                # Check merchant.sections
+                sections = merchant.get("sections")
+                if isinstance(sections, list):
+                    for sec in sections:
+                        yield sec
+    
+    def _iter_section_items(self, section: Dict[str, Any]):
+        """Iterate through items in a menu section"""
+        if not isinstance(section, dict):
+            return
+            
+        # Common item list keys
+        for key in ("items", "itemList", "menuItems", "products", "dishes", "dishList"):
+            items = section.get(key)
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict):
+                        yield item
+    
+    def scrape_store_skus(self, store_url: str) -> Tuple[List[str], List[str], str]:
+        """
+        Scrape SKUs for a single store
+        Returns: (oos_sku_codes, unknown_products, store_name)
+        """
+        try:
+            merchant_id = self.extract_merchant_id(store_url)
+            if not merchant_id:
+                logger.error(f"❌ Could not extract merchant ID from {store_url}")
+                return [], [], "Unknown Store"
+            
+            session = requests.Session()
+            
+            # Fetch menu data
+            menu_data = self.fetch_menu_data(session, merchant_id, store_url)
+            if not menu_data:
+                logger.error(f"❌ Could not fetch menu data for {store_url}")
+                return [], [], "Unknown Store"
+            
+            # Extract store name
+            store_name = self._extract_store_name(menu_data) or "Unknown Store"
+            
+            # Extract OOS items
+            oos_product_names = self.extract_oos_items_from_menu(menu_data)
+            
+            if not oos_product_names:
+                logger.info(f"✅ {store_name}: No out-of-stock items found")
+                return [], [], store_name
+            
+            # Map to SKU codes
+            oos_sku_codes, unknown_products = self.sku_mapper.map_scraped_names_to_skus(oos_product_names)
+            
+            logger.info(f"📊 {store_name}: {len(oos_sku_codes)} OOS SKUs, {len(unknown_products)} unknown products")
+            
+            return oos_sku_codes, unknown_products, store_name
+            
+        except Exception as e:
+            logger.error(f"❌ Error scraping {store_url}: {e}")
+            return [], [], "Error Store"
+    
+    def _extract_store_name(self, menu_data: Dict[str, Any]) -> Optional[str]:
+        """Extract store name from menu data"""
+        try:
+            # Try various name locations
+            for root_key in ("merchant", "data", None):
+                root = menu_data
+                if root_key and isinstance(menu_data, dict):
+                    root = menu_data.get(root_key)
+                
+                if isinstance(root, dict):
+                    for name_key in ("name", "displayName", "merchantName", "restaurantName"):
+                        name = root.get(name_key)
+                        if isinstance(name, str) and name.strip():
+                            return name.strip()
+        except Exception as e:
+            logger.error(f"Error extracting store name: {e}")
+        
+        return None
+    
+    def scrape_all_test_stores(self) -> Dict[str, Any]:
+        """Scrape all test stores and save to database"""
+        logger.info("🛒 Starting GrabFood SKU scraping for test stores...")
+        
+        results = {
+            'total_stores': len(self.test_stores),
+            'successful_scrapes': 0,
+            'failed_scrapes': 0,
+            'total_oos_skus': 0,
+            'total_unknown_products': 0,
+            'store_results': []
+        }
+        
+        for i, store_url in enumerate(self.test_stores, 1):
+            logger.info(f"📍 [{i}/{len(self.test_stores)}] Scraping {store_url}")
+            
+            try:
+                oos_skus, unknown_products, store_name = self.scrape_store_skus(store_url)
+                
+                # Save to database (same as manual VA process)
+                store_id = db.get_or_create_store(store_name, store_url)
+                success = db.save_sku_compliance_check(
+                    store_id=store_id,
+                    platform='grabfood',
+                    out_of_stock_ids=oos_skus,
+                    checked_by='automated_scraper'
+                )
+                
+                if success:
+                    results['successful_scrapes'] += 1
+                    results['total_oos_skus'] += len(oos_skus)
+                    results['total_unknown_products'] += len(unknown_products)
+                    
+                    logger.info(f"✅ {store_name}: Saved {len(oos_skus)} OOS SKUs to database")
+                    
+                    if unknown_products:
+                        logger.warning(f"❓ {store_name}: {len(unknown_products)} unknown products logged")
+                        for unknown in unknown_products:
+                            logger.warning(f"   - Unknown: {unknown}")
+                else:
+                    logger.error(f"❌ {store_name}: Failed to save to database")
+                    results['failed_scrapes'] += 1
+                
+                results['store_results'].append({
+                    'store_name': store_name,
+                    'store_url': store_url,
+                    'oos_count': len(oos_skus),
+                    'unknown_count': len(unknown_products),
+                    'success': success
+                })
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to scrape {store_url}: {e}")
+                results['failed_scrapes'] += 1
+            
+            # Delay between stores (same as existing monitor)
+            if i < len(self.test_stores):
+                time.sleep(random.uniform(5, 7))
+        
+        # Log summary
+        logger.info("=" * 70)
+        logger.info(f"🛒 GrabFood SKU scraping completed!")
+        logger.info(f"📊 Summary:")
+        logger.info(f"   Total stores: {results['total_stores']}")
+        logger.info(f"   ✅ Successful: {results['successful_scrapes']}")
+        logger.info(f"   ❌ Failed: {results['failed_scrapes']}")
+        logger.info(f"   🔴 Total OOS SKUs found: {results['total_oos_skus']}")
+        logger.info(f"   ❓ Total unknown products: {results['total_unknown_products']}")
+        
+        return results
+
+# ------------------------------------------------------------------------------
+# Store Name Management (EXISTING - UNCHANGED)
 # ------------------------------------------------------------------------------
 class StoreNameManager:
     """Manages proper store name extraction and caching for GrabFood stores"""
@@ -110,11 +559,10 @@ class StoreNameManager:
             'Accept-Encoding': 'gzip, deflate',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',                          # ← Bot evasion header
-    'Sec-Fetch-Mode': 'navigate',                          # ← Bot evasion header
-    'Sec-Fetch-Site': 'none',                              # ← Bot evasion header
-    'Cache-Control': 'max-age=0',                          # ← Cache directive
-
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0',
         }
 
     def clean_store_name(self, name: str) -> str:
@@ -144,7 +592,6 @@ class StoreNameManager:
 
         try:
             if 'grab.com' in url:
-                import re
                 match = re.search(r'/restaurant/([^/]+)', url)
                 if match:
                     raw_name = match.group(1)
@@ -225,7 +672,7 @@ class StoreNameManager:
             return name
 
 # ------------------------------------------------------------------------------
-# Enhanced GrabFood Monitor with Client Email Integration
+# Enhanced GrabFood Monitor with Client Email Integration (EXISTING - UNCHANGED)
 # ------------------------------------------------------------------------------
 class GrabFoodMonitor:
     """GrabFood monitor with immediate client email alerts when stores go offline"""
@@ -289,15 +736,13 @@ class GrabFoodMonitor:
                 'Accept-Encoding': 'gzip, deflate',
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
-                                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Dest': 'document',
                 'Sec-Fetch-Mode': 'navigate', 
                 'Sec-Fetch-Site': 'none',
                 'Cache-Control': 'max-age=0',
-
             })
             # Pre-request delay to avoid rate limiting (like debug version)
             time.sleep(random.uniform(1, 3))
-
 
             try:
                 resp = session.get(url, timeout=config.REQUEST_TIMEOUT, allow_redirects=True)
@@ -750,11 +1195,12 @@ def signal_handler(signum, frame):
     sys.exit(0)
 
 def main():
-    """Main entry point"""
+    """Main entry point - ENHANCED WITH SKU SCRAPING"""
     logger.info("=" * 80)
-    logger.info("🛒 CocoPan GrabFood Monitor - CLIENT EMAIL INTEGRATION")
+    logger.info("🛒 CocoPan GrabFood Monitor - ENHANCED WITH SKU SCRAPING")
     logger.info("📧 FEATURE: Immediate client emails when stores go offline")
-    logger.info("🎯 Target: Monitor GrabFood stores with instant offline notifications")
+    logger.info("📦 NEW FEATURE: Daily GrabFood SKU/OOS scraping with fuzzy matching")
+    logger.info("🎯 Target: Monitor GrabFood stores with instant offline notifications + SKU compliance")
     logger.info("🐼 Foodpanda: Handled by VA hourly check-in system")
     logger.info("✅ FIXED: Hour slot calculation - runs at :45 but saves to NEXT hour")
     logger.info("=" * 80)
@@ -768,6 +1214,7 @@ def main():
 
     try:
         monitor = GrabFoodMonitor()
+        sku_scraper = GrabFoodSKUScraper()
 
         if not monitor.store_urls:
             logger.error("❌ No GrabFood URLs loaded!")
@@ -794,7 +1241,18 @@ def main():
             except Exception as e:
                 logger.error(f"❌ Client email test error: {e}")
 
-        # Scheduler - runs at :45 minutes for 15-minute early start
+        # NEW: Test SKU scraping immediately
+        logger.info("🧪 Testing GrabFood SKU scraping system...")
+        try:
+            test_results = sku_scraper.scrape_all_test_stores()
+            if test_results['successful_scrapes'] > 0:
+                logger.info("✅ GrabFood SKU scraping test successful!")
+            else:
+                logger.warning("⚠️ GrabFood SKU scraping test failed - check configuration")
+        except Exception as e:
+            logger.error(f"❌ GrabFood SKU scraping test error: {e}")
+
+        # Scheduler
         if HAS_SCHEDULER:
             ph_tz = config.get_timezone()
             scheduler = BlockingScheduler(timezone=ph_tz)
@@ -807,7 +1265,19 @@ def main():
                 else:
                     logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
 
-            # Schedule at :45 minutes past each hour
+            def daily_sku_scraping_job():
+                """NEW: Daily SKU scraping at 8AM"""
+                logger.info("🛒 Starting daily GrabFood SKU scraping...")
+                try:
+                    results = sku_scraper.scrape_all_test_stores()
+                    if results['successful_scrapes'] > 0:
+                        logger.info(f"✅ Daily SKU scraping completed: {results['successful_scrapes']} stores processed")
+                    else:
+                        logger.error("❌ Daily SKU scraping failed - no successful scrapes")
+                except Exception as e:
+                    logger.error(f"❌ Daily SKU scraping error: {e}")
+
+            # Schedule at :45 minutes past each hour (existing)
             scheduler.add_job(
                 func=early_check_job,
                 trigger=CronTrigger(minute=45, timezone=ph_tz),
@@ -817,7 +1287,18 @@ def main():
                 misfire_grace_time=300
             )
 
+            # NEW: Schedule daily SKU scraping at 8AM
+            scheduler.add_job(
+                func=daily_sku_scraping_job,
+                trigger=CronTrigger(hour=8, minute=0, timezone=ph_tz),
+                id='daily_grabfood_sku_scraping',
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=300
+            )
+
             logger.info(f"⏰ Scheduled GrabFood checks at :45 past each hour for client email integration")
+            logger.info(f"⏰ NEW: Scheduled daily GrabFood SKU scraping at 8:00 AM")
             logger.info("🔍 Running initial GrabFood check with client alerts...")
 
             try:
@@ -825,7 +1306,7 @@ def main():
             except Exception as e:
                 logger.error(f"Initial check error: {e}")
 
-            logger.info("✅ GrabFood monitoring active with client email alerts!")
+            logger.info("✅ GrabFood monitoring active with client email alerts and daily SKU scraping!")
             scheduler.start()
 
         else:
@@ -835,6 +1316,15 @@ def main():
                     now_hour = config.get_current_time().hour
                     if config.is_monitor_time(now_hour):
                         monitor.check_all_grabfood_stores_with_client_alerts()
+                        
+                        # NEW: Check if it's 8AM for daily SKU scraping
+                        if now_hour == 8:
+                            logger.info("🛒 Starting daily GrabFood SKU scraping...")
+                            try:
+                                results = sku_scraper.scrape_all_test_stores()
+                                logger.info(f"✅ Daily SKU scraping completed: {results['successful_scrapes']} stores processed")
+                            except Exception as e:
+                                logger.error(f"❌ Daily SKU scraping error: {e}")
                     else:
                         logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
                     time.sleep(3600)  # Sleep for 1 hour
