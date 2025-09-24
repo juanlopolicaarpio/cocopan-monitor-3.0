@@ -1,0 +1,3228 @@
+
+📍 Store URL: https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN
+⚠️  Fetch failed for https://portal.grab.com/foodweb/v2/restaurant?merchantCode=2-C6XVCUDGNXNZNN&latlng=14.5995,120.9842: 502 Bad Gateway
+🏪 Cocopan - Anonas
+
+=== Milky Cheese Donut ===
+{
+  "ID": "PHITE20241021033202096921",
+  "name": "Milky Cheese Donut",
+  "available": true,
+  "priceInMinorUnit": 3500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107048451/photo/menueditor_item_3b0a5fcbd74d48d0b165dda45bc83357_1722928018082983308.webp",
+  "description": "Creamy, cheesy goodness that melts in your mouth",
+  "sortOrder": 8,
+  "discountedPriceInMin": 3500,
+  "priceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-20T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 3500,
+  "discountedTakeawayPriceInMin": 3500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107048451/photo/menueditor_item_3b0a5fcbd74d48d0b165dda45bc83357_1722928018082983308.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107048451/detail/menueditor_item_3b0a5fcbd74d48d0b165dda45bc83357_1722928018082983308.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20230918044107048451/photos/menueditor_item_3b0a5fcbd74d48d0b165dda45bc83357_1722928018082983308.jpg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Vietnamese Coffee ===
+{
+  "ID": "PHITE20241021033201106701",
+  "name": "Vietnamese Coffee",
+  "available": true,
+  "priceInMinorUnit": 7000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044108090296/photo/menueditor_item_690107b2744840ba93ebdb3c5bd22cc2_1716964334240177915.webp",
+  "description": "Need an energy boost? Here\u2019s a sweet way to power through your day the Vietnamese way.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 7,
+  "discountedPriceInMin": 7000,
+  "priceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"f
+
+=== Milo Overload ===
+{
+  "ID": "PHITE2025010703242770135",
+  "name": "Milo Overload",
+  "available": true,
+  "priceInMinorUnit": 8500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025010703242770135/photo/menueditor_item_be51a47ca7d74a12979eb6f1d67fd848_1736928193411509048.webp",
+  "description": "Milo blended with milk to give a refreshing chocolate-malt flavor\u2014available hot or iced.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 6,
+  "discountedPriceInMin": 8500,
+  "priceV2": {
+    "amountInMinor": 8500,
+    "amountDisplay": "85.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 8500,
+    "amountDisplay": "85.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-
+
+=== Cinnamon Roll Deluxe ===
+{
+  "ID": "PHITE2025051308392047475",
+  "name": "Cinnamon Roll Deluxe",
+  "available": true,
+  "priceInMinorUnit": 2500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025051308392047475/photo/menueditor_item_ace19c1c52d844c5b458057f9d046eec_1747125519478867229.webp",
+  "description": "An elevated cinnamon roll experience, crowned with a layer of indulgent, creamy buttercream.",
+  "sortOrder": 5,
+  "discountedPriceInMin": 2500,
+  "priceV2": {
+    "amountInMinor": 2500,
+    "amountDisplay": "25.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 2500,
+    "amountDisplay": "25.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{}},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 2500,
+  "discountedTakeawayPriceInMin": 2500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025051308392047475/photo/menueditor_item_ace19c1c52d844c5b458057f9d046eec_1747125519478867229.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025051308392047475/detail/menueditor_item_ace19c1c52d844c5b458057f9d046eec_1747125519478867229.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025051308392047475/photos/menueditor_item_ace19c1c52d844c5b458057f9d046eec_1747125519478867229.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Pan de Coco ===
+{
+  "ID": "PHITE20241021033200022470",
+  "name": "Pan de Coco",
+  "available": true,
+  "priceInMinorUnit": 1500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107012582/photo/menueditor_item_b37496c843104de8b99cc1bbe2590d03_1716963337371019538.webp",
+  "description": "Our house specialty, Pan de Coco, is a soft, fluffy bun with perfectly sweetened coconut filling. Best with coffee, it\u2019s sure to be a hit.",
+  "sortOrder": 4,
+  "discountedPriceInMin": 1500,
+  "priceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 1500,
+  "discountedTakeawayPriceInMin": 1500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107012582/photo/menueditor_item_b37496c843104de8b99cc1bbe2590d03_1716963337371019538.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107012582/detail/menueditor_item_b37496c843104de8b99cc1bbe2590d03_1716963337371019538.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20230918044107012582/photos/menueditor_item_b37496c843104de8b99cc1bbe2590d03_1716963337371019538.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Original Matcha Milk ===
+{
+  "ID": "PHITE20241021033202010544",
+  "name": "Original Matcha Milk",
+  "available": true,
+  "priceInMinorUnit": 6500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024011809355181942/photo/menueditor_item_2e8347cd91ed4c64ba5a1d2eebeaee7f_1716964290041862785.webp",
+  "description": "Say hello to your new matcha, you're guaranteed to say \"mine\" at first sip.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203022432",
+      "name": "Size",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203069780",
+          "name": "16 oz.",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203377434",
+          "name": "22 oz.",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203359571",
+          "name": "32 oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 3,
+  "discountedPriceInMin": 6500,
+  "priceV2": {
+    "amountInMinor": 6500,
+    "amountDisplay": "65.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 6500,
+    "amountDisplay": "65.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-08-22T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attribu
+
+=== Twistea ===
+{
+  "ID": "PHITE2025030505533324702",
+  "name": "Twistea",
+  "available": true,
+  "priceInMinorUnit": 5500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025030505533324702/photo/menueditor_item_0f0a4a266ce5493e8e4ed3358576db55_1741153973911947422.webp",
+  "description": "Our Signature Iced Tea Blend",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG20250905054952019934",
+      "name": "Twistea",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250905054952011283",
+          "name": "16oz",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250905054952028292",
+          "name": "22oz",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          }
+        },
+        {
+          "ID": "PHMOD20250905054952036786",
+          "name": "32oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          }
+        }
+      ]
+    }
+  ],
+  "sortOrder": 2,
+  "discountedPriceInMin": 5500,
+  "priceV2": {
+    "amountInMinor": 5500,
+    "amountDisplay": "55.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 5500,
+    "amountDisplay": "55.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-06-20T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeaway
+
+=== Double Cheese Roll ===
+{
+  "ID": "PHITE2025021804300669241",
+  "name": "Double Cheese Roll",
+  "available": true,
+  "priceInMinorUnit": 2000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025021804300669241/photo/menueditor_item_ba855d3fe1eb4426b3de717764c55fb3_1739852982450951255.webp",
+  "description": "Double Cheese Roll! Cheesy and crunchy on the outside, melty and cheesy on the inside\u2014every bite is pure comfort and indulgence!",
+  "sortOrder": 1,
+  "discountedPriceInMin": 2000,
+  "priceV2": {
+    "amountInMinor": 2000,
+    "amountDisplay": "20.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 2000,
+    "amountDisplay": "20.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 2000,
+  "discountedTakeawayPriceInMin": 2000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025021804300669241/photo/menueditor_item_ba855d3fe1eb4426b3de717764c55fb3_1739852982450951255.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025021804300669241/detail/menueditor_item_ba855d3fe1eb4426b3de717764c55fb3_1739852982450951255.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025021804300669241/photos/menueditor_item_ba855d3fe1eb4426b3de717764c55fb3_1739852982450951255.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Cocopan Savory Set 1 ===
+{
+  "ID": "PHITE2025081208374822706",
+  "name": "Cocopan Savory Set 1",
+  "available": true,
+  "priceInMinorUnit": 7000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208374822706/photo/menueditor_item_8a9f772fbd074a709be64d656f111848_1756879005299304516.webp",
+  "description": "2 Italian Cheese Roll  +   1 Express Classic Iced Coffee (16oz)",
+  "sortOrder": 6,
+  "discountedPriceInMin": 7000,
+  "priceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 7000,
+  "discountedTakeawayPriceInMin": 7000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208374822706/photo/menueditor_item_8a9f772fbd074a709be64d656f111848_1756879005299304516.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208374822706/detail/menueditor_item_8a9f772fbd074a709be64d656f111848_1756879005299304516.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025081208374822706/photos/menueditor_item_8a9f772fbd074a709be64d656f111848_1756879005299304516.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Cocopan Savory Set 2 ===
+{
+  "ID": "PHITE2025081208382997076",
+  "name": "Cocopan Savory Set 2",
+  "available": true,
+  "priceInMinorUnit": 9500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208382997076/photo/menueditor_item_9f5adeb971454c8092a71bd9b48eecc5_1756878955329533250.webp",
+  "description": "2 Cheesy Ham Roll + 1 Express Sweet and Creamy Iced Coffee (16oz)",
+  "sortOrder": 5,
+  "discountedPriceInMin": 9500,
+  "priceV2": {
+    "amountInMinor": 9500,
+    "amountDisplay": "95.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 9500,
+    "amountDisplay": "95.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {}
+  },
+  "takeawayPriceInMin": 9500,
+  "discountedTakeawayPriceInMin": 9500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208382997076/photo/menueditor_item_9f5adeb971454c8092a71bd9b48eecc5_1756878955329533250.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208382997076/detail/menueditor_item_9f5adeb971454c8092a71bd9b48eecc5_1756878955329533250.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025081208382997076/photos/menueditor_item_9f5adeb971454c8092a71bd9b48eecc5_1756878955329533250.jpeg"
+}
+
+=== Cocopan Savory Set 3 ===
+{
+  "ID": "PHITE2025081208392525368",
+  "name": "Cocopan Savory Set 3",
+  "available": true,
+  "priceInMinorUnit": 12000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208392525368/photo/menueditor_item_a401def60b2b4998aeba9e13412b004f_1756878929291936314.webp",
+  "description": "2 Chicke Asado + 1 Vietnamese Signature Coffee (16oz)",
+  "sortOrder": 4,
+  "discountedPriceInMin": 12000,
+  "priceV2": {
+    "amountInMinor": 12000,
+    "amountDisplay": "120.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 12000,
+    "amountDisplay": "120.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {}
+  },
+  "takeawayPriceInMin": 12000,
+  "discountedTakeawayPriceInMin": 12000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208392525368/photo/menueditor_item_a401def60b2b4998aeba9e13412b004f_1756878929291936314.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081208392525368/detail/menueditor_item_a401def60b2b4998aeba9e13412b004f_1756878929291936314.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025081208392525368/photos/menueditor_item_a401def60b2b4998aeba9e13412b004f_1756878929291936314.jpeg"
+}
+
+=== Cocopan Savory Set 4 ===
+{
+  "ID": "PHITE2025081913553991653",
+  "name": "Cocopan Savory Set 4",
+  "available": true,
+  "priceInMinorUnit": 15000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025081913553991653/photo/menueditor_item_4b5f5512bd34441599d174afaeb6be92_1755611683904147315.webp",
+  "description": "2 Tuna Bun + 1 Salted Caramel Signature Coffee (16oz)",
+  "sortOrder": 3,
+  "discountedPriceInMin": 15000,
+  "priceV2": {
+    "amountInMinor": 15000,
+    "amountDisplay": "150.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 15000,
+    "amountDisplay": "150.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-22T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {}
+  },
+  "takeawayPriceInMin": 15000,
+  "discountedTakeawayPriceInMin": 15000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081913553991653/photo/menueditor_item_4b5f5512bd34441599d174afaeb6be92_1755611683904147315.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081913553991653/detail/menueditor_item_4b5f5512bd34441599d174afaeb6be92_1755611683904147315.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025081913553991653/photos/menueditor_item_4b5f5512bd34441599d174afaeb6be92_1755611683904147315.jpg"
+}
+
+=== Express Sweet & Creamy Iced Coffee ===
+{
+  "ID": "PHITE2025082907264120572",
+  "name": "Express Sweet & Creamy Iced Coffee",
+  "available": true,
+  "priceInMinorUnit": 6000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025082907264120572/photo/menueditor_item_77071571e7ae4a26aad9d7f1b3708567_1756452331342129080.webp",
+  "description": "A richer, sweeter, creamier take on smooth iced coffee, made with Nescaf\u00e9 Gold.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG2025092100351568945",
+      "name": "size of 2",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250921003515013865",
+          "name": "22oz",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          }
+        },
+        {
+          "ID": "PHMOD20250921003515027457",
+          "name": "16oz",
+          "available": true,
+          "sortOrder": 1,
+          "priceV2": {}
+        }
+      ]
+    }
+  ],
+  "sortOrder": 2,
+  "discountedPriceInMin": 6000,
+  "priceV2": {
+    "amountInMinor": 6000,
+    "amountDisplay": "60.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 6000,
+    "amountDisplay": "60.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 6000,
+  "discountedTakeawayPriceInMin": 6000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://fo
+
+=== Express Classic Iced Coffee ===
+{
+  "ID": "PHITE2025082907252340605",
+  "name": "Express Classic Iced Coffee",
+  "available": true,
+  "priceInMinorUnit": 4500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025082907252340605/photo/menueditor_item_c5aa2b2f429a4ec7be318eaf998ded44_1756452288430528769.webp",
+  "description": "Smooth iced coffee with just the right creaminess, made with Nescaf\u00e9 Gold for everyday comfort.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG2025092100351568945",
+      "name": "size of 2",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250921003515013865",
+          "name": "22oz",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          }
+        },
+        {
+          "ID": "PHMOD20250921003515027457",
+          "name": "16oz",
+          "available": true,
+          "sortOrder": 1,
+          "priceV2": {}
+        }
+      ]
+    }
+  ],
+  "sortOrder": 1,
+  "discountedPriceInMin": 4500,
+  "priceV2": {
+    "amountInMinor": 4500,
+    "amountDisplay": "45.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 4500,
+    "amountDisplay": "45.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 4500,
+  "discountedTakeawayPriceInMin": 4500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "h
+
+=== Build A Box (Superbox 13 Pcs) Free Mango Sunrise ===
+{
+  "ID": "PHITE2025031004361102869",
+  "name": "Build A Box (Superbox 13 Pcs) Free Mango Sunrise",
+  "available": true,
+  "priceInMinorUnit": 30000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025031004361102869/photo/menueditor_item_de9f19d9ff304e1c9f416db5236d40b8_1757051443060705095.webp",
+  "description": "Build a Super Box filled with COCOPAN treats of your choice. Pick from the delicious selection below!",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG20250730073950012682",
+      "name": "Free Mango Sunrise (16oz)",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250730073950019001",
+          "name": "Mango Sunrise",
+          "available": true,
+          "sortOrder": 1,
+          "priceV2": {}
+        }
+      ]
+    },
+    {
+      "ID": "PHMOG20250718065258015721",
+      "name": "SELECTION E (PICK 1)",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250718065258010897",
+          "name": "Coffee Bun",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718065258020490",
+          "name": "Blueberry Muffin",
+          "available": true,
+          "sortOrder": 2,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718065258032214",
+          "name": "Choco Chip Muffin",
+          "available": true,
+          "sortOrder": 1,
+          "priceV2": {}
+        }
+      ]
+    },
+    {
+      "ID": "PHMOG20250718065201011326",
+      "name": "SELECTION D (PICK 2)",
+      "available": true,
+      "selectionType": 1,
+      "selectionRangeMin": 2,
+      "selectionRangeMax": 2,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250725043941014825",
+          "name": "Choco Frost Donut",
+          "available": true,
+          "sortOrder": 7,
+          "priceV2": {}
+        
+
+=== Superbox (Assorted 13 Pcs) Free Mango Sunrise ===
+{
+  "ID": "PHITE2025031004340756011",
+  "name": "Superbox (Assorted 13 Pcs) Free Mango Sunrise",
+  "available": true,
+  "priceInMinorUnit": 30000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025031004340756011/photo/menueditor_item_3c860d3bd99f487a85b82bd93bacb392_1757051471663890478.webp",
+  "description": "Enjoy a curated mix of 13 COCOPAN favorites, handpicked for the ultimate treat experience.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG20250730073950012682",
+      "name": "Free Mango Sunrise (16oz)",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250730073950019001",
+          "name": "Mango Sunrise",
+          "available": true,
+          "sortOrder": 1,
+          "priceV2": {}
+        }
+      ]
+    }
+  ],
+  "sortOrder": 9,
+  "discountedPriceInMin": 30000,
+  "priceV2": {
+    "amountInMinor": 30000,
+    "amountDisplay": "300.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 30000,
+    "amountDisplay": "300.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_FALSE\",\"labels\":[\"teen_drug_ar\"]}}},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 30000,
+  "discountedTakeawayPriceInMin": 30000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025031004340756011/photo/menueditor_item_3c860d3bd99f487a85b82bd93bacb392_1757051471663890478.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_web
+
+=== Build A Box (Snack Box 10Pcs) + 10 php (Mango Sunrise) ===
+{
+  "ID": "PHITE2025031004324707912",
+  "name": "Build A Box (Snack Box 10Pcs) + 10 php (Mango Sunrise)",
+  "available": true,
+  "priceInMinorUnit": 15000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025031004324707912/photo/menueditor_item_ea34f5bd47d648539d482945913a9cd9_1757051495328283823.webp",
+  "description": "Build a Snack Box filled with COCOPAN treats of your choice. Select your favorites from the options below!",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG20250718063924013449",
+      "name": "SELECTION A (PICK 10)",
+      "available": true,
+      "selectionType": 1,
+      "selectionRangeMin": 10,
+      "selectionRangeMax": 10,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250718063924012400",
+          "name": "Pande Coco",
+          "available": true,
+          "sortOrder": 10,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718063924025974",
+          "name": "Spanish Bread",
+          "available": true,
+          "sortOrder": 9,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718063924030810",
+          "name": "K-Salt",
+          "available": true,
+          "sortOrder": 8,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718063924049491",
+          "name": "Cheese Roll",
+          "available": true,
+          "sortOrder": 7,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718063924057127",
+          "name": "Cheese Roll",
+          "available": true,
+          "sortOrder": 6,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718063924061985",
+          "name": "Sugar Donut",
+          "available": true,
+          "sortOrder": 5,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718063924071596",
+          "name": "Pande Coco",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250718063924082513",
+         
+
+=== Snack Box (Assorted 10 Pcs) + 10 php (Mango Sunrise) ===
+{
+  "ID": "PHITE2025031004320247633",
+  "name": "Snack Box (Assorted 10 Pcs) + 10 php (Mango Sunrise)",
+  "available": true,
+  "priceInMinorUnit": 15000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025031004320247633/photo/menueditor_item_60eaf078588241bea00bf87bf9e4dcb9_1757051544768545300.webp",
+  "description": "Enjoy a curated mix of 10 COCOPAN favorites, handpicked for the ultimate treat experience.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG20250730073935015424",
+      "name": "Mango Sunrise",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250730073935011455",
+          "name": "Mango Sunrise",
+          "available": true,
+          "priceInMinorUnit": 1000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 1000,
+            "amountDisplay": "10.00"
+          }
+        }
+      ]
+    }
+  ],
+  "sortOrder": 7,
+  "discountedPriceInMin": 15000,
+  "priceV2": {
+    "amountInMinor": 15000,
+    "amountDisplay": "150.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 15000,
+    "amountDisplay": "150.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_FALSE\",\"labels\":[\"teen_drug_ar\"]}}},\"keep_unavailable_until\":\"2025-09-25T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 15000,
+  "discountedTakeawayPriceInMin": 15000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025031004320247633/photo/menueditor_item_60eaf0785
+
+=== Cheese Roll ===
+{
+  "ID": "PHITE20241021033202051864",
+  "name": "Cheese Roll",
+  "available": true,
+  "priceInMinorUnit": 1500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107030078/photo/menueditor_item_f089698119e14f18a4a3d01c02be8a8d_1716963848571855650.webp",
+  "description": "Sugar and cheese, please! Put them together and you have this yummy cheese roll.",
+  "sortOrder": 4,
+  "discountedPriceInMin": 1500,
+  "priceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 1500,
+  "discountedTakeawayPriceInMin": 1500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107030078/photo/menueditor_item_f089698119e14f18a4a3d01c02be8a8d_1716963848571855650.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107030078/detail/menueditor_item_f089698119e14f18a4a3d01c02be8a8d_1716963848571855650.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20230918044107030078/photos/menueditor_item_f089698119e14f18a4a3d01c02be8a8d_1716963848571855650.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Spanish Bread ===
+{
+  "ID": "PHITE20241021033202066104",
+  "name": "Spanish Bread",
+  "available": true,
+  "priceInMinorUnit": 1500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20241021033202066104/photo/menueditor_item_8efe288909db4a0ab89c93f34abadaac_1749547331975608542.webp",
+  "description": "Spanish bread is a Filipino bread roll with a traditional sweet filling made of bread crumbs, mantikilya and brown sugar. Muy delicioso!",
+  "sortOrder": 3,
+  "discountedPriceInMin": 1500,
+  "priceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 1500,
+  "discountedTakeawayPriceInMin": 1500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20241021033202066104/photo/menueditor_item_8efe288909db4a0ab89c93f34abadaac_1749547331975608542.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20241021033202066104/detail/menueditor_item_8efe288909db4a0ab89c93f34abadaac_1749547331975608542.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20241021033202066104/photos/menueditor_item_8efe288909db4a0ab89c93f34abadaac_1749547331975608542.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Choco Roll ===
+{
+  "ID": "PHITE20241021033202112412",
+  "name": "Choco Roll",
+  "available": true,
+  "priceInMinorUnit": 1500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107080575/photo/menueditor_item_4d9e31bd85e54281996dd6d126a951d9_1716963469161816349.webp",
+  "description": "Who says you can't have cheese and chocolate all rolled into one?",
+  "sortOrder": 2,
+  "discountedPriceInMin": 1500,
+  "priceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 1500,
+  "discountedTakeawayPriceInMin": 1500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107080575/photo/menueditor_item_4d9e31bd85e54281996dd6d126a951d9_1716963469161816349.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107080575/detail/menueditor_item_4d9e31bd85e54281996dd6d126a951d9_1716963469161816349.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20230918044107080575/photos/menueditor_item_4d9e31bd85e54281996dd6d126a951d9_1716963469161816349.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Pan De Sal Pack (10pcs) ===
+{
+  "ID": "PHITE2024122709101371511",
+  "name": "Pan De Sal Pack (10pcs)",
+  "available": true,
+  "priceInMinorUnit": 5500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024122709101371511/photo/menueditor_item_cae40cb7f8b14a829f739efd462fe26d_1735355757986211857.webp",
+  "description": "Soft, fluffy, and freshly baked. A perfect pack for breakfast or snacks!",
+  "sortOrder": 1,
+  "discountedPriceInMin": 5500,
+  "priceV2": {
+    "amountInMinor": 5500,
+    "amountDisplay": "55.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 5500,
+    "amountDisplay": "55.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 5500,
+  "discountedTakeawayPriceInMin": 5500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024122709101371511/photo/menueditor_item_cae40cb7f8b14a829f739efd462fe26d_1735355757986211857.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024122709101371511/detail/menueditor_item_cae40cb7f8b14a829f739efd462fe26d_1735355757986211857.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024122709101371511/photos/menueditor_item_cae40cb7f8b14a829f739efd462fe26d_1735355757986211857.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Cinnamon Roll Classic ===
+{
+  "ID": "PHITE2025051308401193100",
+  "name": "Cinnamon Roll Classic",
+  "available": true,
+  "priceInMinorUnit": 2000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025051308401193100/photo/menueditor_item_4b34a4c7ca8f4ff8b4262d2be3f80441_1747125571640641496.webp",
+  "description": "A softer, richer take on the classic, perfectly swirled with cinnamon and topped with a sweet, delicious glaze.",
+  "sortOrder": 4,
+  "discountedPriceInMin": 2000,
+  "priceV2": {
+    "amountInMinor": 2000,
+    "amountDisplay": "20.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 2000,
+    "amountDisplay": "20.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{}},\"keep_unavailable_until\":\"2025-09-22T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 2000,
+  "discountedTakeawayPriceInMin": 2000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025051308401193100/photo/menueditor_item_4b34a4c7ca8f4ff8b4262d2be3f80441_1747125571640641496.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025051308401193100/detail/menueditor_item_4b34a4c7ca8f4ff8b4262d2be3f80441_1747125571640641496.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025051308401193100/photos/menueditor_item_4b34a4c7ca8f4ff8b4262d2be3f80441_1747125571640641496.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Coffee Bun ===
+{
+  "ID": "PHITE20241021033202085427",
+  "name": "Coffee Bun",
+  "available": true,
+  "priceInMinorUnit": 4000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024050501000292477/photo/menueditor_item_317ffe0412804300a8f0c4a2c0385e9c_1716963024175572688.webp",
+  "description": "Drink your coffee and eat it too, with our delectable and buttery coffee bun.",
+  "sortOrder": 3,
+  "discountedPriceInMin": 4000,
+  "priceV2": {
+    "amountInMinor": 4000,
+    "amountDisplay": "40.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 4000,
+    "amountDisplay": "40.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 4000,
+  "discountedTakeawayPriceInMin": 4000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024050501000292477/photo/menueditor_item_317ffe0412804300a8f0c4a2c0385e9c_1716963024175572688.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024050501000292477/detail/menueditor_item_317ffe0412804300a8f0c4a2c0385e9c_1716963024175572688.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024050501000292477/photos/menueditor_item_317ffe0412804300a8f0c4a2c0385e9c_1716963024175572688.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Blueberry Muffin ===
+{
+  "ID": "PHITE2024121906561273927",
+  "name": "Blueberry Muffin",
+  "available": true,
+  "priceInMinorUnit": 4000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024121906561273927/photo/menueditor_item_2504a57628354b7e9db13abfb25ba7e8_1734591318405072852.webp",
+  "description": "Freshly baked muffin with a swirl of sweet blueberry flavor for a deliciously fruity treat",
+  "sortOrder": 2,
+  "discountedPriceInMin": 4000,
+  "priceV2": {
+    "amountInMinor": 4000,
+    "amountDisplay": "40.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 4000,
+    "amountDisplay": "40.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 4000,
+  "discountedTakeawayPriceInMin": 4000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024121906561273927/photo/menueditor_item_2504a57628354b7e9db13abfb25ba7e8_1734591318405072852.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024121906561273927/detail/menueditor_item_2504a57628354b7e9db13abfb25ba7e8_1734591318405072852.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024121906561273927/photos/menueditor_item_2504a57628354b7e9db13abfb25ba7e8_1734591318405072852.jpg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Double Choco Muffin ===
+{
+  "ID": "PHITE20241026003521179939",
+  "name": "Double Choco Muffin",
+  "available": true,
+  "priceInMinorUnit": 4000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20241026003521179939/photo/menueditor_item_bc3d493385ac49ab95b66d3ceb43f502_1753207431912966661.webp",
+  "description": "Soft and loaded with chocolate chips where each bite will be a comforting treat that satisfies your sweet cravings",
+  "sortOrder": 1,
+  "discountedPriceInMin": 4000,
+  "priceV2": {
+    "amountInMinor": 4000,
+    "amountDisplay": "40.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 4000,
+    "amountDisplay": "40.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 4000,
+  "discountedTakeawayPriceInMin": 4000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20241026003521179939/photo/menueditor_item_bc3d493385ac49ab95b66d3ceb43f502_1753207431912966661.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20241026003521179939/detail/menueditor_item_bc3d493385ac49ab95b66d3ceb43f502_1753207431912966661.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20241026003521179939/photos/menueditor_item_bc3d493385ac49ab95b66d3ceb43f502_1753207431912966661.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Choco Cheese Donut ===
+{
+  "ID": "PHITE20241021033202044873",
+  "name": "Choco Cheese Donut",
+  "available": true,
+  "priceInMinorUnit": 3500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024050500584511208/photo/menueditor_item_430b8456e6be43018f9991b23da51a49_1722928042065708060.webp",
+  "description": "Chocolate and cheese, all in a chewy, milky donut. This well-balanced piece will keep you begging for 'more, please'.",
+  "sortOrder": 6,
+  "discountedPriceInMin": 3500,
+  "priceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-22T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 3500,
+  "discountedTakeawayPriceInMin": 3500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024050500584511208/photo/menueditor_item_430b8456e6be43018f9991b23da51a49_1722928042065708060.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024050500584511208/detail/menueditor_item_430b8456e6be43018f9991b23da51a49_1722928042065708060.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024050500584511208/photos/menueditor_item_430b8456e6be43018f9991b23da51a49_1722928042065708060.jpg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Cheese Burst Donut ===
+{
+  "ID": "PHITE2025071316320546559",
+  "name": "Cheese Burst Donut",
+  "available": true,
+  "priceInMinorUnit": 3000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025071316320546559/photo/menueditor_item_992ac60304894316b166ddca13af836a_1752424308866884636.webp",
+  "description": "Soft fluffy donut bursting with delectable cheese",
+  "sortOrder": 5,
+  "discountedPriceInMin": 3000,
+  "priceV2": {
+    "amountInMinor": 3000,
+    "amountDisplay": "30.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 3000,
+    "amountDisplay": "30.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-22T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 3000,
+  "discountedTakeawayPriceInMin": 3000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025071316320546559/photo/menueditor_item_992ac60304894316b166ddca13af836a_1752424308866884636.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025071316320546559/detail/menueditor_item_992ac60304894316b166ddca13af836a_1752424308866884636.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025071316320546559/photos/menueditor_item_992ac60304894316b166ddca13af836a_1752424308866884636.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Sugar Donut ===
+{
+  "ID": "PHITE20241021033201095977",
+  "name": "Sugar Donut",
+  "available": true,
+  "priceInMinorUnit": 1500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024071908374019969/photo/menueditor_item_0c9f149078b84666b14f7058ac2a39b9_1721378233785668097.webp",
+  "description": "Sweet, simple, and oh-so-delicious! Treat yourself to our classic sugar donut today.",
+  "sortOrder": 4,
+  "discountedPriceInMin": 1500,
+  "priceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-22T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 1500,
+  "discountedTakeawayPriceInMin": 1500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024071908374019969/photo/menueditor_item_0c9f149078b84666b14f7058ac2a39b9_1721378233785668097.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024071908374019969/detail/menueditor_item_0c9f149078b84666b14f7058ac2a39b9_1721378233785668097.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024071908374019969/photos/menueditor_item_0c9f149078b84666b14f7058ac2a39b9_1721378233785668097.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Glazed Donut ===
+{
+  "ID": "PHITE2024111208121458906",
+  "name": "Glazed Donut",
+  "available": true,
+  "priceInMinorUnit": 2500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024111208121458906/photo/menueditor_item_664f4eaf904f4f6ca2dcc967b372b14f_1731399092659635778.webp",
+  "description": "Say hello to our new glazed donut. Simple yet satisfying & it's glazy good.",
+  "sortOrder": 3,
+  "discountedPriceInMin": 2500,
+  "priceV2": {
+    "amountInMinor": 2500,
+    "amountDisplay": "25.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 2500,
+    "amountDisplay": "25.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 2500,
+  "discountedTakeawayPriceInMin": 2500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024111208121458906/photo/menueditor_item_664f4eaf904f4f6ca2dcc967b372b14f_1731399092659635778.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024111208121458906/detail/menueditor_item_664f4eaf904f4f6ca2dcc967b372b14f_1731399092659635778.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024111208121458906/photos/menueditor_item_664f4eaf904f4f6ca2dcc967b372b14f_1731399092659635778.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Choco Frost Donut ===
+{
+  "ID": "PHITE2025011508400334135",
+  "name": "Choco Frost Donut",
+  "available": true,
+  "priceInMinorUnit": 3500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025011508400334135/photo/menueditor_item_6977cb5d6dd94e6b87aae9d83cbc1a26_1736930261172588743.webp",
+  "description": "Donut topped with a layer of rich, smooth chocolate frosting; it\u2019s the ultimate treat for chocolate lovers!",
+  "sortOrder": 2,
+  "discountedPriceInMin": 3500,
+  "priceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 3500,
+  "discountedTakeawayPriceInMin": 3500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025011508400334135/photo/menueditor_item_6977cb5d6dd94e6b87aae9d83cbc1a26_1736930261172588743.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025011508400334135/detail/menueditor_item_6977cb5d6dd94e6b87aae9d83cbc1a26_1736930261172588743.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025011508400334135/photos/menueditor_item_6977cb5d6dd94e6b87aae9d83cbc1a26_1736930261172588743.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Strawberry Sprinkle Donut ===
+{
+  "ID": "PHITE2025011508411567988",
+  "name": "Strawberry Sprinkle Donut",
+  "available": true,
+  "priceInMinorUnit": 3500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025011508411567988/photo/menueditor_item_9ee6d7d2e0384b58b794b46fbade14b7_1736930429765004891.webp",
+  "description": "Soft and fluffy donut, topped with a sweet and tangy berry glaze with colorful sprinkles in top. The burst of berry goodness, combined with the crunchiness of the sprinkles, makes every bite super fun and satisfying.",
+  "sortOrder": 1,
+  "discountedPriceInMin": 3500,
+  "priceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-19T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 3500,
+  "discountedTakeawayPriceInMin": 3500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025011508411567988/photo/menueditor_item_9ee6d7d2e0384b58b794b46fbade14b7_1736930429765004891.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025011508411567988/detail/menueditor_item_9ee6d7d2e0384b58b794b46fbade14b7_1736930429765004891.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025011508411567988/photos/menueditor_item_9ee6d7d2e0384b58b794b46fbade14b7_1736930429765004891.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Cheesy Sausage Roll ===
+{
+  "ID": "PHITE2024112002531763647",
+  "name": "Cheesy Sausage Roll",
+  "available": true,
+  "priceInMinorUnit": 4500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024112002531763647/photo/menueditor_item_be13b46fe069459a87ca93c6350d3a68_1748929196715256999.webp",
+  "description": "Our Cheesy Sausage Roll is made from Purefoods Tender Juicy sausage, wrapped in a soft bun, topped with barbecue sauce, mayo, and aromatic herbs for a delicious finish.",
+  "sortOrder": 8,
+  "discountedPriceInMin": 4500,
+  "priceV2": {
+    "amountInMinor": 4500,
+    "amountDisplay": "45.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 4500,
+    "amountDisplay": "45.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {}
+  },
+  "takeawayPriceInMin": 4500,
+  "discountedTakeawayPriceInMin": 4500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024112002531763647/photo/menueditor_item_be13b46fe069459a87ca93c6350d3a68_1748929196715256999.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024112002531763647/detail/menueditor_item_be13b46fe069459a87ca93c6350d3a68_1748929196715256999.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024112002531763647/photos/menueditor_item_be13b46fe069459a87ca93c6350d3a68_1748929196715256999.jpeg"
+}
+
+=== Cheesy Ham Roll ===
+{
+  "ID": "PHITE20241026003523059511",
+  "name": "Cheesy Ham Roll",
+  "available": true,
+  "priceInMinorUnit": 2500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20241026003523059511/photo/menueditor_item_af46bebb5c91450a93048e0bc8c6eafe_1730338108480313431.webp",
+  "description": "A soft dough wrapped with savory ham and melted cheese deliciously gooey in every bite!",
+  "sortOrder": 7,
+  "discountedPriceInMin": 2500,
+  "priceV2": {
+    "amountInMinor": 2500,
+    "amountDisplay": "25.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 2500,
+    "amountDisplay": "25.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {}
+  },
+  "takeawayPriceInMin": 2500,
+  "discountedTakeawayPriceInMin": 2500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20241026003523059511/photo/menueditor_item_af46bebb5c91450a93048e0bc8c6eafe_1730338108480313431.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20241026003523059511/detail/menueditor_item_af46bebb5c91450a93048e0bc8c6eafe_1730338108480313431.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20241026003523059511/photos/menueditor_item_af46bebb5c91450a93048e0bc8c6eafe_1730338108480313431.jpeg"
+}
+
+=== Pan de Floss (Original) ===
+{
+  "ID": "PHITE20241021033201128406",
+  "name": "Pan de Floss (Original)",
+  "available": true,
+  "priceInMinorUnit": 3500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107069438/photo/menueditor_item_3a7a25d74bc940ce8b1137fe9982a52e_1716964053555312679.webp",
+  "description": "Feeling flossy? This pan de floss is sure to satisfy your savory cravings.",
+  "sortOrder": 6,
+  "discountedPriceInMin": 3500,
+  "priceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 3500,
+  "discountedTakeawayPriceInMin": 3500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107069438/photo/menueditor_item_3a7a25d74bc940ce8b1137fe9982a52e_1716964053555312679.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107069438/detail/menueditor_item_3a7a25d74bc940ce8b1137fe9982a52e_1716964053555312679.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20230918044107069438/photos/menueditor_item_3a7a25d74bc940ce8b1137fe9982a52e_1716964053555312679.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Pan de Floss (Spicy) ===
+{
+  "ID": "PHITE20241021033201132329",
+  "name": "Pan de Floss (Spicy)",
+  "available": true,
+  "priceInMinorUnit": 3500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044108066684/photo/menueditor_item_9554ceef83f748099eecf029c133b982_1716964074509494408.webp",
+  "description": "Spice up your floss, with this spicy version of pan de floss.",
+  "sortOrder": 5,
+  "discountedPriceInMin": 3500,
+  "priceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {}
+  },
+  "takeawayPriceInMin": 3500,
+  "discountedTakeawayPriceInMin": 3500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044108066684/photo/menueditor_item_9554ceef83f748099eecf029c133b982_1716964074509494408.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044108066684/detail/menueditor_item_9554ceef83f748099eecf029c133b982_1716964074509494408.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE20230918044108066684/photos/menueditor_item_9554ceef83f748099eecf029c133b982_1716964074509494408.jpeg"
+}
+
+=== Italian Cheese Roll ===
+{
+  "ID": "PHITE20241021033201116435",
+  "name": "Italian Cheese Roll",
+  "available": true,
+  "priceInMinorUnit": 2000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024062407311836346/photo/menueditor_item_96ab238852cc40c6be9d5a6752be5d30_1719214222479483978.webp",
+  "description": "Say 'Ciao' to a flavorful twist on our classic favorite! Our new Italian Cheese Rolls are seasoned with the perfect blend of savory cheese and aromatic herbs.",
+  "sortOrder": 4,
+  "discountedPriceInMin": 2000,
+  "priceV2": {
+    "amountInMinor": 2000,
+    "amountDisplay": "20.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 2000,
+    "amountDisplay": "20.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 2000,
+  "discountedTakeawayPriceInMin": 2000,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024062407311836346/photo/menueditor_item_96ab238852cc40c6be9d5a6752be5d30_1719214222479483978.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024062407311836346/detail/menueditor_item_96ab238852cc40c6be9d5a6752be5d30_1719214222479483978.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024062407311836346/photos/menueditor_item_96ab238852cc40c6be9d5a6752be5d30_1719214222479483978.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Tuna Bun ===
+{
+  "ID": "PHITE2025031108145511392",
+  "name": "Tuna Bun",
+  "available": true,
+  "priceInMinorUnit": 3500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025031108145511392/photo/menueditor_item_566335f452c548a2a02c015945666474_1741680875392507589.webp",
+  "description": "Our Tuna Bun is a soft bread filled with savory tuna goodness and a kick of spice.",
+  "sortOrder": 3,
+  "discountedPriceInMin": 3500,
+  "priceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 3500,
+    "amountDisplay": "35.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-22T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {}
+  },
+  "takeawayPriceInMin": 3500,
+  "discountedTakeawayPriceInMin": 3500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025031108145511392/photo/menueditor_item_566335f452c548a2a02c015945666474_1741680875392507589.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025031108145511392/detail/menueditor_item_566335f452c548a2a02c015945666474_1741680875392507589.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025031108145511392/photos/menueditor_item_566335f452c548a2a02c015945666474_1741680875392507589.jpg"
+}
+
+=== K-Salt ===
+{
+  "ID": "PHITE2025070204080054081",
+  "name": "K-Salt",
+  "available": true,
+  "priceInMinorUnit": 1500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025070204080054081/photo/menueditor_item_5d3bbc32014e4373a75c0eef5dcfcbb4_1751429265370089166.webp",
+  "description": "This  Korean-inspired Salt Bread is a soft and airy roll that delivers the perfect balance of rich butter and a touch of salt. Comforting and melt-in-your-mouth addictive.",
+  "sortOrder": 2,
+  "discountedPriceInMin": 1500,
+  "priceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 1500,
+    "amountDisplay": "15.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-19T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 1500,
+  "discountedTakeawayPriceInMin": 1500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025070204080054081/photo/menueditor_item_5d3bbc32014e4373a75c0eef5dcfcbb4_1751429265370089166.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025070204080054081/detail/menueditor_item_5d3bbc32014e4373a75c0eef5dcfcbb4_1751429265370089166.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025070204080054081/photos/menueditor_item_5d3bbc32014e4373a75c0eef5dcfcbb4_1751429265370089166.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Chicken Asado Bun ===
+{
+  "ID": "PHITE2025081908595099731",
+  "name": "Chicken Asado Bun",
+  "available": true,
+  "priceInMinorUnit": 2500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025081908595099731/photo/menueditor_item_e15a1e4a85a64c468268df7a206f4246_1755593970133418320.webp",
+  "description": "A soft, golden bun filled with rich, savory chicken asado.",
+  "sortOrder": 1,
+  "discountedPriceInMin": 2500,
+  "priceV2": {
+    "amountInMinor": 2500,
+    "amountDisplay": "25.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 2500,
+    "amountDisplay": "25.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {}
+  },
+  "takeawayPriceInMin": 2500,
+  "discountedTakeawayPriceInMin": 2500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081908595099731/photo/menueditor_item_e15a1e4a85a64c468268df7a206f4246_1755593970133418320.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025081908595099731/detail/menueditor_item_e15a1e4a85a64c468268df7a206f4246_1755593970133418320.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025081908595099731/photos/menueditor_item_e15a1e4a85a64c468268df7a206f4246_1755593970133418320.jpeg"
+}
+
+=== Italian Herb Loaf ===
+{
+  "ID": "PHITE2024120603345704192",
+  "name": "Italian Herb Loaf",
+  "available": true,
+  "priceInMinorUnit": 7500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024120603345704192/photo/menueditor_item_d6d13b45818f40cea2139a02906a1be5_1733455985454316209.webp",
+  "description": "Bring a little taste of Italy to your table! Freshly baked and soft, our Italian Herbs Loaf is a fragrant and flavorful twist on our classic loaf bread.",
+  "sortOrder": 1,
+  "discountedPriceInMin": 7500,
+  "priceV2": {
+    "amountInMinor": 7500,
+    "amountDisplay": "75.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7500,
+    "amountDisplay": "75.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-25T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 7500,
+  "discountedTakeawayPriceInMin": 7500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024120603345704192/photo/menueditor_item_d6d13b45818f40cea2139a02906a1be5_1733455985454316209.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024120603345704192/detail/menueditor_item_d6d13b45818f40cea2139a02906a1be5_1733455985454316209.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024120603345704192/photos/menueditor_item_d6d13b45818f40cea2139a02906a1be5_1733455985454316209.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Raisin Loaf ===
+{
+  "ID": "PHITE2024110800541007369",
+  "name": "Raisin Loaf",
+  "priceInMinorUnit": 7500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024110800541007369/photo/menueditor_item_d552bb93a0b243a3b15c3b7f79db3886_1731026983157895727.webp",
+  "description": "Soft bread filled with sweet raisins, perfect for a tasty snack or breakfast.",
+  "sortOrder": 2,
+  "discountedPriceInMin": 7500,
+  "priceV2": {
+    "amountInMinor": 7500,
+    "amountDisplay": "75.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7500,
+    "amountDisplay": "75.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-25T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 7500,
+  "discountedTakeawayPriceInMin": 7500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024110800541007369/photo/menueditor_item_d552bb93a0b243a3b15c3b7f79db3886_1731026983157895727.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2024110800541007369/detail/menueditor_item_d552bb93a0b243a3b15c3b7f79db3886_1731026983157895727.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2024110800541007369/photos/menueditor_item_d552bb93a0b243a3b15c3b7f79db3886_1731026983157895727.jpeg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
+
+=== Cafe Espanol ===
+{
+  "ID": "PHITE20241021033200085311",
+  "name": "Cafe Espanol",
+  "available": true,
+  "priceInMinorUnit": 8000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107131587/photo/menueditor_item_c82b76d5477a48c4a31beb173a62db0f_1716964384549556265.webp",
+  "description": "Say hola! to this sweet and creamy coffee treat",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG20241026003521150065",
+      "name": "Size :",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241026003521575141",
+          "name": "Hot 12oz",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20241026003521582716",
+          "name": "Iced 16oz",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20241026003521593197",
+          "name": "Iced 22oz",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          }
+        },
+        {
+          "ID": "PHMOD20241026003521609197",
+          "name": "Iced 32oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          }
+        }
+      ]
+    }
+  ],
+  "sortOrder": 7,
+  "discountedPriceInMin": 8000,
+  "priceV2": {
+    "amountInMinor": 8000,
+    "amountDisplay": "80.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 8000,
+    "amountDisplay": "80.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-23T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "
+
+=== Creamy Vanilla Coffee ===
+{
+  "ID": "PHITE20241021033201017986",
+  "name": "Creamy Vanilla Coffee",
+  "available": true,
+  "priceInMinorUnit": 8000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107098246/photo/menueditor_item_d88b85b0b975404d9c95592fd5b99eb9_1716964417473600992.webp",
+  "description": "Creamy coffee with a hint of vanilla",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 6,
+  "discountedPriceInMin": 8000,
+  "priceV2": {
+    "amountInMinor": 8000,
+    "amountDisplay": "80.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 8000,
+    "amountDisplay": "80.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\"
+
+=== Salted Caramel Coffee ===
+{
+  "ID": "PHITE20241021033201075342",
+  "name": "Salted Caramel Coffee",
+  "available": true,
+  "priceInMinorUnit": 8000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107127253/photo/menueditor_item_9f4f34e75e194321b5143e9724398e19_1716964518555890126.webp",
+  "description": "Taste the rich, sweet caramel balanced with a touch of saltiness",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 5,
+  "discountedPriceInMin": 8000,
+  "priceV2": {
+    "amountInMinor": 8000,
+    "amountDisplay": "80.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 8000,
+    "amountDisplay": "80.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"against
+
+=== Dark Choco Coffee ===
+{
+  "ID": "PHITE20241021033202128927",
+  "name": "Dark Choco Coffee",
+  "available": true,
+  "priceInMinorUnit": 8500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107143900/photo/menueditor_item_9b0e54c0015a4fc89f34d155463d0f33_1716964446214431960.webp",
+  "description": "Strong coffee with heartwarming notes of chocolate",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 4,
+  "discountedPriceInMin": 8500,
+  "priceV2": {
+    "amountInMinor": 8500,
+    "amountDisplay": "85.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 8500,
+    "amountDisplay": "85.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"
+
+=== Signature Milky Coffee ===
+{
+  "ID": "PHITE2024122707042833635",
+  "name": "Signature Milky Coffee",
+  "available": true,
+  "priceInMinorUnit": 6500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024122707042833635/photo/menueditor_item_4be36b67bc794eb2bfd7f9f82131f426_1735283037595153416.webp",
+  "description": "Smooth, creamy, and perfectly balanced. A classic blend of espresso and steamed milk for any moment!",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 3,
+  "discountedPriceInMin": 6500,
+  "priceV2": {
+    "amountInMinor": 6500,
+    "amountDisplay": "65.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 6500,
+    "amountDisplay": "65.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"
+
+=== Signature Black Coffee ===
+{
+  "ID": "PHITE20241021033201038965",
+  "name": "Signature Black Coffee",
+  "available": true,
+  "priceInMinorUnit": 5000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044108026141/photo/menueditor_item_c76a9e48360646529f440d4be951186d_1716964582455114566.webp",
+  "description": "Black and bold coffee. For those who love the intense coffee flavor.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 2,
+  "discountedPriceInMin": 5000,
+  "priceV2": {
+    "amountInMinor": 5000,
+    "amountDisplay": "50.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 5000,
+    "amountDisplay": "50.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-dataservice\",
+
+=== Milo Mocha ===
+{
+  "ID": "PHITE2025010703203627041",
+  "name": "Milo Mocha",
+  "available": true,
+  "priceInMinorUnit": 8500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025010703203627041/photo/menueditor_item_019e966c92d245ccab2f0d90c602a0af_1736928246735549727.webp",
+  "description": "Milo blended with brewed coffee to give strong energizing drink\u2014 available hot or iced",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 1,
+  "discountedPriceInMin": 8500,
+  "priceV2": {
+    "amountInMinor": 8500,
+    "amountDisplay": "85.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 8500,
+    "amountDisplay": "85.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"MANUAL\",\"client\":\"food-max
+
+=== Rich Choco ===
+{
+  "ID": "PHITE20241021033200043702",
+  "name": "Rich Choco",
+  "available": true,
+  "priceInMinorUnit": 7500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044108045036/photo/menueditor_item_09e81a16b21e46ff994ef46934f9e5d4_1716964485766464017.webp",
+  "description": "A rich chocolate flavor to perk you up",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203011407",
+      "name": "Hot or Iced",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203206755",
+          "name": "Hot (12 oz)",
+          "available": true,
+          "sortOrder": 4,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203181844",
+          "name": "Iced (16 oz)",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203334672",
+          "name": "Iced (22 oz)",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203304344",
+          "name": "Iced (32oz)",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 1,
+  "discountedPriceInMin": 7500,
+  "priceV2": {
+    "amountInMinor": 7500,
+    "amountDisplay": "75.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7500,
+    "amountDisplay": "75.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PA
+
+=== Strawberry Matcha Milk ===
+{
+  "ID": "PHITE20241021033201058654",
+  "name": "Strawberry Matcha Milk",
+  "available": true,
+  "priceInMinorUnit": 7000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024011809370110254/photo/menueditor_item_bf3d0f93c76b487ea5aec042366d2354_1716964311783729138.webp",
+  "description": "Enjoy the tropical vibe of strawberry together with the earthiness of matcha.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203022432",
+      "name": "Size",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203069780",
+          "name": "16 oz.",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203377434",
+          "name": "22 oz.",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203359571",
+          "name": "32 oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 2,
+  "discountedPriceInMin": 7000,
+  "priceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-08-22T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attri
+
+=== Viet Coffee Matcha ===
+{
+  "ID": "PHITE20241021033201020887",
+  "name": "Viet Coffee Matcha",
+  "available": true,
+  "priceInMinorUnit": 9500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024031210031384012/photo/menueditor_item_e1490d84745b4fd1b02aade4389eec41_1716964268329266111.webp",
+  "description": "Enjoy the perfect blend of Vietnamese coffee and matcha, a fusion capturing the best of both worlds in each sip.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203022432",
+      "name": "Size",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203069780",
+          "name": "16 oz.",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203377434",
+          "name": "22 oz.",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203359571",
+          "name": "32 oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 1,
+  "discountedPriceInMin": 9500,
+  "priceV2": {
+    "amountInMinor": 9500,
+    "amountDisplay": "95.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 9500,
+    "amountDisplay": "95.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-09-24T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary
+
+=== Lemon Berry Cooler ===
+{
+  "ID": "PHITE20241021033200059617",
+  "name": "Lemon Berry Cooler",
+  "available": true,
+  "priceInMinorUnit": 6500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024040405245413651/photo/menueditor_item_a6c2367b66ca44b0b23d78ebaa9df259_1716964096702085560.webp",
+  "description": "Be Berry refreshed this summer with this tangy lemonade with a sweet burst of strawberries!",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203022432",
+      "name": "Size",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203069780",
+          "name": "16 oz.",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203377434",
+          "name": "22 oz.",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203359571",
+          "name": "32 oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 7,
+  "discountedPriceInMin": 6500,
+  "priceV2": {
+    "amountInMinor": 6500,
+    "amountDisplay": "65.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 6500,
+    "amountDisplay": "65.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-08-03T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+    
+
+=== Fruity Melon Milk ===
+{
+  "ID": "PHITE20241021033202074480",
+  "name": "Fruity Melon Milk",
+  "available": true,
+  "priceInMinorUnit": 7000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107157536/photo/menueditor_item_b8d0addb10fb46be9411469efb47860c_1716964176940231760.webp",
+  "description": "This cool, refreshing melon milk will quench your thirst with every sip.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203022432",
+      "name": "Size",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203069780",
+          "name": "16 oz.",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203377434",
+          "name": "22 oz.",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203359571",
+          "name": "32 oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 6,
+  "discountedPriceInMin": 7000,
+  "priceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-06-20T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+
+=== Fruity Strawberry Milk ===
+{
+  "ID": "PHITE20241021033200019721",
+  "name": "Fruity Strawberry Milk",
+  "available": true,
+  "priceInMinorUnit": 7000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE20230918044107116808/photo/menueditor_item_1a359c1bba4b40358b2db724031a9301_1716964239904040669.webp",
+  "description": "Fall in love with our strawberry milk! Swoon over the sweetness of strawberries with the smoothness of milk.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203022432",
+      "name": "Size",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203069780",
+          "name": "16 oz.",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203377434",
+          "name": "22 oz.",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203359571",
+          "name": "32 oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 5,
+  "discountedPriceInMin": 7000,
+  "priceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-06-20T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietar
+
+=== Lemon Passion Cooler ===
+{
+  "ID": "PHITE20241021033202027128",
+  "name": "Lemon Passion Cooler",
+  "available": true,
+  "priceInMinorUnit": 6500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2024052906291553675/photo/menueditor_item_885e23bea698477dab5bd76d560fd8e5_1716964121000551402.webp",
+  "description": "Squeeze the day with Lemon Passion Cooler! A refreshing blend of citrusy lemon and luscious passion fruit. Served ice-cold for the perfect summer cooldown!",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203022432",
+      "name": "Size",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203069780",
+          "name": "16 oz.",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203377434",
+          "name": "22 oz.",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203359571",
+          "name": "32 oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 4,
+  "discountedPriceInMin": 6500,
+  "priceV2": {
+    "amountInMinor": 6500,
+    "amountDisplay": "65.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 6500,
+    "amountDisplay": "65.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"catalog-backfill\",\"againstFields\":{},\"streamStatus\":\"PASSED\"},\"keep_unavailable_until\":\"2025-06-20T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedT
+
+=== Fruity Milk Mango ===
+{
+  "ID": "PHITE2025090219513921753",
+  "name": "Fruity Milk Mango",
+  "available": true,
+  "priceInMinorUnit": 7000,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025090219513921753/photo/menueditor_item_3fd2b03686954820a787af096b9d1ddd_1756842679955077376.webp",
+  "description": "Escape to a tropical getaway! Taste the sun-ripened mangoes with the creaminess of milk.",
+  "modifierGroups": [
+    {
+      "ID": "PHMOD20241021033203022432",
+      "name": "Size",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20241021033203069780",
+          "name": "16 oz.",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {},
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203377434",
+          "name": "22 oz.",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          },
+          "metadata": "{}"
+        },
+        {
+          "ID": "PHMOD20241021033203359571",
+          "name": "32 oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          },
+          "metadata": "{}"
+        }
+      ]
+    }
+  ],
+  "sortOrder": 3,
+  "discountedPriceInMin": 7000,
+  "priceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 7000,
+    "amountDisplay": "70.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-08T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "disp
+
+=== Mango Sunrise Cooler ===
+{
+  "ID": "PHITE2025082907274387781",
+  "name": "Mango Sunrise Cooler",
+  "available": true,
+  "priceInMinorUnit": 5500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025082907274387781/photo/menueditor_item_64d936c5d55545b48dfb3e5365477c88_1756452413726406146.webp",
+  "description": "Sip into something sunny with our signature iced tea blend with a splash of mango goodness!",
+  "modifierGroups": [
+    {
+      "ID": "PHMOG20250905054952019934",
+      "name": "Twistea",
+      "available": true,
+      "selectionRangeMin": 1,
+      "selectionRangeMax": 1,
+      "modifiers": [
+        {
+          "ID": "PHMOD20250905054952011283",
+          "name": "16oz",
+          "available": true,
+          "sortOrder": 3,
+          "priceV2": {}
+        },
+        {
+          "ID": "PHMOD20250905054952028292",
+          "name": "22oz",
+          "available": true,
+          "priceInMinorUnit": 2000,
+          "sortOrder": 2,
+          "priceV2": {
+            "amountInMinor": 2000,
+            "amountDisplay": "20.00"
+          }
+        },
+        {
+          "ID": "PHMOD20250905054952036786",
+          "name": "32oz",
+          "available": true,
+          "priceInMinorUnit": 4000,
+          "sortOrder": 1,
+          "priceV2": {
+            "amountInMinor": 4000,
+            "amountDisplay": "40.00"
+          }
+        }
+      ]
+    }
+  ],
+  "sortOrder": 2,
+  "discountedPriceInMin": 5500,
+  "priceV2": {
+    "amountInMinor": 5500,
+    "amountDisplay": "55.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 5500,
+    "amountDisplay": "55.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-08T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "att
+
+=== Ruby Twistea ===
+{
+  "ID": "PHITE2025090219521228770",
+  "name": "Ruby Twistea",
+  "available": true,
+  "priceInMinorUnit": 5500,
+  "imgHref": "https://food-cms.grab.com/compressed_webp/items/PHITE2025090219521228770/photo/menueditor_item_2f2815cc9fa142ed85c6169cd4e3a6e7_1756842714734296195.webp",
+  "description": "A crisp, ruby red iced tea with a refreshing, fruity finish \u2014 the perfect sip to brighten any moment.",
+  "sortOrder": 1,
+  "discountedPriceInMin": 5500,
+  "priceV2": {
+    "amountInMinor": 5500,
+    "amountDisplay": "55.00"
+  },
+  "discountedPriceV2": {
+    "amountInMinor": 5500,
+    "amountDisplay": "55.00"
+  },
+  "metadata": "{\"discounts\":{},\"moderation\":{\"status\":\"PASS\",\"mode\":\"AUTO\",\"client\":\"food-max-api\",\"againstFields\":{},\"streamStatus\":\"PASSED\",\"tagIDFields\":{\"teenCompliance\":{\"value\":\"TEEN_COMPLIANCE_STATUS_TRUE\"}}},\"keep_unavailable_until\":\"2025-09-06T00:00:00+08:00\"}",
+  "itemAttributes": {
+    "displayedTexts": {},
+    "attributes": {
+      "Dietary preferences": {
+        "attributes": [
+          {
+            "id": "ATT-C4JCRNNDPGCCJN4805",
+            "name": "Vegetarian"
+          }
+        ]
+      }
+    }
+  },
+  "takeawayPriceInMin": 5500,
+  "discountedTakeawayPriceInMin": 5500,
+  "merchantID": "2-C6XVCUDGNXNZNN",
+  "thumbImages": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025090219521228770/photo/menueditor_item_2f2815cc9fa142ed85c6169cd4e3a6e7_1756842714734296195.webp"
+  ],
+  "images": [
+    "https://food-cms.grab.com/compressed_webp/items/PHITE2025090219521228770/detail/menueditor_item_2f2815cc9fa142ed85c6169cd4e3a6e7_1756842714734296195.webp"
+  ],
+  "imgHrefFallback": "https://food-cms.grab.com/item/PHITE2025090219521228770/photos/menueditor_item_2f2815cc9fa142ed85c6169cd4e3a6e7_1756842714734296195.jpg",
+  "dietary": [
+    "dietaryPreferences_vegetarian"
+  ]
+}
