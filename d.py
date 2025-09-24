@@ -1,34 +1,23 @@
 #!/usr/bin/env python3
 """
-GrabFood PH — Out-of-Stock (OOS) menu scraper (public user)
-Now includes:
-  --debug       show first 4000 chars of store JSON
-  --explain     show why an item is flagged OOS
-  --dump-items  print raw JSON for every menu item (first 2000 chars each)
+GrabFood PH — Menu Item Dumper
+- Prints each menu item JSON separately
+- Usage:
+    python scrape.py <url> --dump-items > dump.txt
 """
 
 import re
 import time
 import json
 import argparse
-from datetime import datetime, timezone
 from urllib.parse import urlparse
 import requests
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any, List
 
-# ===================== CONFIG =====================
-PH_LATLNG = "14.5995,120.9842"  # Manila center; good default
+PH_LATLNG = "14.5995,120.9842"
 REQUEST_TIMEOUT = 12
 RETRIES = 3
 RETRY_BACKOFF_SEC = 2.0
-
-DEFAULT_URLS = [
-    "https://food.grab.com/ph/en/restaurant/cocopan-maysilo-delivery/2-C6TATTL2UF2UDA",
-        "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6",
-    "https://food.grab.com/ph/en/restaurant/cocopan-bf-holy-spirit-delivery/2-C6V2PEAEEE5DEN",
-
-]
-# ==================================================
 
 UA_HEADERS = {
     "User-Agent": (
@@ -110,11 +99,6 @@ def iter_possible_sections(data: Dict[str, Any]):
                     for sec in categories:
                         yield sec
 
-            sections = merchant.get("sections")
-            if isinstance(sections, list):
-                for sec in sections:
-                    yield sec
-
 
 def iter_items_from_section(section: Dict[str, Any]):
     if not isinstance(section, dict):
@@ -127,49 +111,8 @@ def iter_items_from_section(section: Dict[str, Any]):
                     yield it
 
 
-# Simplified detector: only obvious fields
-UNAVAILABLE_STRINGS = {
-    "UNAVAILABLE", "SOLD_OUT", "OUT_OF_STOCK", "NOT_AVAILABLE",
-    "DISABLED", "INACTIVE", "TEMPORARILY_UNAVAILABLE"
-}
-
-
-def is_item_unavailable(item: Dict[str, Any]) -> bool:
-    # Grab seems inconsistent across branches.
-    # Rule: if "available": true → in stock, else → OOS
-    if item.get("available") is True:
-        return False
-    return True
-
-def collect_oos_items(payload: Dict[str, Any]) -> List[str]:
-    out = []
-    for section in iter_possible_sections(payload):
-        for item in iter_items_from_section(section):
-            name = item.get("name") or item.get("title")
-            if not name:
-                continue
-            if is_item_unavailable(item):
-                out.append(name.strip())
-    return out
-
-
-def store_display_name(payload: Dict[str, Any]) -> Optional[str]:
-    for root_key in ("merchant", "data", None):
-        root = payload
-        if root_key and isinstance(payload, dict):
-            root = payload.get(root_key)
-        if isinstance(root, dict):
-            for k in ("name", "displayName", "merchantName", "restaurantName"):
-                val = root.get(k)
-                if isinstance(val, str) and val.strip():
-                    return val.strip()
-    return None
-
-
-def main(urls: List[str], debug: bool = False, explain: bool = False, dump_items: bool = False):
+def main(urls: List[str], dump_items: bool = False):
     session = requests.Session()
-    first_dumped = False
-
     for url in urls:
         merchant_id = extract_merchant_id(url)
         print(f"\n📍 Store URL: {url}")
@@ -182,15 +125,6 @@ def main(urls: List[str], debug: bool = False, explain: bool = False, dump_items
             print("⚠️  Could not fetch menu data.")
             continue
 
-        name = store_display_name(payload)
-        if name:
-            print(f"🏪 {name}")
-
-        if debug and not first_dumped:
-            print("— DEBUG JSON (first 4000 chars) —")
-            print(json.dumps(payload, indent=2)[:4000])
-            first_dumped = True
-
         if dump_items:
             for section in iter_possible_sections(payload):
                 for item in iter_items_from_section(section):
@@ -199,21 +133,11 @@ def main(urls: List[str], debug: bool = False, explain: bool = False, dump_items
                         print(json.dumps(item, indent=2)[:2000])
             continue
 
-        oos = collect_oos_items(payload)
-        if oos:
-            for item_name in oos:
-                print(f"❌ OUT OF STOCK → {item_name}")
-        else:
-            print("✅ No out-of-stock items detected")
-
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GrabFood PH OOS scraper")
-    parser.add_argument("urls", nargs="*", help="GrabFood PH restaurant URLs")
-    parser.add_argument("--debug", action="store_true", help="Print first store's raw JSON")
-    parser.add_argument("--explain", action="store_true", help="(placeholder, not used in this simplified build)")
-    parser.add_argument("--dump-items", action="store_true", help="Dump raw JSON for each menu item (first 2000 chars)")
+    parser = argparse.ArgumentParser(description="GrabFood PH Item Dumper")
+    parser.add_argument("urls", nargs="+", help="GrabFood PH restaurant URLs")
+    parser.add_argument("--dump-items", action="store_true", help="Dump raw JSON for each menu item")
     args = parser.parse_args()
 
-    urls_to_use = args.urls if args.urls else DEFAULT_URLS
-    main(urls_to_use, debug=args.debug, explain=args.explain, dump_items=args.dump_items)
+    main(args.urls, dump_items=args.dump_items)
