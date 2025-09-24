@@ -1327,10 +1327,10 @@ def main():
                 misfire_grace_time=300
             )
 
-            # NEW: Schedule daily SKU scraping at 8AM
+            # NEW: Schedule daily SKU scraping at 10AM
             scheduler.add_job(
                 func=daily_sku_scraping_job,
-                trigger=CronTrigger(hour=8, minute=0, timezone=ph_tz),
+                trigger=CronTrigger(hour=10, minute=0, timezone=ph_tz),
                 id='daily_grabfood_sku_scraping',
                 max_instances=1,
                 coalesce=True,
@@ -1357,8 +1357,8 @@ def main():
                     if config.is_monitor_time(now_hour):
                         monitor.check_all_grabfood_stores_with_client_alerts()
                         
-                        # NEW: Check if it's 8AM for daily SKU scraping
-                        if now_hour == 8:
+                        # NEW: Check if it's 10AM for daily SKU scraping
+                        if now_hour == 10:
                             logger.info("🛒 Starting daily GrabFood SKU scraping...")
                             try:
                                 results = sku_scraper.scrape_all_test_stores()
