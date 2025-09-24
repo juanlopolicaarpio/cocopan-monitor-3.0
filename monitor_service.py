@@ -239,12 +239,18 @@ class SKUMapper:
 # ------------------------------------------------------------------------------
 # NEW: GrabFood SKU Scraper (based on s.py)
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# UPDATED: GrabFood SKU Scraper - Load URLs from branch_urls.json
+# ------------------------------------------------------------------------------
 class GrabFoodSKUScraper:
     """GrabFood SKU/OOS scraper with same reliability as store status checker"""
     
     def __init__(self):
         self.sku_mapper = SKUMapper()
         self.timezone = config.get_timezone()
+        
+        # Load store URLs from branch_urls.json (same as GrabFoodMonitor)
+        self.store_urls = self._load_grabfood_urls()
         
         # Same headers and config as existing GrabFood monitor
         self.user_agents = [
@@ -263,15 +269,35 @@ class GrabFoodSKUScraper:
             "Connection": "keep-alive",
         }
         
-        # Test stores
-        self.test_stores = [
-            "https://food.grab.com/ph/en/restaurant/cocopan-maysilo-delivery/2-C6TATTL2UF2UDA",
-            "https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN", 
-            "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6"
-        ]
-        
         logger.info(f"🛒 GrabFood SKU Scraper initialized")
-        logger.info(f"📋 {len(self.test_stores)} test stores configured")
+        logger.info(f"📋 {len(self.store_urls)} GrabFood stores loaded from branch_urls.json")
+    
+    def _load_grabfood_urls(self):
+        """Load ONLY GrabFood URLs from branch_urls.json (same logic as GrabFoodMonitor)"""
+        try:
+            with open(config.STORE_URLS_FILE) as f:
+                data = json.load(f)
+                all_urls = data.get('urls', [])
+
+                # Filter to only GrabFood URLs
+                grabfood_urls = [url for url in all_urls if 'grab.com' in url]
+                foodpanda_urls = [url for url in all_urls if 'foodpanda' in url]
+
+                logger.info(f"📋 Loaded {len(all_urls)} total URLs from {config.STORE_URLS_FILE}")
+                logger.info(f"🛒 Filtered to {len(grabfood_urls)} GrabFood URLs for SKU scraping")
+                logger.info(f"🐼 Skipping {len(foodpanda_urls)} Foodpanda URLs (handled by VA)")
+
+                return grabfood_urls
+
+        except Exception as e:
+            logger.error(f"Failed to load URLs for SKU scraping: {e}")
+            logger.warning("🔄 Falling back to hardcoded test stores")
+            # Fallback to original test stores if file load fails
+            return [
+                "https://food.grab.com/ph/en/restaurant/cocopan-maysilo-delivery/2-C6TATTL2UF2UDA",
+                "https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN", 
+                "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6"
+            ]
     
     def extract_merchant_id(self, url: str) -> Optional[str]:
         """Extract merchant ID from GrabFood URL"""
@@ -294,7 +320,7 @@ class GrabFoodSKUScraper:
         for attempt in range(1, max_retries + 1):
             try:
                 # Pre-request delay like existing scraper
-                time.sleep(random.uniform(2, 3))
+                time.sleep(random.uniform(1, 3))
                 
                 try:
                     resp = session.get(url, headers=self.headers, timeout=config.REQUEST_TIMEOUT)
@@ -470,12 +496,23 @@ class GrabFoodSKUScraper:
         
         return None
     
-    def scrape_all_test_stores(self) -> Dict[str, Any]:
-        """Scrape all test stores and save to database"""
-        logger.info("🛒 Starting GrabFood SKU scraping for test stores...")
+    def scrape_all_stores(self) -> Dict[str, Any]:
+        """Scrape ALL stores from branch_urls.json and save to database"""
+        logger.info("🛒 Starting GrabFood SKU scraping for ALL stores from branch_urls.json...")
+        
+        if not self.store_urls:
+            logger.error("❌ No GrabFood URLs loaded - cannot perform SKU scraping")
+            return {
+                'total_stores': 0,
+                'successful_scrapes': 0,
+                'failed_scrapes': 0,
+                'total_oos_skus': 0,
+                'total_unknown_products': 0,
+                'store_results': []
+            }
         
         results = {
-            'total_stores': len(self.test_stores),
+            'total_stores': len(self.store_urls),
             'successful_scrapes': 0,
             'failed_scrapes': 0,
             'total_oos_skus': 0,
@@ -483,8 +520,8 @@ class GrabFoodSKUScraper:
             'store_results': []
         }
         
-        for i, store_url in enumerate(self.test_stores, 1):
-            logger.info(f"📍 [{i}/{len(self.test_stores)}] Scraping {store_url}")
+        for i, store_url in enumerate(self.store_urls, 1):
+            logger.info(f"📍 [{i}/{len(self.store_urls)}] Scraping {store_url}")
             
             try:
                 oos_skus, unknown_products, store_name = self.scrape_store_skus(store_url)
@@ -526,7 +563,7 @@ class GrabFoodSKUScraper:
                 results['failed_scrapes'] += 1
             
             # Delay between stores (same as existing monitor)
-            if i < len(self.test_stores):
+            if i < len(self.store_urls):
                 time.sleep(random.uniform(5, 7))
         
         # Log summary
@@ -541,7 +578,10 @@ class GrabFoodSKUScraper:
         
         return results
 
-# ------------------------------------------------------------------------------
+    # Keep the old method name for backward compatibility
+    def scrape_all_test_stores(self) -> Dict[str, Any]:
+        """Backward compatibility method - now scrapes all stores from branch_urls.json"""
+        return self.scrape_all_stores()# ------------------------------------------------------------------------------
 # Store Name Management (EXISTING - UNCHANGED)
 # ------------------------------------------------------------------------------
 class StoreNameManager:
