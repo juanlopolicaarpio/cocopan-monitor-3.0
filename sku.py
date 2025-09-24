@@ -7,6 +7,7 @@ CocoPan SKU Product Availability Reporting Dashboard
 ✅ Cookie-based authentication (no need to login always)
 ✅ Navigation back to main uptime dashboard
 ✅ Fixed sorting issues and added chart legends
+✅ Enhanced Store Performance with individual store OOS item details
 """
 
 # ===== Standard libs =====
@@ -1176,12 +1177,12 @@ def create_platform_availability_charts(
 # Report sections
 # ------------------------------------------------------------------------------
 def availability_dashboard_section():
-    """Main product availability dashboard section - SORT BY HIGHEST OUT OF STOCK FIRST WITH FIXED SORTING"""
+    """Main product availability dashboard section - ENHANCED WITH STORE OOS ITEM DETAILS"""
     now = datetime.now(pytz.timezone("Asia/Manila"))
     
     st.markdown(f"""
     <div class="section-header">
-        <div class="section-title">📊 SKU Product Availability Dashboard</div>
+        <div class="section-title">📊 Store Performance Dashboard</div>
         <div class="section-subtitle">Real-time product availability across all stores • Updated {now.strftime('%I:%M %p')} Manila Time</div>
     </div>
     """, unsafe_allow_html=True)
@@ -1246,9 +1247,22 @@ def availability_dashboard_section():
 
     # Create enhanced display table with out-of-stock items
     rows = []
+    store_lookup = {}  # NEW: For store selection lookup
+    
     for store in filtered_data:
         availability_pct = store.get('compliance_percentage')
         store_id = store.get('store_id') or store.get('id')
+        store_name_clean = store.get('store_name', "").replace('Cocopan - ', '').replace('Cocopan ', '')
+        
+        # Add to lookup for store selection
+        if store_id:
+            store_lookup[f"{store_name_clean} ({store.get('platform', '').title()})"] = {
+                'store_id': store_id,
+                'store_name': store_name_clean,
+                'platform': store.get('platform'),
+                'availability': availability_pct,
+                'oos_count': store.get('out_of_stock_count', 0)
+            }
         
         # Try multiple possible timestamp field names
         checked_at_raw = (
@@ -1312,7 +1326,7 @@ def availability_dashboard_section():
                     time_sort = datetime.min
 
         rows.append({
-            "Branch": store.get('store_name', "").replace('Cocopan - ', '').replace('Cocopan ', ''),
+            "Branch": store_name_clean,
             "Platform": "GrabFood" if store.get('platform') == 'grabfood' else "Foodpanda",
             "Availability": availability_numeric,  # Store as number for proper sorting
             "Availability Display": availability_display,  # Keep display version
@@ -1356,6 +1370,81 @@ def availability_dashboard_section():
     }
     
     st.dataframe(df_sorted, use_container_width=True, hide_index=True, height=420, column_config=column_config)
+
+    # NEW: Store selection for OOS item details (similar to product selection in OOS items tab)
+    st.markdown("### Store Details")
+    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+    
+    # Create options for selectbox - only stores with OOS items
+    stores_with_oos = {k: v for k, v in store_lookup.items() if v['oos_count'] > 0}
+    
+    if stores_with_oos:
+        store_options = ["Select a store to view out of stock items..."] + [
+            f"{store_name} - {store_data['oos_count']} items out of stock" 
+            for store_name, store_data in sorted(stores_with_oos.items(), 
+                                               key=lambda x: x[1]['oos_count'], reverse=True)
+        ]
+    else:
+        store_options = ["No stores have out of stock items"]
+    
+    selected_store_option = st.selectbox(
+        "Choose a store to see which products are out of stock:",
+        store_options,
+        key="selected_store_details"
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Show selected store details
+    if selected_store_option not in ["Select a store to view out of stock items...", "No stores have out of stock items"]:
+        # Find the selected store
+        selected_store_name = selected_store_option.split(" - ")[0]  # Extract name before " - X items"
+        selected_store = stores_with_oos.get(selected_store_name)
+        
+        if selected_store:
+            # Store info
+            st.markdown(f"""
+            **Store Name:** {selected_store['store_name']}  
+            **Platform:** {"GrabFood" if selected_store['platform'] == 'grabfood' else "Foodpanda"}  
+            **Current Availability:** {selected_store['availability']:.1f}% if {selected_store['availability']} is not None else "Not checked"  
+            **Out of Stock Items:** {selected_store['oos_count']}
+            """)
+            
+            # Get OOS items for this store
+            try:
+                oos_items = get_store_out_of_stock_items(selected_store['store_id'])
+                
+                if oos_items:
+                    st.markdown("**Products currently out of stock at this store:**")
+                    
+                    # Create a nice display of OOS items
+                    oos_display_data = []
+                    for idx, item in enumerate(oos_items, 1):
+                        oos_display_data.append({
+                            "#": idx,
+                            "Product Name": clean_product_name(item),
+                            "Category": "Food Product"  # You could enhance this with actual categories
+                        })
+                    
+                    oos_df = pd.DataFrame(oos_display_data)
+                    st.dataframe(
+                        oos_df, 
+                        use_container_width=True, 
+                        hide_index=True,
+                        height=min(400, len(oos_items) * 40 + 80)
+                    )
+                    
+                    # Summary
+                    st.info(f"**Total:** {len(oos_items)} products are currently out of stock at {selected_store['store_name']}")
+                    
+                else:
+                    st.info("No out of stock items found (data may be loading...)")
+                    
+            except Exception as e:
+                logger.error(f"Error loading OOS items for store selection: {e}")
+                st.error("Error loading out of stock items for this store.")
+        
+        else:
+            st.error("Store not found in lookup.")
 
 
 def out_of_stock_items_section():
@@ -1869,7 +1958,7 @@ def main():
 
     # Main tabs
     tab1, tab2, tab3 = st.tabs([
-        "📊 Product Availability Dashboard", 
+        "📊 Store Performance", 
         "Out of Stock Items", 
         "📋 Reports & Export"
     ])
