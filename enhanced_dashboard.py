@@ -7,6 +7,8 @@ CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + CSV EXPORT)
 ✅ Smooth transitions between themes
 ✅ Fixed Foodpanda display issue with hybrid data sources
 ✅ Enhanced downtime analysis with expandable details
+✅ Added SKU Dashboard redirect button
+✅ Removed specific time displays (kept date and Manila Time)
 """
 
 import os
@@ -461,6 +463,31 @@ st.markdown("""
         padding: .9rem; 
         margin-bottom: .9rem;
         transition: all 0.3s ease; 
+    }
+    
+    /* Navigation link styling */
+    .nav-link {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-link:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--border-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px var(--shadow-light);
+    }
+    
+    .nav-link a {
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
     }
     
     /* Sidebar styling */
@@ -1319,6 +1346,25 @@ def main():
     with st.sidebar:
         st.markdown(f"**Logged in as:**\n{st.session_state.client_email}")
         st.markdown("---")
+        
+        # Navigation to SKU Dashboard - NEW
+        st.markdown("""
+        <div class="nav-link">
+            <a href="https://sku.up.railway.app/" target="_blank">
+                📊 → SKU Dashboard
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Also add as a regular button for better visibility
+        if st.button("📊 SKU Dashboard", use_container_width=True):
+            st.markdown("""
+            <script>
+            window.open('https://sku.up.railway.app/', '_blank');
+            </script>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("---")
         st.markdown("🎨 **Theme:** Adapts to your system preference")
         st.markdown("💡 **Tip:** Change your browser/OS theme to see the dashboard adapt!")
         if st.button("Logout"):
@@ -1336,6 +1382,17 @@ def main():
         <h3>Operations Monitoring • Data as of {last_check_time.strftime('%B %d, %Y • %I:%M %p')} Manila Time</h3>
     </div>
     """, unsafe_allow_html=True)
+
+    # Navigation button in main area for better visibility - NEW
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        if st.button("📊 → SKU Dashboard", use_container_width=True):
+            st.markdown('<meta http-equiv="refresh" content="0; url=https://sku.up.railway.app/">', unsafe_allow_html=True)
+            st.info("Redirecting to SKU Dashboard...")
+    with col2:
+        pass  # Center space
+    with col3:
+        pass  # Right space
 
     if error:
         st.error(f"System Error: {error}")

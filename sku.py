@@ -4,10 +4,12 @@ CocoPan SKU Product Availability Reporting Dashboard
 📊 Management/Client view for SKU product availability analytics and reporting
 🎯 Displays data collected by VAs through the admin dashboard
 ✅ Mobile-friendly with adaptive theme (matches enhanced_dashboard.py styling)
-✅ Cookie-based authentication (no need to login always)
+✅ Cookie-based authentication (REMOVED)
 ✅ Navigation back to main uptime dashboard
 ✅ Fixed sorting issues and added chart legends
 ✅ Enhanced Store Performance with individual store OOS item details
+✅ Removed authentication requirement
+✅ Removed specific time displays (kept date and Manila Time)
 """
 
 # ===== Standard libs =====
@@ -38,16 +40,6 @@ logger = logging.getLogger(__name__)
 # ===== App modules =====
 from config import config   # noqa: F401 (import kept for parity with your project)
 from database import db
-
-# =========================
-# Optional Cookie Manager
-# =========================
-try:
-    from streamlit_cookies_manager import EncryptedCookieManager as CookieManager
-    _COOKIE_LIB_AVAILABLE = True
-except Exception:
-    CookieManager = None
-    _COOKIE_LIB_AVAILABLE = False
 
 # ------------------------------------------------------------------------------
 # Health check endpoint
@@ -113,107 +105,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
-# ======================================================================
-#                            AUTH HELPERS (FROM ENHANCED DASHBOARD)
-# ======================================================================
-COOKIE_NAME = "cp_sku_auth"
-COOKIE_PREFIX = "watchtower_sku"
-TOKEN_TTL_DAYS = 30
-TOKEN_ROLLING_REFRESH_DAYS = 7
-
-def _get_secret_key() -> bytes:
-    secret = getattr(config, 'SECRET_KEY', None) or os.getenv('SECRET_KEY')
-    if not secret:
-        secret = "CHANGE_ME_IN_PROD_please"
-    return secret.encode("utf-8")
-
-def _b64url_encode(b: bytes) -> str:
-    return base64.urlsafe_b64encode(b).decode('utf-8').rstrip("=")
-
-def _b64url_decode(s: str) -> bytes:
-    pad = "=" * (-len(s) % 4)
-    return base64.urlsafe_b64decode(s + pad)
-
-def _sign(payload_b64: str) -> str:
-    sig = hmac.new(_get_secret_key(), payload_b64.encode('utf-8'), hashlib.sha256).digest()
-    return _b64url_encode(sig)
-
-def issue_token(email: str, ttl_days: int = TOKEN_TTL_DAYS) -> str:
-    now = int(time.time())
-    exp = now + int(ttl_days * 24 * 3600)
-    payload = {"email": email, "iat": now, "exp": exp}
-    payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    payload_b64 = _b64url_encode(payload_json)
-    sig_b64 = _sign(payload_b64)
-    return f"{payload_b64}.{sig_b64}"
-
-def verify_token(token: str) -> Optional[Dict[str, Any]]:
-    try:
-        parts = token.split(".")
-        if len(parts) != 2:
-            return None
-        payload_b64, sig_b64 = parts
-        expected_sig = _sign(payload_b64)
-        if not hmac.compare_digest(sig_b64, expected_sig):
-            return None
-        payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
-        if int(payload.get("exp", 0)) < int(time.time()):
-            return None
-        return payload
-    except Exception:
-        return None
-
-def days_remaining(exp_unix: int) -> float:
-    return max(0.0, (exp_unix - int(time.time())) / 86400.0)
-
-# ---------------- Cookie Abstraction ----------------
-class CookieStore:
-    def __init__(self):
-        self.persistent = False
-        self.ready = True
-        self._cookies = None
-
-        if _COOKIE_LIB_AVAILABLE:
-            try:
-                self._cookies = CookieManager(prefix=COOKIE_PREFIX, password=os.getenv("COOKIE_PASSWORD") or "set-a-strong-cookie-password")
-                self.ready = self._cookies.ready()
-                self.persistent = True
-            except Exception as e:
-                logger.warning(f"Cookie manager unavailable, using session fallback: {e}")
-                self._cookies = None
-                self.persistent = False
-                self.ready = True
-        else:
-            if "cookie_fallback" not in st.session_state:
-                st.session_state.cookie_fallback = {}
-            self._cookies = st.session_state.cookie_fallback
-            self.persistent = False
-            self.ready = True
-
-    def get(self, key: str) -> Optional[str]:
-        if self.persistent:
-            return self._cookies.get(key)
-        return self._cookies.get(key)
-
-    def set(self, key: str, value: str, max_age_days: int = TOKEN_TTL_DAYS):
-        if self.persistent:
-            self._cookies[key] = value
-            self._cookies.save()
-        else:
-            self._cookies[key] = value
-
-    def delete(self, key: str):
-        if self.persistent:
-            try:
-                if key in self._cookies:
-                    del self._cookies[key]
-                    self._cookies.save()
-            except Exception:
-                pass
-        else:
-            if key in self._cookies:
-                del self._cookies[key]
 
 # ======================================================================
 #                     ADAPTIVE THEME STYLES (LIGHT/DARK) - EXACT COPY
@@ -282,26 +173,6 @@ st.markdown("""
         color: var(--text-primary); 
         padding: 2rem;
         transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    
-    /* Login container */
-    .login-container {
-        max-width: 400px;
-        margin: 4rem auto;
-        background: var(--bg-secondary);
-        padding: 2rem;
-        border-radius: 12px;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 4px 6px -1px var(--shadow-medium);
-        transition: all 0.3s ease;
-    }
-    
-    .login-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-align: center;
-        margin: 0 0 1.5rem 0;
     }
     
     /* Header section with gradient - purple theme for SKU */
@@ -572,10 +443,6 @@ st.markdown("""
     
     /* Mobile responsiveness */
     @media (max-width: 768px) {
-        .login-container { 
-            margin: 2rem auto;
-            padding: 1.5rem;
-        }
         .main {
             padding: 1rem;
         }
@@ -620,88 +487,6 @@ st.markdown("""
 })();
 </script>
 """, unsafe_allow_html=True)
-
-# ---------------- Allow-list Loader ----------------
-def load_authorized_report_emails():
-    try:
-        with open('client_alerts.json', 'r') as f:
-            data = json.load(f)
-        authorized_emails = []
-        for group in data.get('clients', {}).values():
-            if group.get('enabled', False):
-                emails = [e.strip() for e in group.get('emails', []) if str(e).strip()]
-                authorized_emails.extend(emails)
-        authorized_emails = sorted(set([e.lower() for e in authorized_emails]))
-        logger.info(f"✅ Loaded {len(authorized_emails)} authorized client emails")
-        return authorized_emails
-    except Exception as e:
-        logger.error(f"❌ Failed to load client emails: {e}")
-        return ["juanlopolicarpio@gmail.com"]
-
-# ------------------------------------------------------------------------------
-# Enhanced Authentication with Cookie Support
-# ------------------------------------------------------------------------------
-def check_report_authentication() -> bool:
-    """Enhanced authentication with cookie support - no need to login always"""
-    authorized_emails = load_authorized_report_emails()
-
-    cookies = CookieStore()
-    if not cookies.ready:
-        st.error("Authentication system initializing. Please refresh.")
-        return False
-
-    if 'report_authenticated' not in st.session_state:
-        st.session_state.report_authenticated = False
-        st.session_state.report_email = None
-
-    # Cookie-based auto-login
-    token = cookies.get(COOKIE_NAME)
-    if token and not st.session_state.report_authenticated:
-        payload = verify_token(token)
-        if payload:
-            email = str(payload.get("email", "")).lower()
-            if email in authorized_emails:
-                st.session_state.report_authenticated = True
-                st.session_state.report_email = email
-                rem = days_remaining(int(payload.get("exp", 0)))
-                if rem <= TOKEN_ROLLING_REFRESH_DAYS:
-                    new_token = issue_token(email)
-                    cookies.set(COOKIE_NAME, new_token, max_age_days=TOKEN_TTL_DAYS)
-                return True
-        else:
-            cookies.delete(COOKIE_NAME)
-
-    if st.session_state.report_authenticated and st.session_state.report_email:
-        return True
-
-    # ---- LOGIN UI ----
-    st.markdown("""
-    <div class="login-container">
-        <div class="login-title">📊 CocoPan SKU Reports</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    with st.form("sku_auth_form", clear_on_submit=False):
-        email = st.text_input(
-            "Authorized Email Address",
-            placeholder="your.email@company.com"
-        )
-        
-        submitted = st.form_submit_button("Access SKU Reports", use_container_width=True)
-        
-        if submitted:
-            e = email.strip().lower()
-            if e and e in authorized_emails:
-                token = issue_token(e)
-                cookies.set(COOKIE_NAME, token, max_age_days=TOKEN_TTL_DAYS)
-                st.session_state.report_authenticated = True
-                st.session_state.report_email = e
-                st.success("✅ Access granted")
-                st.rerun()
-            else:
-                st.error("❌ Email not authorized")
-
-    return False
 
 # ------------------------------------------------------------------------------
 # Helper functions
@@ -1183,7 +968,7 @@ def availability_dashboard_section():
     st.markdown(f"""
     <div class="section-header">
         <div class="section-title">📊 Store Performance Dashboard</div>
-        <div class="section-subtitle">Real-time product availability across all stores • Updated {now.strftime('%I:%M %p')} Manila Time</div>
+        <div class="section-subtitle">Real-time product availability across all stores • Manila Time</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1306,24 +1091,19 @@ def availability_dashboard_section():
             availability_display = f"{availability_pct:.1f}%"
             availability_sort = availability_pct
             availability_numeric = availability_pct  # Store as number for sorting
-            # For checked stores, try to get timestamp
-            last_check = format_datetime_safe(checked_at_raw)
-            if last_check == "—" and availability_pct is not None:
-                current_time = datetime.now(pytz.timezone('Asia/Manila'))
-                last_check = current_time.strftime("%I:%M %p").lstrip('0')
-                time_sort = current_time
-            else:
+            # For checked stores, try to get timestamp - REMOVED SPECIFIC TIME
+            last_check = "Manila Time"
+            if checked_at_raw:
                 try:
                     # Convert time for sorting
-                    if checked_at_raw:
-                        if isinstance(checked_at_raw, str):
-                            time_sort = pd.to_datetime(checked_at_raw)
-                        else:
-                            time_sort = checked_at_raw
+                    if isinstance(checked_at_raw, str):
+                        time_sort = pd.to_datetime(checked_at_raw)
                     else:
-                        time_sort = datetime.min
+                        time_sort = checked_at_raw
                 except:
                     time_sort = datetime.min
+            else:
+                time_sort = datetime.min
 
         rows.append({
             "Branch": store_name_clean,
@@ -1454,7 +1234,7 @@ def out_of_stock_items_section():
     st.markdown(f"""
     <div class="section-header">
         <div class="section-title">Out of Stock Items</div>
-        <div class="section-subtitle">Products currently out of stock - click column headers to sort • Updated {now.strftime('%I:%M %p')} Manila Time</div>
+        <div class="section-subtitle">Products currently out of stock - click column headers to sort • Manila Time</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1604,14 +1384,14 @@ def out_of_stock_items_section():
             **Platforms:** {platforms_text}
             """)
             
-            # Stores table - REMOVED CHECKED BY
+            # Stores table - REMOVED CHECKED BY, REMOVED SPECIFIC TIME
             if selected_product['stores']:
                 stores_data = []
                 for store in selected_product['stores']:
                     stores_data.append({
                         "Store": store['store_name'],
                         "Platform": "GrabFood" if store['platform'] == 'grabfood' else "Foodpanda",
-                        "Last Check": format_datetime_safe(store['checked_at'])
+                        "Last Check": "Manila Time"  # REMOVED SPECIFIC TIME
                     })
                 
                 st.markdown("**Stores where this product is out of stock:**")
@@ -1867,7 +1647,7 @@ def reports_export_section():
                         "Availability %": f"{record['compliance_percentage']:.1f}%" if record['compliance_percentage'] is not None else "N/A",
                         "Out of Stock Count": record['out_of_stock_count'] or 0,
                         "Out of Stock Items": oos_display,
-                        "Check Time": format_datetime_safe(record['checked_at'])
+                        "Check Time": "Manila Time"  # REMOVED SPECIFIC TIME
                     })
                 
                 if performance_data:
@@ -1900,14 +1680,10 @@ def reports_export_section():
 # Main dashboard
 # ------------------------------------------------------------------------------
 def main():
-    if not check_report_authentication():
-        return
+    # REMOVED: Authentication check completely
 
     # Sidebar - matching enhanced dashboard with navigation link
     with st.sidebar:
-        st.markdown(f"**Logged in as:**\n{st.session_state.report_email}")
-        st.markdown("---")
-        
         # Navigation back to main dashboard - more prominent
         st.markdown("""
         <div class="nav-link">
@@ -1928,20 +1704,13 @@ def main():
         st.markdown("---")
         st.markdown("🎨 **Theme:** Adapts to your system preference")
         st.markdown("💡 **Tip:** Change your browser/OS theme to see the dashboard adapt!")
-        
-        st.markdown("---")
-        if st.button("Logout"):
-            CookieStore().delete(COOKIE_NAME)
-            st.session_state.report_authenticated = False
-            st.session_state.report_email = None
-            st.rerun()
 
     # Header - matching enhanced dashboard style with purple theme
     now = datetime.now(pytz.timezone("Asia/Manila"))
     st.markdown(f"""
     <div class="header-section">
         <h1>📊 CocoPan SKU Reports</h1>
-        <h3>Product Availability Analytics • Data as of {now.strftime('%B %d, %Y • %I:%M %p')} Manila Time</h3>
+        <h3>Product Availability Analytics • Data as of {now.strftime('%B %d, %Y')} Manila Time</h3>
     </div>
     """, unsafe_allow_html=True)
 
