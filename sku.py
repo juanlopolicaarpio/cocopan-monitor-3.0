@@ -1032,7 +1032,7 @@ def availability_dashboard_section():
 
     # Create enhanced display table with out-of-stock items
     rows = []
-    store_lookup = {}  # NEW: For store selection lookup
+    store_lookup = {}
     
     for store in filtered_data:
         availability_pct = store.get('compliance_percentage')
@@ -1058,7 +1058,7 @@ def availability_dashboard_section():
             store.get('timestamp')
         )
         
-        # Get out-of-stock items for this store - SIMPLIFIED
+        # Get out-of-stock items for this store
         oos_items = []
         oos_count = store.get('out_of_stock_count', 0)
         if store_id and oos_count > 0:
@@ -1069,7 +1069,6 @@ def availability_dashboard_section():
         
         # Format out-of-stock items
         if oos_items:
-            # Clean product names and limit display
             cleaned_items = [clean_product_name(item) for item in oos_items[:5]]
             oos_display = ", ".join(cleaned_items)
             if len(oos_items) > 5:
@@ -1083,19 +1082,18 @@ def availability_dashboard_section():
             status = "Not Checked"
             availability_display = "—"
             availability_sort = -1.0
-            availability_numeric = None  # For proper sorting
+            availability_numeric = None
             last_check = "—"
             time_sort = datetime.min
         else:
             status = "✅ Checked"
             availability_display = f"{availability_pct:.1f}%"
             availability_sort = availability_pct
-            availability_numeric = availability_pct  # Store as number for sorting
-            # For checked stores, try to get timestamp - REMOVED SPECIFIC TIME
-            last_check = "Manila Time"
+            availability_numeric = availability_pct
+            # FIXED: Format the actual check time
             if checked_at_raw:
+                last_check = format_datetime_safe(checked_at_raw)
                 try:
-                    # Convert time for sorting
                     if isinstance(checked_at_raw, str):
                         time_sort = pd.to_datetime(checked_at_raw)
                     else:
@@ -1103,30 +1101,30 @@ def availability_dashboard_section():
                 except:
                     time_sort = datetime.min
             else:
+                last_check = "—"
                 time_sort = datetime.min
 
         rows.append({
             "Branch": store_name_clean,
             "Platform": "GrabFood" if store.get('platform') == 'grabfood' else "Foodpanda",
-            "Availability": availability_numeric,  # Store as number for proper sorting
-            "Availability Display": availability_display,  # Keep display version
+            "Availability": availability_numeric,
+            "Availability Display": availability_display,
             "Status": status,
             "Out of Stock Count": oos_count,
             "Out of Stock Items": oos_display,
             "Last Check": last_check,
             "_availability_sort": availability_sort,
             "_time_sort": time_sort,
-            "_oos_count": oos_count,  # For sorting
+            "_oos_count": oos_count,
         })
 
-    # CHANGED: Sort by highest out of stock count first, then by availability
+    # Sort by highest out of stock count first, then by availability
     rows_sorted = sorted(rows, key=lambda r: (-r["_oos_count"], r["_availability_sort"] < 0, -r["_availability_sort"] if r["_availability_sort"] >= 0 else 9999))
     
     # Create display dataframe with proper formatting
     display_data = []
     for r in rows_sorted:
         display_row = {k: v for k, v in r.items() if not k.startswith("_") and k != "Availability Display"}
-        # Format availability for display but keep numeric for sorting
         if display_row["Availability"] is None:
             display_row["Availability"] = "—"
         else:
@@ -1135,7 +1133,6 @@ def availability_dashboard_section():
     
     df_sorted = pd.DataFrame(display_data)
     
-    # Configure column types for proper sorting
     column_config = {
         "Availability": st.column_config.TextColumn(
             "Availability",
@@ -1151,11 +1148,10 @@ def availability_dashboard_section():
     
     st.dataframe(df_sorted, use_container_width=True, hide_index=True, height=420, column_config=column_config)
 
-    # NEW: Store selection for OOS item details (similar to product selection in OOS items tab)
+    # Store selection for OOS item details
     st.markdown("### Store Details")
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     
-    # Create options for selectbox - only stores with OOS items
     stores_with_oos = {k: v for k, v in store_lookup.items() if v['oos_count'] > 0}
     
     if stores_with_oos:
@@ -1174,14 +1170,11 @@ def availability_dashboard_section():
     )
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Show selected store details
     if selected_store_option not in ["Select a store to view out of stock items...", "No stores have out of stock items"]:
-        # Find the selected store
-        selected_store_name = selected_store_option.split(" - ")[0]  # Extract name before " - X items"
+        selected_store_name = selected_store_option.split(" - ")[0]
         selected_store = stores_with_oos.get(selected_store_name)
         
         if selected_store:
-            # Store info
             st.markdown(f"""
             **Store Name:** {selected_store['store_name']}  
             **Platform:** {"GrabFood" if selected_store['platform'] == 'grabfood' else "Foodpanda"}  
@@ -1189,20 +1182,18 @@ def availability_dashboard_section():
             **Out of Stock Items:** {selected_store['oos_count']}
             """)
             
-            # Get OOS items for this store
             try:
                 oos_items = get_store_out_of_stock_items(selected_store['store_id'])
                 
                 if oos_items:
                     st.markdown("**Products currently out of stock at this store:**")
                     
-                    # Create a nice display of OOS items
                     oos_display_data = []
                     for idx, item in enumerate(oos_items, 1):
                         oos_display_data.append({
                             "#": idx,
                             "Product Name": clean_product_name(item),
-                            "Category": "Food Product"  # You could enhance this with actual categories
+                            "Category": "Food Product"
                         })
                     
                     oos_df = pd.DataFrame(oos_display_data)
@@ -1213,7 +1204,6 @@ def availability_dashboard_section():
                         height=min(400, len(oos_items) * 40 + 80)
                     )
                     
-                    # Summary
                     st.info(f"**Total:** {len(oos_items)} products are currently out of stock at {selected_store['store_name']}")
                     
                 else:
@@ -1226,9 +1216,8 @@ def availability_dashboard_section():
         else:
             st.error("Store not found in lookup.")
 
-
 def out_of_stock_items_section():
-    """Out of Stock Items section - sortable table of products with store details - REMOVED CHECKED BY AND CATEGORY"""
+    """Out of Stock Items section - sortable table of products with store details"""
     now = datetime.now(pytz.timezone("Asia/Manila"))
     
     st.markdown(f"""
@@ -1270,7 +1259,6 @@ def out_of_stock_items_section():
         sku_code = item.get('sku_code')
         product_name = item.get('product_name', 'Unknown Product')
         
-        # Create unique key for product
         product_key = f"{sku_code}_{product_name}"
         
         if product_key not in product_frequency:
@@ -1281,7 +1269,6 @@ def out_of_stock_items_section():
                 'platforms': set()
             }
         
-        # Add store info - REMOVED CHECKED_BY
         product_frequency[product_key]['stores'].append({
             'store_name': item.get('store_name', '').replace('Cocopan - ', '').replace('Cocopan ', ''),
             'platform': item.get('platform'),
@@ -1320,9 +1307,8 @@ def out_of_stock_items_section():
             for p in platforms_list
         ])
         
-        # Get store names for this product
         store_names = [store['store_name'] for store in product['stores']]
-        stores_text = ", ".join(store_names[:3])  # Show first 3 stores
+        stores_text = ", ".join(store_names[:3])
         if len(store_names) > 3:
             stores_text += f" + {len(store_names) - 3} more"
         
@@ -1331,7 +1317,7 @@ def out_of_stock_items_section():
             "Out of Stock Count": stores_count,
             "Stores": stores_text,
             "Platforms": platforms_text,
-            "_product_key": f"{product['sku_code']}_{product['product_name']}"  # Hidden for lookup
+            "_product_key": f"{product['sku_code']}_{product['product_name']}"
         })
 
     # Display sortable products table
@@ -1339,7 +1325,7 @@ def out_of_stock_items_section():
     st.markdown("*Click column headers to sort the table*")
     
     products_df = pd.DataFrame(products_table_data)
-    display_df = products_df.drop(columns=['_product_key'])  # Hide the lookup key
+    display_df = products_df.drop(columns=['_product_key'])
     
     st.dataframe(display_df, use_container_width=True, hide_index=True, height=400)
 
@@ -1347,7 +1333,6 @@ def out_of_stock_items_section():
     st.markdown("### Product Details")
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     
-    # Create options for selectbox
     product_options = ["Select a product to view details..."] + [
         f"{p['product_name']} ({len(p['stores'])} stores)" 
         for p in sorted(all_products, key=lambda x: x['product_name'])
@@ -1360,17 +1345,14 @@ def out_of_stock_items_section():
     )
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Show selected product details
     if selected_product_option != "Select a product to view details...":
-        # Find the selected product
-        selected_product_name = selected_product_option.split(" (")[0]  # Extract name before " (X stores)"
+        selected_product_name = selected_product_option.split(" (")[0]
         selected_product = next(
             (p for p in all_products if p['product_name'] == selected_product_name), 
             None
         )
         
         if selected_product:
-            # Product info
             stores_count = len(selected_product['stores'])
             platforms_text = " + ".join([
                 "GrabFood" if p == "grabfood" else "Foodpanda" 
@@ -1384,14 +1366,14 @@ def out_of_stock_items_section():
             **Platforms:** {platforms_text}
             """)
             
-            # Stores table - REMOVED CHECKED BY, REMOVED SPECIFIC TIME
+            # FIXED: Show actual check times
             if selected_product['stores']:
                 stores_data = []
                 for store in selected_product['stores']:
                     stores_data.append({
                         "Store": store['store_name'],
                         "Platform": "GrabFood" if store['platform'] == 'grabfood' else "Foodpanda",
-                        "Last Check": "Manila Time"  # REMOVED SPECIFIC TIME
+                        "Last Check": format_datetime_safe(store['checked_at'])
                     })
                 
                 st.markdown("**Stores where this product is out of stock:**")
@@ -1403,7 +1385,6 @@ def out_of_stock_items_section():
                 )
             else:
                 st.info("No store details available.")
-
 
 def reports_export_section():
     """Reports and data export section - UPDATED WITH REQUESTED CHANGES"""
@@ -1640,6 +1621,7 @@ def reports_export_section():
                     else:
                         oos_display = "—"
                     
+                    # FIXED: Use format_datetime_safe to show actual check time
                     performance_data.append({
                         "Date": check_date.strftime("%Y-%m-%d"),
                         "Store": record['store_name'].replace('Cocopan - ', '').replace('Cocopan ', ''),
@@ -1647,7 +1629,7 @@ def reports_export_section():
                         "Availability %": f"{record['compliance_percentage']:.1f}%" if record['compliance_percentage'] is not None else "N/A",
                         "Out of Stock Count": record['out_of_stock_count'] or 0,
                         "Out of Stock Items": oos_display,
-                        "Check Time": "Manila Time"  # REMOVED SPECIFIC TIME
+                        "Check Time": format_datetime_safe(record.get('checked_at'))  # FIXED HERE
                     })
                 
                 if performance_data:
@@ -1674,9 +1656,7 @@ def reports_export_section():
     st.markdown("**Available Report Types:**")
     st.markdown("• **Daily Availability Summary**: Aggregated metrics by date showing compliance trends")
     st.markdown("• **Out of Stock Items**: Product-focused view showing which items are OOS and in how many stores")
-    st.markdown("• **Store Performance**: Individual store compliance data with out of stock item details")
-
-# ------------------------------------------------------------------------------
+    st.markdown("• **Store Performance**: Individual store compliance data with out of stock item details")# ------------------------------------------------------------------------------
 # Main dashboard
 # ------------------------------------------------------------------------------
 def main():
