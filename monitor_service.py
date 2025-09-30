@@ -374,8 +374,9 @@ class GrabFoodSKUScraper:
                 
                 if resp.status_code >= 500:
                     last_err = f"{resp.status_code} {resp.reason}"
-                    time.sleep(2.0 * attempt)  # Backoff
-                    continue
+                    if attempt < max_retries:
+                        time.sleep(2.0 * attempt)  # Backoff
+                        continue
                 
                 if resp.status_code == 403 and attempt < max_retries:
                     time.sleep(random.uniform(2, 4))
@@ -386,13 +387,13 @@ class GrabFoodSKUScraper:
                 
             except requests.RequestException as e:
                 last_err = str(e)
-                time.sleep(2.0 * attempt)
+                if attempt < max_retries:
+                    time.sleep(2.0 * attempt)
         
-        logger.warning(f"⚠️ Fetch failed for {url}: {last_err}")
         return None
     
     def fetch_menu_data(self, session: requests.Session, merchant_id: str, referer_url: str) -> Optional[Dict[str, Any]]:
-        """Fetch menu data from GrabFood API"""
+        """Fetch menu data from GrabFood API with improved logging"""
         api_urls = [
             f"https://portal.grab.com/foodweb/v2/restaurant?merchantCode={merchant_id}&latlng={self.ph_latlng}",
             f"https://portal.grab.com/foodweb/v2/merchants/{merchant_id}?latlng={self.ph_latlng}"
@@ -403,11 +404,16 @@ class GrabFoodSKUScraper:
         updated_headers["Referer"] = referer_url
         session.headers.update(updated_headers)
         
-        for api_url in api_urls:
+        for i, api_url in enumerate(api_urls, 1):
             data = self.fetch_json_with_retry(session, api_url)
             if data:
+                if i > 1:
+                    logger.info(f"✅ Backup API #{i} succeeded")
                 return data
+            else:
+                logger.warning(f"⚠️ API #{i} failed, trying backup...")
         
+        logger.error(f"❌ All API endpoints failed for merchant {merchant_id}")
         return None
     
     def extract_oos_items_from_menu(self, menu_data: Dict[str, Any]) -> List[str]:
@@ -490,7 +496,7 @@ class GrabFoodSKUScraper:
         try:
             merchant_id = self.extract_merchant_id(store_url)
             if not merchant_id:
-                logger.error(f"❌ Could not extract merchant ID from {store_url}")
+                logger.debug(f"Could not extract merchant ID from {store_url}")
                 return [], [], "Unknown Store"
             
             session = requests.Session()
@@ -498,7 +504,7 @@ class GrabFoodSKUScraper:
             # Fetch menu data
             menu_data = self.fetch_menu_data(session, merchant_id, store_url)
             if not menu_data:
-                logger.error(f"❌ Could not fetch menu data for {store_url}")
+                logger.debug(f"Could not fetch menu data for merchant {merchant_id}")
                 return [], [], "Unknown Store"
             
             # Extract store name
@@ -542,8 +548,13 @@ class GrabFoodSKUScraper:
         return None
     
     def scrape_all_stores(self) -> Dict[str, Any]:
-        """Scrape ALL stores from branch_urls.json and save to database"""
+        """Scrape ALL stores from branch_urls.json with 40-minute hard time limit"""
         logger.info("🛒 Starting GrabFood SKU scraping for ALL stores from branch_urls.json...")
+        logger.info("⏱️ 40-minute hard time limit enforced")
+        
+        # Start timer for 40-minute hard limit
+        scrape_start_time = time.time()
+        TIME_LIMIT_SECONDS = 40 * 60  # 40 minutes
         
         if not self.store_urls:
             logger.error("❌ No GrabFood URLs loaded - cannot perform SKU scraping")
@@ -562,16 +573,39 @@ class GrabFoodSKUScraper:
             'failed_scrapes': 0,
             'total_oos_skus': 0,
             'total_unknown_products': 0,
+            'failed_stores': [],  # Track for retry
             'store_results': []
         }
         
+        # ============================================
+        # PHASE 1: Main scrape of all stores
+        # ============================================
+        logger.info(f"📍 PHASE 1: Scraping {len(self.store_urls)} stores")
+        
         for i, store_url in enumerate(self.store_urls, 1):
+            # Check time limit
+            elapsed = time.time() - scrape_start_time
+            if elapsed >= TIME_LIMIT_SECONDS:
+                logger.warning(f"⏰ Hit 40-minute time limit during main scrape at store {i}/{len(self.store_urls)}")
+                # Add remaining stores to failed list
+                for remaining_url in self.store_urls[i:]:
+                    results['failed_stores'].append(remaining_url)
+                    results['failed_scrapes'] += 1
+                break
+            
             logger.info(f"📍 [{i}/{len(self.store_urls)}] Scraping {store_url}")
             
             try:
                 oos_skus, unknown_products, store_name = self.scrape_store_skus(store_url)
                 
-                # Save to database (same as manual VA process)
+                # Check if scrape failed (Unknown Store or no data)
+                if store_name == "Unknown Store" or store_name == "Error Store":
+                    logger.warning(f"❓ {store_name} detected - will retry later")
+                    results['failed_stores'].append(store_url)
+                    results['failed_scrapes'] += 1
+                    continue  # Don't save to database yet
+                
+                # Success - save to database
                 store_id = db.get_or_create_store(store_name, store_url)
                 success = db.save_sku_compliance_check(
                     store_id=store_id,
@@ -593,6 +627,7 @@ class GrabFoodSKUScraper:
                             logger.warning(f"   - Unknown: {unknown}")
                 else:
                     logger.error(f"❌ {store_name}: Failed to save to database")
+                    results['failed_stores'].append(store_url)
                     results['failed_scrapes'] += 1
                 
                 results['store_results'].append({
@@ -605,15 +640,114 @@ class GrabFoodSKUScraper:
                 
             except Exception as e:
                 logger.error(f"❌ Failed to scrape {store_url}: {e}")
+                results['failed_stores'].append(store_url)
                 results['failed_scrapes'] += 1
             
-            # Delay between stores (same as existing monitor)
+            # Delay between stores (anti-detection)
             if i < len(self.store_urls):
                 time.sleep(random.uniform(5, 7))
         
-        # Log summary
+        # ============================================
+        # PHASE 2: Retry failed stores until all succeed or time runs out
+        # ============================================
+        retry_round = 1
+        
+        while results['failed_stores']:
+            # Check time limit before retry round
+            elapsed = time.time() - scrape_start_time
+            remaining = TIME_LIMIT_SECONDS - elapsed
+            
+            if elapsed >= TIME_LIMIT_SECONDS:
+                logger.warning(f"⏰ Hit 40-minute time limit - stopping retries")
+                logger.warning(f"⚠️ {len(results['failed_stores'])} stores remain unscraped")
+                break
+            
+            logger.info("=" * 70)
+            logger.info(f"🔄 PHASE 2 - Retry Round {retry_round}: {len(results['failed_stores'])} failed stores")
+            logger.info(f"⏱️ Time remaining: {remaining/60:.1f} minutes")
+            
+            newly_successful = []
+            still_failed = []
+            
+            for store_url in results['failed_stores']:
+                # Check time limit before each retry
+                elapsed = time.time() - scrape_start_time
+                if elapsed >= TIME_LIMIT_SECONDS:
+                    logger.warning(f"⏰ Hit 40-minute time limit during retry round {retry_round}")
+                    # Add remaining stores to still_failed
+                    still_failed.append(store_url)
+                    for remaining_url in results['failed_stores'][results['failed_stores'].index(store_url)+1:]:
+                        still_failed.append(remaining_url)
+                    break
+                
+                logger.info(f"   🔄 Retry #{retry_round}: {store_url}")
+                
+                # Anti-detection: Rotate user agent
+                self.headers["User-Agent"] = random.choice(self.user_agents)
+                
+                try:
+                    oos_skus, unknown_products, store_name = self.scrape_store_skus(store_url)
+                    
+                    if store_name != "Unknown Store" and store_name != "Error Store":
+                        # Success! Save to database
+                        store_id = db.get_or_create_store(store_name, store_url)
+                        success = db.save_sku_compliance_check(
+                            store_id=store_id,
+                            platform='grabfood',
+                            out_of_stock_ids=oos_skus,
+                            checked_by='automated_scraper'
+                        )
+                        
+                        if success:
+                            newly_successful.append(store_url)
+                            results['successful_scrapes'] += 1
+                            results['failed_scrapes'] -= 1
+                            results['total_oos_skus'] += len(oos_skus)
+                            results['total_unknown_products'] += len(unknown_products)
+                            
+                            logger.info(f"   ✅ Retry successful: {store_name} - Saved {len(oos_skus)} OOS SKUs")
+                            
+                            results['store_results'].append({
+                                'store_name': store_name,
+                                'store_url': store_url,
+                                'oos_count': len(oos_skus),
+                                'unknown_count': len(unknown_products),
+                                'success': success,
+                                'retry_round': retry_round
+                            })
+                        else:
+                            logger.error(f"   ❌ Retry: {store_name} - Database save failed")
+                            still_failed.append(store_url)
+                    else:
+                        logger.warning(f"   🚫 Still failed: {store_url}")
+                        still_failed.append(store_url)
+                
+                except Exception as e:
+                    logger.error(f"   ❌ Retry error: {e}")
+                    still_failed.append(store_url)
+                
+                # Delay between retry attempts (anti-detection)
+                time.sleep(random.uniform(5, 7))
+            
+            # Update failed stores list
+            results['failed_stores'] = still_failed
+            
+            if newly_successful:
+                logger.info(f"   🎉 Recovered {len(newly_successful)} stores in round {retry_round}")
+            
+            if not results['failed_stores']:
+                logger.info(f"   ✅ All stores successfully scraped!")
+                break
+            
+            retry_round += 1
+        
+        # ============================================
+        # FINAL: Log summary
+        # ============================================
+        total_elapsed = time.time() - scrape_start_time
+        
         logger.info("=" * 70)
-        logger.info(f"🛒 GrabFood SKU scraping completed!")
+        logger.info(f"🛒 GrabFood SKU scraping completed in {total_elapsed/60:.1f} minutes!")
         logger.info(f"📊 Summary:")
         logger.info(f"   Total stores: {results['total_stores']}")
         logger.info(f"   ✅ Successful: {results['successful_scrapes']}")
@@ -621,13 +755,23 @@ class GrabFoodSKUScraper:
         logger.info(f"   🔴 Total OOS SKUs found: {results['total_oos_skus']}")
         logger.info(f"   ❓ Total unknown products: {results['total_unknown_products']}")
         
+        if results['failed_stores']:
+            logger.warning(f"   ⚠️ {len(results['failed_stores'])} stores remain unscraped:")
+            for store_url in results['failed_stores']:
+                logger.warning(f"      - {store_url}")
+        
+        if total_elapsed >= TIME_LIMIT_SECONDS:
+            logger.warning(f"   ⏰ Hit 40-minute time limit - some stores may be incomplete")
+        
+        # Remove failed_stores from return dict (internal tracking only)
+        del results['failed_stores']
+        
         return results
 
     # Keep the old method name for backward compatibility
     def scrape_all_test_stores(self) -> Dict[str, Any]:
         """Backward compatibility method - now scrapes all stores from branch_urls.json"""
-        return self.scrape_all_stores()# ------------------------------------------------------------------------------
-# Store Name Management (EXISTING - UNCHANGED)
+        return self.scrape_all_stores()# Store Name Management (EXISTING - UNCHANGED)
 # ------------------------------------------------------------------------------
 class StoreNameManager:
     """Manages proper store name extraction and caching for GrabFood stores"""
