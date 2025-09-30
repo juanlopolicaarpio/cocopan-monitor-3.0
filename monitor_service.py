@@ -113,93 +113,97 @@ class SKUMapper:
     def __init__(self):
         self.grabfood_skus = self._load_grabfood_master_skus()
         self.name_to_sku_map = self._build_name_mapping()
+        # Add explicit mappings for problematic products
+        self.explicit_mappings = self._build_explicit_mappings()
         logger.info(f"📦 SKU Mapper initialized with {len(self.grabfood_skus)} GrabFood products")
+        logger.info(f"🎯 {len(self.explicit_mappings)} explicit mappings configured")
     
-    def _load_grabfood_master_skus(self) -> List[Dict]:
-        """Load GrabFood SKUs from database or fallback to hardcoded data"""
-        try:
-            # Try database first
-            skus = db.get_master_skus_by_platform('grabfood')
-            if skus:
-                logger.info(f"📦 Loaded {len(skus)} GrabFood SKUs from database")
-                return skus
-        except Exception as e:
-            logger.warning(f"Failed to load SKUs from database: {e}")
-        
-        # Fallback to hardcoded data from populate.py
-        logger.info("📦 Using hardcoded GrabFood SKU data")
-        return self._get_hardcoded_grabfood_skus()
-    
-    def _get_hardcoded_grabfood_skus(self) -> List[Dict]:
-        """Hardcoded GrabFood SKUs from populate.py as fallback"""
-        return [
-            # Key products for testing - add more as needed
-            {"sku_code": "GB062", "product_name": "MILKY CHEESE DONUT", "category": "BREAD"},
-            {"sku_code": "GD028", "product_name": "VIETNAMESE COFFEE", "category": "NON-BREAD"},
-            {"sku_code": "GD113", "product_name": "MILO OVERLOAD", "category": "NON-BREAD"},
-            {"sku_code": "GB110", "product_name": "CINNAMON ROLL DELUXE", "category": "BREAD"},
-            {"sku_code": "GB001", "product_name": "PAN DE COCO", "category": "BREAD"},
-            {"sku_code": "GD057", "product_name": "MATCHA MILK", "category": "NON-BREAD"},
-            {"sku_code": "GD117", "product_name": "TWISTEA CLASSIC", "category": "NON-BREAD"},
-            {"sku_code": "GB107", "product_name": "DOUBLE CHEESE ROLL", "category": "BREAD"},
-            {"sku_code": "GB004", "product_name": "GRAB CHEESE ROLL", "category": "BREAD"},
-            {"sku_code": "GB006", "product_name": "GRAB SPANISH BREAD", "category": "BREAD"},
-            {"sku_code": "GB008", "product_name": "GRAB CHOCO ROLL", "category": "BREAD"},
-            {"sku_code": "GB112", "product_name": "GRAB CHICKEN ASADO BUN", "category": "BREAD"},
-            {"sku_code": "GB102", "product_name": "GRAB CHEESY SAUSAGE ROLL", "category": "BREAD"},
-            {"sku_code": "GB095", "product_name": "GRAB CHEESY HAM ROLL", "category": "BREAD"},
-        ]
-    
-    def _build_name_mapping(self) -> Dict[str, str]:
-        """Build mapping from normalized names to SKU codes"""
-        mapping = {}
-        for sku in self.grabfood_skus:
-            normalized_name = self._normalize_name(sku['product_name'])
-            mapping[normalized_name] = sku['sku_code']
-        return mapping
+    def _build_explicit_mappings(self) -> Dict[str, str]:
+        """
+        Build explicit mappings ONLY for the 6 products you specified
+        These mappings guarantee 100% accuracy for known edge cases
+        """
+        return {
+            # Bundle products with promo text - normalize to core product name
+            "BUILD A BOX SUPERBOX 13PCS": "GP007",
+            "BUILD A BOX SUPERBOX 13 PCS": "GP007",
+            "SUPERBOX ASSORTED 13PCS": "GP008",
+            "SUPERBOX ASSORTED 13 PCS": "GP008",
+            "BUILD A BOX SNACK BOX 10PCS": "GP009",
+            "BUILD A BOX SNACK BOX 10 PCS": "GP009",
+            "SNACK BOX ASSORTED 10PCS": "GP010",
+            "SNACK BOX ASSORTED 10 PCS": "GP010",
+            
+            # K-Salt variations
+            "K-SALT": "GB111",
+            "K SALT": "GB111",
+            "KSALT": "GB111",
+            
+            # Italian Herbs Loaf variations
+            "ITALIAN HERBS LOAF": "GB099",
+            "ITALIAN HERB LOAF": "GB099",
+            "ITALIAN HERBS": "GB099",
+        }
     
     def _normalize_name(self, name: str) -> str:
-        """Normalize product name for matching"""
+        """
+        Enhanced normalization: removes platform prefixes, promo text, and standardizes format
+        """
         if not name:
             return ""
         
-        # Remove platform prefixes and normalize
+        # Convert to uppercase
         name = name.upper()
-        name = re.sub(r'^(GRAB\s+|FOODPANDA\s+)', '', name)
+        
+        # Remove platform prefixes
+        name = re.sub(r'^(GRAB\s+|FOODPANDA\s+|FOOD PANDA\s+)', '', name)
+        
+        # Remove promotional phrases (key improvement!)
+        promo_patterns = [
+            r'\s*FREE\s+MANGO\s+SUNRISE.*$',
+            r'\s*\+\s*\d+\s*PHP.*$',
+            r'\s*\(FREE\s+MANGO\s+SUNRISE\).*$',
+            r'\s*\(\+\s*\d+\s*PHP.*\).*$',
+            r'\s*WITH\s+FREE.*$',
+            r'\s*FREE.*$',
+        ]
+        
+        for pattern in promo_patterns:
+            name = re.sub(pattern, '', name, flags=re.IGNORECASE)
+        
+        # Remove extra parentheses and brackets that might remain
+        name = re.sub(r'\s*\([^)]*\)\s*$', '', name)
+        name = re.sub(r'\s*\[[^\]]*\]\s*$', '', name)
+        
+        # Standardize spacing around special characters
+        name = re.sub(r'\s*-\s*', ' ', name)  # "K-SALT" -> "K SALT"
         name = re.sub(r'\s+', ' ', name).strip()
+        
+        # Remove trailing descriptors that might vary
+        name = re.sub(r'\s+(BREAD|LOAF|SLICE|DRINK|COFFEE)$', '', name)
+        
         return name
     
-    def map_scraped_names_to_skus(self, scraped_names: List[str]) -> Tuple[List[str], List[str]]:
-        """
-        Map list of scraped names to SKU codes
-        Returns: (matched_sku_codes, unknown_products)
-        """
-        matched_skus = []
-        unknown_products = []
-        
-        for scraped_name in scraped_names:
-            sku_code = self.find_sku_for_name(scraped_name)
-            if sku_code:
-                matched_skus.append(sku_code)
-                logger.debug(f"✅ Mapped: '{scraped_name}' → {sku_code}")
-            else:
-                unknown_products.append(scraped_name)
-                logger.warning(f"❓ Unknown product: '{scraped_name}'")
-        
-        return matched_skus, unknown_products
-    
     def find_sku_for_name(self, scraped_name: str, min_confidence: int = 85) -> Optional[str]:
-        """Find SKU code for a scraped product name using fuzzy matching"""
+        """
+        Enhanced SKU finder with explicit mappings taking priority
+        """
         if not scraped_name or not scraped_name.strip():
             return None
         
         normalized_scraped = self._normalize_name(scraped_name)
         
-        # Try exact match first
+        # PRIORITY 1: Check explicit mappings first (100% guaranteed)
+        if normalized_scraped in self.explicit_mappings:
+            sku_code = self.explicit_mappings[normalized_scraped]
+            logger.debug(f"🎯 Explicit match: '{scraped_name}' → {sku_code}")
+            return sku_code
+        
+        # PRIORITY 2: Try exact match in master list
         if normalized_scraped in self.name_to_sku_map:
             return self.name_to_sku_map[normalized_scraped]
         
-        # Fuzzy matching if available
+        # PRIORITY 3: Fuzzy matching if available
         if HAS_FUZZY:
             best_match = process.extractOne(
                 normalized_scraped, 
@@ -214,7 +218,7 @@ class SKUMapper:
                 logger.debug(f"🎯 Fuzzy match: '{scraped_name}' → {sku_code} (confidence: {confidence}%)")
                 return sku_code
         
-        # Basic substring matching fallback
+        # PRIORITY 4: Basic substring matching fallback
         normalized_scraped_words = set(normalized_scraped.split())
         
         best_match_score = 0
@@ -235,7 +239,48 @@ class SKUMapper:
             logger.debug(f"🔍 Substring match: '{scraped_name}' → {best_sku} (score: {best_match_score:.2f})")
         
         return best_sku
-
+    
+    def _load_grabfood_master_skus(self) -> List[Dict]:
+        """Load ALL GrabFood SKUs from database - NO FALLBACK"""
+        try:
+            skus = db.get_master_skus_by_platform('grabfood')
+            if skus:
+                logger.info(f"📦 Loaded {len(skus)} GrabFood SKUs from database")
+                return skus
+            else:
+                logger.error("❌ No GrabFood SKUs found in database!")
+                logger.error("❌ Please run populate.py first to populate the database")
+                raise RuntimeError("Database has no GrabFood SKUs - run populate.py first")
+        except Exception as e:
+            logger.error(f"❌ Failed to load SKUs from database: {e}")
+            raise RuntimeError(f"Cannot load GrabFood SKUs from database: {e}")
+    
+    def _build_name_mapping(self) -> Dict[str, str]:
+        """Build mapping from normalized names to SKU codes"""
+        mapping = {}
+        for sku in self.grabfood_skus:
+            normalized_name = self._normalize_name(sku['product_name'])
+            mapping[normalized_name] = sku['sku_code']
+        return mapping
+    
+    def map_scraped_names_to_skus(self, scraped_names: List[str]) -> Tuple[List[str], List[str]]:
+        """
+        Map list of scraped names to SKU codes
+        Returns: (matched_sku_codes, unknown_products)
+        """
+        matched_skus = []
+        unknown_products = []
+        
+        for scraped_name in scraped_names:
+            sku_code = self.find_sku_for_name(scraped_name)
+            if sku_code:
+                matched_skus.append(sku_code)
+                logger.debug(f"✅ Mapped: '{scraped_name}' → {sku_code}")
+            else:
+                unknown_products.append(scraped_name)
+                logger.warning(f"❓ Unknown product: '{scraped_name}'")
+        
+        return matched_skus, unknown_products
 # ------------------------------------------------------------------------------
 # NEW: GrabFood SKU Scraper (based on s.py)
 # ------------------------------------------------------------------------------

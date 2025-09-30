@@ -1387,7 +1387,7 @@ def out_of_stock_items_section():
                 st.info("No store details available.")
 
 def reports_export_section():
-    """Reports and data export section - UPDATED WITH REQUESTED CHANGES"""
+    """Reports and data export section - FIXED: No truncation in exports"""
     now = datetime.now(pytz.timezone("Asia/Manila"))
     
     st.markdown(f"""
@@ -1495,14 +1495,14 @@ def reports_export_section():
                     st.info("No data available for the selected criteria.")
 
             elif report_type == "Out of Stock Items":
-                # CHANGED: Make it like out of stock items tab (show count and stores)
+                # FIXED: Show ALL stores, no truncation
                 oos_data = get_out_of_stock_by_date_range(start_date, end_date, platform_filter)
                 
                 if not oos_data:
                     st.info("No out-of-stock items found for the selected date range and platform.")
                     return
                 
-                # Aggregate by product like the tab does
+                # Aggregate by product
                 product_frequency = {}
                 for item in oos_data:
                     sku_code = item['sku_code']
@@ -1526,7 +1526,7 @@ def reports_export_section():
                     })
                     product_frequency[product_key]['platforms'].add(item['platform'])
 
-                # Create products table like the tab
+                # Create products table - FIXED: No truncation
                 products_table_data = []
                 for product in product_frequency.values():
                     stores_count = len(product['stores'])
@@ -1536,42 +1536,56 @@ def reports_export_section():
                         for p in platforms_list
                     ])
                     
-                    # Get store names
+                    # ✅ FIXED: Show ALL stores, no truncation
                     store_names = [store['store_name'] for store in product['stores']]
-                    stores_text = ", ".join(store_names[:3])
+                    stores_text_display = ", ".join(store_names[:3])  # For screen display
                     if len(store_names) > 3:
-                        stores_text += f" + {len(store_names) - 3} more"
+                        stores_text_display += f" + {len(store_names) - 3} more"
+                    
+                    stores_text_full = ", ".join(store_names)  # For CSV export - ALL stores
                     
                     products_table_data.append({
                         "Product Name": product['product_name'],
                         "Out of Stock Count": stores_count,
-                        "Stores": stores_text,
+                        "Stores (Display)": stores_text_display,  # Truncated for screen
+                        "Stores (Full)": stores_text_full,  # Complete for export
                         "Platforms": platforms_text,
                     })
                 
                 if products_table_data:
-                    df = pd.DataFrame(products_table_data)
-                    df = df.sort_values('Out of Stock Count', ascending=False)
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    # Create two dataframes: one for display, one for export
+                    df_display = pd.DataFrame(products_table_data)
+                    df_display = df_display.sort_values('Out of Stock Count', ascending=False)
+                    
+                    # Display version - use truncated stores
+                    df_display_clean = df_display[['Product Name', 'Out of Stock Count', 'Stores (Display)', 'Platforms']].copy()
+                    df_display_clean.columns = ['Product Name', 'Out of Stock Count', 'Stores', 'Platforms']
+                    st.dataframe(df_display_clean, use_container_width=True, hide_index=True)
+                    
+                    # Export version - use full stores list
+                    df_export = df_display[['Product Name', 'Out of Stock Count', 'Stores (Full)', 'Platforms']].copy()
+                    df_export.columns = ['Product Name', 'Out of Stock Count', 'Stores', 'Platforms']
+                    
                     st.download_button(
-                        label="📥 Download Out of Stock Items Report",
-                        data=df.to_csv(index=False),
+                        label="📥 Download Out of Stock Items Report (Complete)",
+                        data=df_export.to_csv(index=False),
                         file_name=f"oos_items_report_{platform_filter}_{start_date}_{end_date}.csv",
                         mime="text/csv",
                         use_container_width=True
                     )
+                    st.info(f"✅ CSV export includes complete store lists for all {len(products_table_data)} products (no truncation)")
                 else:
                     st.info("No out of stock data available.")
 
             elif report_type == "Store Performance":
-                # CHANGED: Remove checked_by and total_sku, add OOS items list
+                # FIXED: Show ALL OOS items, no truncation
                 data = get_sku_data_by_date_range(start_date, end_date, platform_filter)
                 
                 if not data:
                     st.info("No store performance data available for the selected criteria.")
                     return
                 
-                # Convert to store performance format with OOS items
+                # Convert to store performance format - FIXED: No truncation
                 performance_data = []
                 for record in data:
                     check_date = record['check_date']
@@ -1582,10 +1596,8 @@ def reports_export_section():
                     oos_items_list = []
                     if record.get('out_of_stock_skus'):
                         if db.db_type == "postgresql":
-                            # PostgreSQL - out_of_stock_skus is already a list
                             oos_skus = record['out_of_stock_skus']
                         else:
-                            # SQLite - parse JSON
                             import json
                             try:
                                 oos_skus = json.loads(record['out_of_stock_skus']) if record['out_of_stock_skus'] else []
@@ -1613,23 +1625,30 @@ def reports_export_section():
                                         if sku_row:
                                             oos_items_list.append(sku_row['product_name'])
                     
-                    # Format OOS items
+                    # ✅ FIXED: Format OOS items - separate display vs export
                     if oos_items_list:
-                        oos_display = ", ".join([clean_product_name(item) for item in oos_items_list[:5]])
-                        if len(oos_items_list) > 5:
-                            oos_display += f" + {len(oos_items_list) - 5} more"
+                        cleaned_items = [clean_product_name(item) for item in oos_items_list]
+                        
+                        # Display version (truncated for screen readability)
+                        oos_display = ", ".join(cleaned_items[:5])
+                        if len(cleaned_items) > 5:
+                            oos_display += f" + {len(cleaned_items) - 5} more"
+                        
+                        # Export version (complete list)
+                        oos_full = ", ".join(cleaned_items)
                     else:
                         oos_display = "—"
+                        oos_full = "—"
                     
-                    # FIXED: Use format_datetime_safe to show actual check time
                     performance_data.append({
                         "Date": check_date.strftime("%Y-%m-%d"),
                         "Store": record['store_name'].replace('Cocopan - ', '').replace('Cocopan ', ''),
                         "Platform": "GrabFood" if record['platform'] == 'grabfood' else "Foodpanda",
                         "Availability %": f"{record['compliance_percentage']:.1f}%" if record['compliance_percentage'] is not None else "N/A",
                         "Out of Stock Count": record['out_of_stock_count'] or 0,
-                        "Out of Stock Items": oos_display,
-                        "Check Time": format_datetime_safe(record.get('checked_at'))  # FIXED HERE
+                        "Out of Stock Items (Display)": oos_display,  # Truncated for screen
+                        "Out of Stock Items (Full)": oos_full,  # Complete for export
+                        "Check Time": format_datetime_safe(record.get('checked_at'))
                     })
                 
                 if performance_data:
@@ -1637,14 +1656,27 @@ def reports_export_section():
                     # Sort by date (newest first) then by store name
                     df = df.sort_values(['Date', 'Store'], ascending=[False, True])
                     
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    # Display version - use truncated items
+                    df_display = df[['Date', 'Store', 'Platform', 'Availability %', 'Out of Stock Count', 
+                                    'Out of Stock Items (Display)', 'Check Time']].copy()
+                    df_display.columns = ['Date', 'Store', 'Platform', 'Availability %', 'Out of Stock Count', 
+                                         'Out of Stock Items', 'Check Time']
+                    st.dataframe(df_display, use_container_width=True, hide_index=True)
+                    
+                    # Export version - use full items list
+                    df_export = df[['Date', 'Store', 'Platform', 'Availability %', 'Out of Stock Count', 
+                                   'Out of Stock Items (Full)', 'Check Time']].copy()
+                    df_export.columns = ['Date', 'Store', 'Platform', 'Availability %', 'Out of Stock Count', 
+                                        'Out of Stock Items', 'Check Time']
+                    
                     st.download_button(
-                        label="📥 Download Store Performance Report",
-                        data=df.to_csv(index=False),
+                        label="📥 Download Store Performance Report (Complete)",
+                        data=df_export.to_csv(index=False),
                         file_name=f"store_performance_{platform_filter}_{start_date}_{end_date}.csv",
                         mime="text/csv",
                         use_container_width=True
                     )
+                    st.info(f"✅ CSV export includes complete OOS item lists for all {len(performance_data)} records (no truncation)")
                 else:
                     st.info("No store performance data available.")
 
@@ -1655,9 +1687,8 @@ def reports_export_section():
     st.markdown("---")
     st.markdown("**Available Report Types:**")
     st.markdown("• **Daily Availability Summary**: Aggregated metrics by date showing compliance trends")
-    st.markdown("• **Out of Stock Items**: Product-focused view showing which items are OOS and in how many stores")
-    st.markdown("• **Store Performance**: Individual store compliance data with out of stock item details")# ------------------------------------------------------------------------------
-# Main dashboard
+    st.markdown("• **Out of Stock Items**: Product-focused view showing ALL stores where items are OOS (complete list in CSV)")
+    st.markdown("• **Store Performance**: Individual store compliance data with ALL out of stock items (complete list in CSV)")# Main dashboard
 # ------------------------------------------------------------------------------
 def main():
     # REMOVED: Authentication check completely
