@@ -125,14 +125,29 @@ class SKUMapper:
         """
         return {
             # Bundle products with promo text - normalize to core product name
+            # GP007 variations (Build A Box Superbox 13pcs)
             "BUILD A BOX SUPERBOX 13PCS": "GP007",
             "BUILD A BOX SUPERBOX 13 PCS": "GP007",
+            "BUILD A BOX SUPER BOX 13PCS": "GP007",
+            "BUILD A BOX SUPER BOX 13 PCS": "GP007",
+            
+            # GP008 variations (Superbox Assorted 13pcs)
             "SUPERBOX ASSORTED 13PCS": "GP008",
             "SUPERBOX ASSORTED 13 PCS": "GP008",
+            "SUPER BOX ASSORTED 13PCS": "GP008",
+            "SUPER BOX ASSORTED 13 PCS": "GP008",
+            
+            # GP009 variations (Build A Box Snack Box 10pcs)
             "BUILD A BOX SNACK BOX 10PCS": "GP009",
             "BUILD A BOX SNACK BOX 10 PCS": "GP009",
+            "BUILD A BOX SNACKBOX 10PCS": "GP009",
+            "BUILD A BOX SNACKBOX 10 PCS": "GP009",
+            
+            # GP010 variations (Snack Box Assorted 10pcs)
             "SNACK BOX ASSORTED 10PCS": "GP010",
             "SNACK BOX ASSORTED 10 PCS": "GP010",
+            "SNACKBOX ASSORTED 10PCS": "GP010",
+            "SNACKBOX ASSORTED 10 PCS": "GP010",
             
             # K-Salt variations
             "K-SALT": "GB111",
@@ -143,6 +158,18 @@ class SKUMapper:
             "ITALIAN HERBS LOAF": "GB099",
             "ITALIAN HERB LOAF": "GB099",
             "ITALIAN HERBS": "GB099",
+            
+            # Vietnamese Coffee - base product
+            "VIETNAMESE COFFEE": "GD028",
+            "VIET COFFEE": "GD028",
+            
+            # Café Espanol - map to ICED version (most common)
+            "CAFE ESPANOL": "GD049",
+            "CAFÉ ESPANOL": "GD049",
+            
+            # Dark Choco Coffee - map to ICED version (most common)
+            "DARK CHOCO COFFEE": "GD034",
+            "DARK CHOCOLATE COFFEE": "GD034",
         }
     
     def _normalize_name(self, name: str) -> str:
@@ -154,6 +181,10 @@ class SKUMapper:
         
         # Convert to uppercase
         name = name.upper()
+        
+        # Normalize special characters
+        name = name.replace('Ñ', 'N').replace('ñ', 'N')
+        name = name.replace('É', 'E').replace('é', 'E')
         
         # Remove platform prefixes
         name = re.sub(r'^(GRAB\s+|FOODPANDA\s+|FOOD PANDA\s+)', '', name)
@@ -171,9 +202,9 @@ class SKUMapper:
         for pattern in promo_patterns:
             name = re.sub(pattern, '', name, flags=re.IGNORECASE)
         
-        # Remove extra parentheses and brackets that might remain
-        name = re.sub(r'\s*\([^)]*\)\s*$', '', name)
-        name = re.sub(r'\s*\[[^\]]*\]\s*$', '', name)
+        # Flatten parentheses - keep content but remove the parentheses themselves
+        name = re.sub(r'\s*\(([^)]+)\)\s*', r' \1 ', name)
+        name = re.sub(r'\s*\[([^\]]+)\]\s*', r' \1 ', name)
         
         # Standardize spacing around special characters
         name = re.sub(r'\s*-\s*', ' ', name)  # "K-SALT" -> "K SALT"
@@ -280,8 +311,7 @@ class SKUMapper:
                 unknown_products.append(scraped_name)
                 logger.warning(f"❓ Unknown product: '{scraped_name}'")
         
-        return matched_skus, unknown_products
-# ------------------------------------------------------------------------------
+        return matched_skus, unknown_products# ------------------------------------------------------------------------------
 # NEW: GrabFood SKU Scraper (based on s.py)
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
