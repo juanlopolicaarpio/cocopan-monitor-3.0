@@ -1,0 +1,2 @@
+python monitor_service.py --test-sku
+# Runs scraping on startup

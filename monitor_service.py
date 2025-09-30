@@ -6,6 +6,7 @@ CocoPan Monitor Service - ENHANCED WITH GRABFOOD SKU SCRAPING
 ✅ Beautiful admin alerts for verification needs
 ✅ Foodpanda VA check-in integration  
 ✅ NEW: Daily GrabFood SKU/OOS scraping with fuzzy matching
+✅ FIXED: Smart startup SKU test - prevents duplicate scraping
 ✅ Production-ready with comprehensive error handling
 """
 import os
@@ -17,7 +18,7 @@ import sys
 import random
 import uuid
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date  # ← CHANGED: Added 'date'
 from typing import List, Dict, Any, Optional, Set, Tuple
 from dataclasses import dataclass
 from enum import Enum
@@ -103,6 +104,80 @@ class CheckResult:
     response_time: int
     message: str = None
     confidence: float = 1.0
+
+# ==============================================================================
+# ✨ NEW FUNCTIONS: Smart SKU Scraping Control
+# ==============================================================================
+
+def has_sku_scraping_run_today() -> bool:
+    """
+    ✨ NEW FUNCTION
+    Check if SKU scraping already completed today by querying database
+    Returns True if found, False if not
+    """
+    try:
+        today = date.today()
+        
+        # Query database for today's SKU compliance checks
+        query = """
+            SELECT COUNT(*) as count
+            FROM sku_compliance_checks
+            WHERE DATE(checked_at) = ?
+            AND checked_by = 'automated_scraper'
+        """
+        
+        result = db.execute_query(query, (today,))
+        if result and len(result) > 0:
+            count = result[0].get('count', 0)
+            if count > 0:
+                logger.info(f"✅ SKU scraping already completed today ({count} checks found)")
+                return True
+        
+        logger.info(f"📋 No SKU scraping found for today - needs to run")
+        return False
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Could not check SKU scraping history: {e}")
+        # If we can't check, assume it hasn't run (safe default for first-time setup)
+        return False
+
+
+def should_run_startup_sku_test() -> bool:
+    """
+    ✨ NEW FUNCTION
+    Determine if SKU test should run on startup
+    
+    Decision logic:
+    1. Check SKIP_STARTUP_SKU_TEST env var (production control)
+    2. Check if already ran today (prevents duplicates)
+    3. Check for --test-sku command line flag (manual testing)
+    4. Default: Allow for local development
+    """
+    
+    # Priority 1: Environment variable (production control)
+    skip_startup = os.getenv('SKIP_STARTUP_SKU_TEST', 'false').lower() == 'true'
+    
+    if skip_startup:
+        logger.info("🚫 SKIP_STARTUP_SKU_TEST=true - Skipping startup SKU test")
+        return False
+    
+    # Priority 2: Check if already ran today
+    if has_sku_scraping_run_today():
+        logger.info("✅ SKU scraping already completed today - Skipping startup test")
+        return False
+    
+    # Priority 3: Check command-line argument for manual testing
+    if '--test-sku' in sys.argv:
+        logger.info("🧪 --test-sku flag detected - Running startup SKU test")
+        return True
+    
+    # Default: Allow for local development (but only if hasn't run today)
+    logger.info("🧪 Running startup SKU test (use SKIP_STARTUP_SKU_TEST=true to disable)")
+    return True
+
+# ==============================================================================
+# End of new functions
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # NEW: SKU Mapping Service
@@ -678,6 +753,24 @@ class GrabFoodSKUScraper:
                 time.sleep(random.uniform(5, 7))
         
         # ============================================
+        # COOLDOWN: Wait before retrying to avoid rate limits
+        # ============================================
+        if results['failed_stores']:
+            cooldown_seconds = 180  # 3 minutes
+            elapsed = time.time() - scrape_start_time
+            remaining = TIME_LIMIT_SECONDS - elapsed
+            
+            if elapsed + cooldown_seconds < TIME_LIMIT_SECONDS:
+                logger.info("=" * 70)
+                logger.info(f"⏸️ COOLDOWN: Waiting {cooldown_seconds/60:.1f} minutes before retries...")
+                logger.info(f"   Failed stores: {len(results['failed_stores'])}")
+                logger.info(f"   Time remaining: {remaining/60:.1f} minutes")
+                time.sleep(cooldown_seconds)
+                logger.info("✅ Cooldown complete - starting retry phase")
+            else:
+                logger.warning(f"⏰ Skipping cooldown - insufficient time remaining ({remaining/60:.1f} min)")
+        
+        # ============================================
         # PHASE 2: Retry failed stores until all succeed or time runs out
         # ============================================
         retry_round = 1
@@ -801,8 +894,7 @@ class GrabFoodSKUScraper:
     # Keep the old method name for backward compatibility
     def scrape_all_test_stores(self) -> Dict[str, Any]:
         """Backward compatibility method - now scrapes all stores from branch_urls.json"""
-        return self.scrape_all_stores()# Store Name Management (EXISTING - UNCHANGED)
-# ------------------------------------------------------------------------------
+        return self.scrape_all_stores()# ------------------------------------------------------------------------------
 class StoreNameManager:
     """Manages proper store name extraction and caching for GrabFood stores"""
 
@@ -1453,12 +1545,16 @@ def signal_handler(signum, frame):
     logger.info(f"🛑 Received signal {signum}, shutting down...")
     sys.exit(0)
 
+# ==============================================================================
+# ✨ MODIFIED: Main function with smart SKU scraping control
+# ==============================================================================
 def main():
-    """Main entry point - ENHANCED WITH SKU SCRAPING"""
+    """Main entry point - ENHANCED WITH SMART SKU SCRAPING"""
     logger.info("=" * 80)
-    logger.info("🛒 CocoPan GrabFood Monitor - ENHANCED WITH SKU SCRAPING")
+    logger.info("🛒 CocoPan GrabFood Monitor - ENHANCED WITH SMART SKU SCRAPING")
     logger.info("📧 FEATURE: Immediate client emails when stores go offline")
-    logger.info("📦 NEW FEATURE: Daily GrabFood SKU/OOS scraping with fuzzy matching")
+    logger.info("📦 FEATURE: Daily GrabFood SKU/OOS scraping with fuzzy matching")
+    logger.info("✨ NEW: Smart startup control - prevents duplicate scraping")
     logger.info("🎯 Target: Monitor GrabFood stores with instant offline notifications + SKU compliance")
     logger.info("🐼 Foodpanda: Handled by VA hourly check-in system")
     logger.info("✅ FIXED: Hour slot calculation - runs at :45 but saves to NEXT hour")
@@ -1500,16 +1596,20 @@ def main():
             except Exception as e:
                 logger.error(f"❌ Client email test error: {e}")
 
-        # NEW: Test SKU scraping immediately
-        logger.info("🧪 Testing GrabFood SKU scraping system...")
-        try:
-            test_results = sku_scraper.scrape_all_test_stores()
-            if test_results['successful_scrapes'] > 0:
-                logger.info("✅ GrabFood SKU scraping test successful!")
-            else:
-                logger.warning("⚠️ GrabFood SKU scraping test failed - check configuration")
-        except Exception as e:
-            logger.error(f"❌ GrabFood SKU scraping test error: {e}")
+        # ✨ MODIFIED: Smart SKU scraping on startup
+        if should_run_startup_sku_test():
+            logger.info("🧪 Running startup GrabFood SKU scraping test...")
+            try:
+                test_results = sku_scraper.scrape_all_stores()
+                if test_results['successful_scrapes'] > 0:
+                    logger.info("✅ GrabFood SKU scraping test successful!")
+                    logger.info(f"   📊 Scraped {test_results['successful_scrapes']} stores")
+                else:
+                    logger.warning("⚠️ GrabFood SKU scraping test failed - check configuration")
+            except Exception as e:
+                logger.error(f"❌ GrabFood SKU scraping test error: {e}")
+        else:
+            logger.info("⏭️ Skipping startup SKU test (will run at scheduled time or use --test-sku)")
 
         # Scheduler
         if HAS_SCHEDULER:
@@ -1525,10 +1625,16 @@ def main():
                     logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
 
             def daily_sku_scraping_job():
-                """NEW: Daily SKU scraping at 8AM"""
-                logger.info("🛒 Starting daily GrabFood SKU scraping...")
+                """✨ MODIFIED: Daily SKU scraping at 10AM - with duplicate prevention"""
+                logger.info("🛒 Daily scheduled GrabFood SKU scraping triggered...")
+                
+                # Double-check if already ran today (race condition protection)
+                if has_sku_scraping_run_today():
+                    logger.info("⏭️ SKU scraping already completed today - Skipping scheduled run")
+                    return
+                
                 try:
-                    results = sku_scraper.scrape_all_test_stores()
+                    results = sku_scraper.scrape_all_stores()
                     if results['successful_scrapes'] > 0:
                         logger.info(f"✅ Daily SKU scraping completed: {results['successful_scrapes']} stores processed")
                     else:
@@ -1546,7 +1652,7 @@ def main():
                 misfire_grace_time=300
             )
 
-            # NEW: Schedule daily SKU scraping at 10AM
+            # Schedule daily SKU scraping at 10AM
             scheduler.add_job(
                 func=daily_sku_scraping_job,
                 trigger=CronTrigger(hour=10, minute=0, timezone=ph_tz),
@@ -1557,7 +1663,7 @@ def main():
             )
 
             logger.info(f"⏰ Scheduled GrabFood checks at :45 past each hour for client email integration")
-            logger.info(f"⏰ NEW: Scheduled daily GrabFood SKU scraping at 8:00 AM")
+            logger.info(f"⏰ Scheduled daily GrabFood SKU scraping at 10:00 AM")
             logger.info("🔍 Running initial GrabFood check with client alerts...")
 
             try:
@@ -1576,11 +1682,11 @@ def main():
                     if config.is_monitor_time(now_hour):
                         monitor.check_all_grabfood_stores_with_client_alerts()
                         
-                        # NEW: Check if it's 10AM for daily SKU scraping
-                        if now_hour == 10:
+                        # ✨ MODIFIED: Check if it's 10AM and hasn't run today
+                        if now_hour == 10 and not has_sku_scraping_run_today():
                             logger.info("🛒 Starting daily GrabFood SKU scraping...")
                             try:
-                                results = sku_scraper.scrape_all_test_stores()
+                                results = sku_scraper.scrape_all_stores()
                                 logger.info(f"✅ Daily SKU scraping completed: {results['successful_scrapes']} stores processed")
                             except Exception as e:
                                 logger.error(f"❌ Daily SKU scraping error: {e}")
