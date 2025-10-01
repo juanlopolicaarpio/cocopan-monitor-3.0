@@ -405,33 +405,95 @@ class DatabaseManager:
     # ---------- CRUD helpers (writes via psycopg2, reads via SQLAlchemy) ----------
 
     def get_or_create_store(self, name: str, url: str) -> int:
+        """
+        Get or create store - FIXED to prevent duplicates when URLs change
+        
+        Logic:
+        1. Check if URL exists → return that store
+        2. Check if NAME exists → update URL and return that store
+        3. Otherwise → create new store
+        """
         platform = "foodpanda" if "foodpanda" in url else "grabfood"
+        
         for attempt in range(self.max_retries):
             try:
                 with self.get_connection() as conn:
                     cur = conn.cursor()
+                    
+                    # STEP 1: Check if URL already exists
                     if self.db_type == "postgresql":
                         cur.execute("SELECT id FROM stores WHERE url = %s", (url,))
-                        row = cur.fetchone()
-                        if row:
-                            return row[0]
+                    else:
+                        cur.execute("SELECT id FROM stores WHERE url = ?", (url,))
+                    
+                    row = cur.fetchone()
+                    if row:
+                        store_id = row[0] if self.db_type == "postgresql" else row["id"]
+                        return store_id
+                    
+                    # STEP 2: Check if store NAME exists (case-insensitive)
+                    # This handles URL changes for existing stores
+                    if self.db_type == "postgresql":
+                        cur.execute("""
+                            SELECT id, url FROM stores 
+                            WHERE LOWER(TRIM(name)) = LOWER(TRIM(%s))
+                            AND platform = %s
+                        """, (name, platform))
+                    else:
+                        cur.execute("""
+                            SELECT id, url FROM stores 
+                            WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))
+                            AND platform = ?
+                        """, (name, platform))
+                    
+                    row = cur.fetchone()
+                    if row:
+                        # Found existing store with same name - UPDATE the URL
+                        if self.db_type == "postgresql":
+                            store_id = row[0]
+                            old_url = row[1]
+                        else:
+                            store_id = row["id"]
+                            old_url = row["url"]
+                        
+                        if old_url != url:
+                            logger.info(f"📝 Updating URL for {name}: {old_url} → {url}")
+                            
+                            if self.db_type == "postgresql":
+                                cur.execute("""
+                                    UPDATE stores 
+                                    SET url = %s 
+                                    WHERE id = %s
+                                """, (url, store_id))
+                            else:
+                                cur.execute("""
+                                    UPDATE stores 
+                                    SET url = ? 
+                                    WHERE id = ?
+                                """, (url, store_id))
+                            
+                            conn.commit()
+                        
+                        return store_id
+                    
+                    # STEP 3: Create new store (neither URL nor name found)
+                    if self.db_type == "postgresql":
                         cur.execute(
                             "INSERT INTO stores (name, url, platform) VALUES (%s, %s, %s) RETURNING id",
                             (name, url, platform)
                         )
                         store_id = cur.fetchone()[0]
                     else:
-                        cur.execute("SELECT id FROM stores WHERE url = ?", (url,))
-                        row = cur.fetchone()
-                        if row:
-                            return row["id"]
                         cur.execute(
                             "INSERT INTO stores (name, url, platform) VALUES (?, ?, ?)",
                             (name, url, platform)
                         )
                         store_id = cur.lastrowid
+                    
                     conn.commit()
+                    logger.info(f"✨ Created new store: {name} ({platform})")
                     return store_id
+                    
             except Exception as e:
                 logger.error(f"❌ get_or_create_store failed (attempt {attempt+1}): {e}")
                 if attempt < self.max_retries - 1:
