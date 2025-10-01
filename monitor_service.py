@@ -192,6 +192,11 @@ class SKUMapper:
         self.explicit_mappings = self._build_explicit_mappings()
         logger.info(f"📦 SKU Mapper initialized with {len(self.grabfood_skus)} GrabFood products")
         logger.info(f"🎯 {len(self.explicit_mappings)} explicit mappings configured")
+        
+        # Log a few sample explicit mappings for verification
+        sample_mappings = list(self.explicit_mappings.items())[:3]
+        for key, value in sample_mappings:
+            logger.debug(f"   Explicit: '{key}' → {value}")
     
     def _build_explicit_mappings(self) -> Dict[str, str]:
         """
@@ -245,6 +250,21 @@ class SKUMapper:
             # Dark Choco Coffee - map to ICED version (most common)
             "DARK CHOCO COFFEE": "GD034",
             "DARK CHOCOLATE COFFEE": "GD034",
+            
+            # Twistea - map to classic variant
+            "TWISTEA": "GD117",
+            "COCOPAN TWISTEA": "GD117",
+            "TWISTEA CLASSIC": "GD117",
+            
+            # Milky Bun
+            "MILKY BUN": "GB089",
+            
+            # Banana Crunch
+            "BANANA CRUNCH": "GB094",
+            
+            # Choco Loaf (Daily Loaf - Choco)
+            "CHOCO LOAF": "GB098",
+            "CHOCOLATE LOAF": "GB098",
         }
     
     def _normalize_name(self, name: str) -> str:
@@ -285,9 +305,6 @@ class SKUMapper:
         name = re.sub(r'\s*-\s*', ' ', name)  # "K-SALT" -> "K SALT"
         name = re.sub(r'\s+', ' ', name).strip()
         
-        # Remove trailing descriptors that might vary
-        name = re.sub(r'\s+(BREAD|LOAF|SLICE|DRINK|COFFEE)$', '', name)
-        
         return name
     
     def find_sku_for_name(self, scraped_name: str, min_confidence: int = 85) -> Optional[str]:
@@ -298,6 +315,9 @@ class SKUMapper:
             return None
         
         normalized_scraped = self._normalize_name(scraped_name)
+        
+        # Debug logging to see what's happening
+        logger.debug(f"🔍 Looking for: '{scraped_name}' → normalized: '{normalized_scraped}'")
         
         # PRIORITY 1: Check explicit mappings first (100% guaranteed)
         if normalized_scraped in self.explicit_mappings:
@@ -386,8 +406,7 @@ class SKUMapper:
                 unknown_products.append(scraped_name)
                 logger.warning(f"❓ Unknown product: '{scraped_name}'")
         
-        return matched_skus, unknown_products# ------------------------------------------------------------------------------
-# NEW: GrabFood SKU Scraper (based on s.py)
+        return matched_skus, unknown_products# NEW: GrabFood SKU Scraper (based on s.py)
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 # UPDATED: GrabFood SKU Scraper - Load URLs from branch_urls.json

@@ -605,15 +605,15 @@ class DatabaseManager:
                 cur = conn.cursor()
                 if self.db_type == "postgresql":
                     cur.execute("""
-                        SELECT out_of_stock_skus, total_skus_checked, out_of_stock_count, 
-                               compliance_percentage, checked_by, checked_at
+                        SELECT out_of_stock_skus, total_skus_checked, out_of_stock_count,
+                                compliance_percentage, checked_by, checked_at
                         FROM store_sku_checks 
                         WHERE store_id = %s AND platform = %s AND check_date = %s
                     """, (store_id, platform, today))
                 else:
                     cur.execute("""
-                        SELECT out_of_stock_skus, total_skus_checked, out_of_stock_count, 
-                               compliance_percentage, checked_by, checked_at
+                        SELECT out_of_stock_skus, total_skus_checked, out_of_stock_count,
+                                compliance_percentage, checked_by, checked_at
                         FROM store_sku_checks 
                         WHERE store_id = ? AND platform = ? AND check_date = ?
                     """, (store_id, platform, today.isoformat()))
@@ -644,20 +644,63 @@ class DatabaseManager:
             logger.error(f"❌ get_store_sku_status_today failed: {e}")
             return None
 
-    def save_sku_compliance_check(self, store_id: int, platform: str, 
-                                out_of_stock_ids: List[str], checked_by: str) -> bool:
-        """Save complete SKU compliance check"""
+    def save_sku_compliance_check(self, store_id: int, platform: str,
+                                   out_of_stock_ids: List[str], checked_by: str) -> bool:
+        """Save complete SKU compliance check - WITH VALIDATION AND DEDUPLICATION"""
         try:
             today = datetime.now().date()
             
+            # ✅ STEP 1: REMOVE DUPLICATES FIRST
+            original_count = len(out_of_stock_ids)
+            out_of_stock_ids = list(set(out_of_stock_ids))  # Remove duplicates
+            
+            if original_count != len(out_of_stock_ids):
+                logger.warning(
+                    f"⚠️ Store {store_id}: Removed {original_count - len(out_of_stock_ids)} duplicate SKU codes"
+                )
+            
+            # ✅ STEP 2: VALIDATE - Only include SKU codes that exist in master_skus
+            with self.get_connection() as validation_conn:
+                cur = validation_conn.cursor()
+                if self.db_type == "postgresql":
+                    cur.execute("""
+                        SELECT sku_code FROM master_skus 
+                        WHERE sku_code = ANY(%s) AND platform = %s
+                    """, (out_of_stock_ids, platform))
+                else:
+                    # SQLite version
+                    placeholders = ','.join(['?'] * len(out_of_stock_ids))
+                    cur.execute(f"""
+                        SELECT sku_code FROM master_skus 
+                        WHERE sku_code IN ({placeholders}) AND platform = ?
+                    """, (*out_of_stock_ids, platform))
+                
+                # Get only valid SKU codes
+                valid_rows = cur.fetchall()
+                if self.db_type == "postgresql":
+                    valid_sku_codes = [row[0] for row in valid_rows]
+                else:
+                    valid_sku_codes = [row['sku_code'] for row in valid_rows]
+                
+                # Log any invalid SKU codes
+                invalid_skus = set(out_of_stock_ids) - set(valid_sku_codes)
+                if invalid_skus:
+                    logger.warning(
+                        f"⚠️ Store {store_id}: {len(invalid_skus)} SKU codes not found in master_skus: "
+                        f"{list(invalid_skus)}"
+                    )
+            
             # Get total SKUs for this platform
             total_skus = len(self.get_master_skus_by_platform(platform))
-            out_of_stock_count = len(out_of_stock_ids)
+            
+            # ✅ USE VALIDATED COUNT - only count SKUs that actually exist (and are unique)
+            out_of_stock_count = len(valid_sku_codes)
             compliance_pct = ((total_skus - out_of_stock_count) / max(total_skus, 1)) * 100.0
             
             with self.get_connection() as conn:
                 cur = conn.cursor()
                 if self.db_type == "postgresql":
+                    # ✅ Save only valid SKU codes
                     cur.execute("""
                         INSERT INTO store_sku_checks 
                         (store_id, platform, check_date, out_of_stock_skus, total_skus_checked,
@@ -671,8 +714,8 @@ class DatabaseManager:
                             compliance_percentage = EXCLUDED.compliance_percentage,
                             checked_by = EXCLUDED.checked_by,
                             checked_at = CURRENT_TIMESTAMP
-                    """, (store_id, platform, today, out_of_stock_ids, total_skus, 
-                         out_of_stock_count, compliance_pct, checked_by))
+                    """, (store_id, platform, today, valid_sku_codes, total_skus,
+                          out_of_stock_count, compliance_pct, checked_by))
                 else:
                     import json
                     cur.execute("""
@@ -680,15 +723,28 @@ class DatabaseManager:
                         (store_id, platform, check_date, out_of_stock_skus, total_skus_checked,
                          out_of_stock_count, compliance_percentage, checked_by)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (store_id, platform, today.isoformat(), json.dumps(out_of_stock_ids), 
-                         total_skus, out_of_stock_count, compliance_pct, checked_by))
+                    """, (store_id, platform, today.isoformat(), json.dumps(valid_sku_codes),
+                          total_skus, out_of_stock_count, compliance_pct, checked_by))
                 
                 conn.commit()
+                
+                # Log success with validation info
+                if invalid_skus:
+                    logger.info(
+                        f"✅ Saved SKU check for store {store_id}: "
+                        f"{out_of_stock_count} valid OOS items "
+                        f"({len(invalid_skus)} invalid SKUs excluded)"
+                    )
+                else:
+                    logger.info(
+                        f"✅ Saved SKU check for store {store_id}: "
+                        f"{out_of_stock_count} OOS items (all valid)"
+                    )
                 
                 # Update daily summary
                 self._update_daily_sku_summary(platform, today, conn)
                 return True
-                
+            
         except Exception as e:
             logger.error(f"❌ save_sku_compliance_check failed: {e}")
             return False
@@ -753,7 +809,7 @@ class DatabaseManager:
                         SELECT s.id, s.name, s.platform, ssc.compliance_percentage,
                                ssc.out_of_stock_count, ssc.checked_by, ssc.checked_at
                         FROM stores s
-                        LEFT JOIN store_sku_checks ssc ON s.id = ssc.store_id 
+                        LEFT JOIN store_sku_checks ssc ON s.id = ssc.store_id
                             AND ssc.check_date = %s
                             AND s.platform = ssc.platform
                         WHERE s.platform IN ('grabfood', 'foodpanda')
@@ -764,7 +820,7 @@ class DatabaseManager:
                         SELECT s.id, s.name, s.platform, ssc.compliance_percentage,
                                ssc.out_of_stock_count, ssc.checked_by, ssc.checked_at
                         FROM stores s
-                        LEFT JOIN store_sku_checks ssc ON s.id = ssc.store_id 
+                        LEFT JOIN store_sku_checks ssc ON s.id = ssc.store_id
                             AND ssc.check_date = ?
                             AND s.platform = ssc.platform
                         WHERE s.platform IN ('grabfood', 'foodpanda')
@@ -811,15 +867,15 @@ class DatabaseManager:
                            ms.category, ms.division, ssc.checked_by, ssc.checked_at
                     FROM store_sku_checks ssc
                     JOIN stores s ON ssc.store_id = s.id
-                    JOIN master_skus ms ON ms.sku_code = ANY(ssc.out_of_stock_skus) 
+                    JOIN master_skus ms ON ms.sku_code = ANY(ssc.out_of_stock_skus)
                         AND ms.platform = ssc.platform
                     WHERE ssc.check_date = %s
                 """
                 
                 if self.db_type == "postgresql":
                     if store_id:
-                        cur.execute(base_query + " AND s.id = %s ORDER BY s.name, ms.product_name", 
-                                  (today, store_id))
+                        cur.execute(base_query + " AND s.id = %s ORDER BY s.name, ms.product_name",
+                                   (today, store_id))
                     else:
                         cur.execute(base_query + " ORDER BY s.name, ms.product_name", (today,))
                 else:
@@ -1087,11 +1143,11 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cur = conn.cursor()
-
+                
                 # store count
                 cur.execute("SELECT COUNT(*) FROM stores")
                 store_count = cur.fetchone()[0]
-
+                
                 # platform breakdown
                 cur.execute("SELECT platform, COUNT(*) FROM stores GROUP BY platform")
                 rows = cur.fetchall()
@@ -1101,15 +1157,15 @@ class DatabaseManager:
                     key = r[0]
                     val = r[1]
                     platforms[str(key)] = int(val)
-
+                
                 # total checks
                 cur.execute("SELECT COUNT(*) FROM status_checks")
                 total_checks = cur.fetchone()[0]
-
+                
                 # SKU stats
                 cur.execute("SELECT COUNT(*) FROM master_skus")
                 total_skus = cur.fetchone()[0]
-
+                
                 # latest summary (most recent report_time)
                 if self.db_type == "postgresql":
                     cur.execute("""
@@ -1141,7 +1197,7 @@ class DatabaseManager:
                             "online_percentage": ls[3],
                             "report_time": ls[4],
                         }
-
+                
                 return {
                     "store_count": int(store_count),
                     "platforms": platforms,
