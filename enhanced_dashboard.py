@@ -7,7 +7,7 @@ CocoPan Watchtower - CLIENT DASHBOARD (ADAPTIVE THEME + CSV EXPORT)
 ✅ Smooth transitions between themes
 ✅ Fixed Foodpanda display issue with hybrid data sources
 ✅ Enhanced downtime analysis with expandable details
-✅ Added SKU Dashboard redirect button
+✅ Added SKU Dashboard and Store Reviews redirect buttons
 ✅ Removed specific time displays (kept date and Manila Time)
 """
 
@@ -755,7 +755,7 @@ def format_offline_hours(offline_times_array, max_display=5):
         return "—"
 
 # ======================================================================
-#                        CSV EXPORT FUNCTIONS (NEW)
+#                        CSV EXPORT FUNCTIONS
 # ======================================================================
 @st.cache_data(ttl=300)
 def load_export_data(start_date, end_date):
@@ -1342,12 +1342,12 @@ def main():
     if not check_email_authentication():
         return
 
-    # Sidebar user info
+    # Sidebar user info with navigation buttons
     with st.sidebar:
         st.markdown(f"**Logged in as:**\n{st.session_state.client_email}")
         st.markdown("---")
         
-        # Navigation to SKU Dashboard - NEW
+        # Navigation to SKU Dashboard
         st.markdown("""
         <div class="nav-link">
             <a href="https://sku.up.railway.app/" target="_blank">
@@ -1356,11 +1356,26 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Also add as a regular button for better visibility
         if st.button("📊 SKU Dashboard", use_container_width=True):
             st.markdown("""
             <script>
             window.open('https://sku.up.railway.app/', '_blank');
+            </script>
+            """, unsafe_allow_html=True)
+        
+        # Navigation to Store Reviews
+        st.markdown("""
+        <div class="nav-link">
+            <a href="https://store-reviews.up.railway.app/" target="_blank">
+                ⭐ → Store Reviews
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("⭐ Store Reviews", use_container_width=True):
+            st.markdown("""
+            <script>
+            window.open('https://store-reviews.up.railway.app/', '_blank');
             </script>
             """, unsafe_allow_html=True)
         
@@ -1383,14 +1398,16 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # Navigation button in main area for better visibility - NEW
-    col1, col2, col3 = st.columns([1, 2, 1])
+    # Navigation buttons in main area for better visibility
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
         if st.button("📊 → SKU Dashboard", use_container_width=True):
             st.markdown('<meta http-equiv="refresh" content="0; url=https://sku.up.railway.app/">', unsafe_allow_html=True)
             st.info("Redirecting to SKU Dashboard...")
     with col2:
-        pass  # Center space
+        if st.button("⭐ → Store Reviews", use_container_width=True):
+            st.markdown('<meta http-equiv="refresh" content="0; url=https://store-reviews.up.railway.app/">', unsafe_allow_html=True)
+            st.info("Redirecting to Store Reviews Dashboard...")
     with col3:
         pass  # Right space
 

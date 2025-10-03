@@ -34,6 +34,31 @@ st.markdown("""
         display: none;
     }
     
+    /* Navigation link styling */
+    .nav-link {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+    
+    .nav-link:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+    
+    .nav-link a {
+        color: #374151;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
     /* Header */
     .dashboard-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -376,6 +401,31 @@ def show_distribution_chart(ratings_data):
 def main():
     """Main dashboard"""
     
+    # Navigation section at the top
+    st.markdown("""
+    <div style="margin-bottom: 1rem;">
+        <div class="nav-link">
+            <a href="https://cocopanwatchtower.com/" target="_blank">
+                🏢 ← Back to Uptime Dashboard
+            </a>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Button navigation for better visibility
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        if st.button("🏢 ← Back to Uptime Dashboard", use_container_width=True):
+            st.markdown("""
+            <script>
+            window.open('https://cocopanwatchtower.com/', '_blank');
+            </script>
+            """, unsafe_allow_html=True)
+    with col2:
+        pass
+    with col3:
+        pass
+    
     # Header
     st.markdown("""
     <div class="dashboard-header">
@@ -495,19 +545,16 @@ def main():
     except Exception as e:
         st.caption("Data timestamp unavailable")
     
-    # Metrics
-    col1, col2, col3 = st.columns(3)
+    # Metrics - REMOVED Perfect 5.0 and Below 4.0
+    col1, col2 = st.columns(2)
     
     avg_rating = sum(r['rating'] for r in ratings_data) / len(ratings_data)
-    perfect_5 = sum(1 for r in ratings_data if r['rating'] >= 5.0)
-    below_4 = sum(1 for r in ratings_data if r['rating'] < 4.0)
+    total_stores = len(ratings_data)
     
     with col1:
         st.metric("Average Rating", f"{avg_rating:.2f}★")
     with col2:
-        st.metric("Perfect 5.0★", perfect_5)
-    with col3:
-        st.metric("Below 4.0★", below_4)
+        st.metric("Total Stores", total_stores)
     
     st.divider()
     

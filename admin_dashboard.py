@@ -1212,7 +1212,7 @@ def main():
             <div style="background:#E2E8F0; border-radius:8px; height:8px; overflow:hidden; margin:.5rem 0 1rem 0;">
                 <div style="background:linear-gradient(90deg,#10B981,#059669); height:100%; width:{pct:.1f}%"></div>
             </div>
-            <div style="text-align:center; color:#64748B; margin-bottom:1rem;">Progress: {done}/{total} completed</div>
+            <div style="text-align:center;st.sidebar color:#64748B; margin-bottom:1rem;">Progress: {done}/{total} completed</div>
             """, unsafe_allow_html=True)
 
             for idx, row in df.iterrows():
