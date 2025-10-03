@@ -418,11 +418,10 @@ def main():
         with col3:
             sort_filter = st.selectbox(
                 "Sort By",
-                options=['rating_desc', 'rating_asc', 'trend_desc', 'name_asc'],
+                options=['rating_desc', 'rating_asc',  'name_asc'],
                 format_func=lambda x: {
                     'rating_desc': 'Highest Rating',
                     'rating_asc': 'Lowest Rating',
-                    'trend_desc': 'Biggest Gain',
                     'name_asc': 'Name (A-Z)'
                 }[x]
             )
