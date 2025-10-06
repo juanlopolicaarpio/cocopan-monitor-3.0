@@ -595,15 +595,10 @@ def show_distribution_chart(ratings_data):
 def main():
     """Main dashboard"""
     
-    # FIXED: Single navigation button (matching sku.py)
+    # FIXED: Single navigation button using link_button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
-        if st.button("🏢 ← Back to Uptime Dashboard", use_container_width=True):
-            st.markdown("""
-            <script>
-            window.open('https://cocopanwatchtower.com/', '_blank');
-            </script>
-            """, unsafe_allow_html=True)
+        st.link_button("🏢 ← Back to Uptime Dashboard", "https://cocopanwatchtower.com/", use_container_width=True)
     
     # Header
     st.markdown("""
