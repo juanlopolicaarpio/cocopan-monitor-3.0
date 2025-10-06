@@ -468,6 +468,16 @@ st.markdown("""
         background: var(--bg-secondary);
     }
     
+    /* Remove extra Streamlit spacing in store cards */
+    .element-container:has(.store-card) {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    
+    .stMarkdown:has(.store-card) {
+        margin-bottom: 0 !important;
+    }
+    
     /* Force theme-aware styling for dropdowns in dark mode */
     @media (prefers-color-scheme: dark) {
         .stSelectbox > div > div > div {
@@ -714,16 +724,10 @@ def main():
     except Exception as e:
         st.caption("Data timestamp unavailable")
     
-    # Metrics
-    col1, col2 = st.columns(2)
-    
+    # Metrics - REMOVED Total Stores
     avg_rating = sum(r['rating'] for r in ratings_data) / len(ratings_data)
-    total_stores = len(ratings_data)
     
-    with col1:
-        st.metric("Average Rating", f"{avg_rating:.2f}★")
-    with col2:
-        st.metric("Total Stores", total_stores)
+    st.metric("Average Rating", f"{avg_rating:.2f}★")
     
     st.divider()
     
@@ -734,34 +738,27 @@ def main():
         show_distribution_chart(ratings_data)
     
     with col_left:
-        st.markdown(f"### 🏪 {len(ratings_data)} Stores")
+        pass  # Removed store count header
         
-        # Store cards
+        # Store cards - FIXED: Combined into single markdown to prevent white spacing
         for store in ratings_data:
-            st.markdown('<div class="store-card">', unsafe_allow_html=True)
-            
-            # Store header
             st.markdown(f"""
-            <div class="store-header">
-                {get_rank_badge(store['rank'])}
-                <div class="store-name">{store['store_name']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Store footer
-            st.markdown(f"""
-            <div class="store-footer">
-                <div>
-                    {get_platform_badge(store['platform'])}
+            <div class="store-card">
+                <div class="store-header">
+                    {get_rank_badge(store['rank'])}
+                    <div class="store-name">{store['store_name']}</div>
                 </div>
-                <div style="display: flex; gap: 0.75rem; align-items: center;">
-                    {get_star_display(store['rating'])}
-                    {get_trend_badge(store['trend'], store['trend_value'])}
+                <div class="store-footer">
+                    <div>
+                        {get_platform_badge(store['platform'])}
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        {get_star_display(store['rating'])}
+                        {get_trend_badge(store['trend'], store['trend_value'])}
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
