@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CocoPan Store Ratings Dashboard - Mobile-Friendly Redesign
-Clean, modern layout optimized for all screen sizes
+Clean, modern layout optimized for all screen sizes with adaptive dark/light mode
 """
 import streamlit as st
 import pandas as pd
@@ -19,9 +19,64 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS - Mobile-First Design
+# Custom CSS - UPDATED WITH ADAPTIVE THEME (MATCHING sku.py)
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Hide Streamlit branding */
+    #MainMenu, footer, .stDeployButton, header {visibility: hidden;}
+    
+    /* CSS Variables for theme switching - SAME AS sku.py */
+    :root {
+        --bg-primary: #F8FAFC;
+        --bg-secondary: #FFFFFF;
+        --bg-tertiary: #F1F5F9;
+        --text-primary: #1E293B;
+        --text-secondary: #64748B;
+        --text-muted: #94A3B8;
+        --border-color: #E2E8F0;
+        --border-hover: #CBD5E1;
+        --shadow-light: rgba(0,0,0,0.04);
+        --shadow-medium: rgba(0,0,0,0.08);
+        --shadow-strong: rgba(0,0,0,0.12);
+        --success-bg: #F0FDF4;
+        --success-border: #BBF7D0;
+        --success-text: #166534;
+        --error-bg: #FEF2F2;
+        --error-border: #FECACA;
+        --error-text: #DC2626;
+        --info-bg: #EFF6FF;
+        --info-border: #BFDBFE;
+        --info-text: #1D4ED8;
+    }
+    
+    /* Dark mode variables - SAME AS sku.py */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg-primary: #0F172A;
+            --bg-secondary: #1E293B;
+            --bg-tertiary: #334155;
+            --text-primary: #F1F5F9;
+            --text-secondary: #E2E8F0;
+            --text-muted: #94A3B8;
+            --border-color: #334155;
+            --border-hover: #475569;
+            --shadow-light: rgba(0,0,0,0.2);
+            --shadow-medium: rgba(0,0,0,0.3);
+            --shadow-strong: rgba(0,0,0,0.4);
+            --success-bg: #065F46;
+            --success-border: #047857;
+            --success-text: #A7F3D0;
+            --error-bg: #7F1D1D;
+            --error-border: #991B1B;
+            --error-text: #FECACA;
+            --info-bg: #1E3A8A;
+            --info-border: #1D4ED8;
+            --info-text: #BFDBFE;
+        }
+    }
+    
     /* Global resets */
     .block-container {
         padding-top: 3rem;
@@ -29,44 +84,52 @@ st.markdown("""
         max-width: 100%;
     }
     
+    /* Main layout - ADAPTIVE */
+    .main { 
+        font-family: 'Inter', sans-serif; 
+        background: var(--bg-primary);
+        color: var(--text-primary); 
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
     /* Hide sidebar */
     [data-testid="stSidebar"] {
         display: none;
     }
     
-    /* Navigation link styling */
+    /* Navigation link styling - ADAPTIVE */
     .nav-link {
-        background: white;
-        border: 1px solid #e5e7eb;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 0.75rem;
         margin-bottom: 0.75rem;
         text-align: center;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
     }
     
     .nav-link:hover {
-        background: #f9fafb;
-        border-color: #d1d5db;
+        background: var(--bg-tertiary);
+        border-color: var(--border-hover);
         transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        box-shadow: 0 2px 4px var(--shadow-light);
     }
     
     .nav-link a {
-        color: #374151;
+        color: var(--text-primary);
         text-decoration: none;
         font-weight: 500;
         font-size: 0.9rem;
     }
     
-    /* Header */
+    /* Header - Gradient stays the same but with better contrast */
     .dashboard-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         padding: 2rem 1.5rem;
         border-radius: 12px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px var(--shadow-medium);
     }
     
     .dashboard-title {
@@ -76,49 +139,72 @@ st.markdown("""
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        color: white !important;
     }
     
     .last-updated {
         font-size: 0.9rem;
         opacity: 0.9;
         margin-top: 0.5rem;
+        color: rgba(255, 255, 255, 0.9);
     }
     
-    /* Filter section */
+    /* Filter section - ADAPTIVE */
     .filter-container {
-        background: white;
+        background: var(--bg-secondary);
         padding: 1.5rem;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px var(--shadow-medium);
         margin-bottom: 1.5rem;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
     }
     
-    /* Metrics */
+    /* Metrics - ADAPTIVE */
     div[data-testid="stMetricValue"] {
         font-size: 1.8rem;
         font-weight: 700;
+        color: var(--text-primary);
     }
     
     div[data-testid="stMetricLabel"] {
         font-size: 0.9rem;
         font-weight: 500;
-        color: #64748b;
+        color: var(--text-muted);
     }
     
-    /* Store cards */
+    [data-testid="metric-container"] { 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 12px; 
+        padding: 1.25rem 1rem; 
+        box-shadow: 0 2px 4px var(--shadow-light); 
+        text-align: center; 
+        transition: all 0.3s ease; 
+    }
+    
+    [data-testid="metric-container"]:hover { 
+        box-shadow: 0 4px 6px -1px var(--shadow-medium); 
+        transform: translateY(-1px);
+        border-color: var(--border-hover);
+    }
+    
+    /* Store cards - ADAPTIVE */
     .store-card {
-        background: white;
+        background: var(--bg-secondary);
         padding: 1.25rem;
         border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        box-shadow: 0 2px 4px var(--shadow-light);
         margin-bottom: 1rem;
         transition: all 0.2s ease;
         border-left: 4px solid transparent;
+        border: 1px solid var(--border-color);
     }
     
     .store-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 12px var(--shadow-medium);
         transform: translateY(-2px);
+        border-color: var(--border-hover);
     }
     
     .store-header {
@@ -132,7 +218,7 @@ st.markdown("""
     .store-name {
         font-size: 1.1rem;
         font-weight: 700;
-        color: #1e293b;
+        color: var(--text-primary);
         flex: 1;
         min-width: 200px;
     }
@@ -167,7 +253,7 @@ st.markdown("""
     .rating-good { color: #f59e0b; }
     .rating-fair { color: #ef4444; }
     
-    /* Badges */
+    /* Badges - ADAPTIVE */
     .badge {
         display: inline-flex;
         align-items: center;
@@ -188,6 +274,19 @@ st.markdown("""
         color: #be185d;
     }
     
+    /* Dark mode badge adjustments */
+    @media (prefers-color-scheme: dark) {
+        .platform-grabfood {
+            background: #065F46;
+            color: #A7F3D0;
+        }
+        
+        .platform-foodpanda {
+            background: #831843;
+            color: #FBCFE8;
+        }
+    }
+    
     .trend-badge {
         padding: 0.25rem 0.6rem;
         border-radius: 12px;
@@ -206,8 +305,21 @@ st.markdown("""
     }
     
     .trend-stable {
-        background: #f3f4f6;
-        color: #6b7280;
+        background: var(--bg-tertiary);
+        color: var(--text-muted);
+    }
+    
+    /* Dark mode trend adjustments */
+    @media (prefers-color-scheme: dark) {
+        .trend-up {
+            background: #065F46;
+            color: #A7F3D0;
+        }
+        
+        .trend-down {
+            background: #7F1D1D;
+            color: #FECACA;
+        }
     }
     
     /* Rank badge */
@@ -226,9 +338,13 @@ st.markdown("""
     .rank-1 { background: #fbbf24; color: #78350f; }
     .rank-2 { background: #94a3b8; color: white; }
     .rank-3 { background: #fb923c; color: white; }
-    .rank-other { background: #e5e7eb; color: #374151; }
+    .rank-other { 
+        background: var(--bg-tertiary); 
+        color: var(--text-primary);
+        border: 2px solid var(--border-color);
+    }
     
-    /* Distribution chart */
+    /* Distribution chart - ADAPTIVE */
     .dist-row {
         display: flex;
         align-items: center;
@@ -239,13 +355,13 @@ st.markdown("""
     .dist-label {
         font-weight: 600;
         width: 40px;
-        color: #475569;
+        color: var(--text-secondary);
     }
     
     .dist-bar-container {
         flex: 1;
         height: 24px;
-        background: #f1f5f9;
+        background: var(--bg-tertiary);
         border-radius: 12px;
         overflow: hidden;
     }
@@ -258,14 +374,58 @@ st.markdown("""
     
     .dist-count {
         font-weight: 600;
-        color: #475569;
+        color: var(--text-secondary);
         white-space: nowrap;
         min-width: 80px;
         text-align: right;
     }
     
+    /* Section headers - ADAPTIVE */
+    h3 {
+        color: var(--text-primary) !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Captions - ADAPTIVE */
+    .stCaptionContainer, .stCaption {
+        color: var(--text-muted) !important;
+    }
+    
+    /* Input fields - ADAPTIVE */
+    .stSelectbox > div > div {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .stSelectbox label {
+        color: var(--text-primary) !important;
+    }
+    
+    /* Button styling - ADAPTIVE */
+    .stButton > button {
+        background: #667eea;
+        border: 1px solid #5a67d8;
+        color: white;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background: #5a67d8;
+        border-color: #4c51bf;
+        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
+    
     /* Mobile responsiveness */
     @media (max-width: 768px) {
+        .main {
+            padding: 1rem;
+        }
+        
         .dashboard-title {
             font-size: 1.5rem;
         }
@@ -301,16 +461,40 @@ st.markdown("""
         }
     }
     
-    /* Streamlit specific adjustments */
-    .stSelectbox > div > div {
-        border-radius: 8px;
-    }
-    
+    /* Streamlit specific adjustments - ADAPTIVE */
     .stExpander {
         border: none;
         box-shadow: none;
+        background: var(--bg-secondary);
+    }
+    
+    /* Force theme-aware styling for dropdowns in dark mode */
+    @media (prefers-color-scheme: dark) {
+        .stSelectbox > div > div > div {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+    }
+    
+    /* Smooth transitions for theme changes */
+    * {
+        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     }
 </style>
+
+<script>
+// Detect theme preference and add class to body - SAME AS sku.py
+(function() {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.add(prefersDark ? 'theme-dark' : 'theme-light');
+    
+    // Listen for theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        document.body.classList.remove('theme-dark', 'theme-light');
+        document.body.classList.add(e.matches ? 'theme-dark' : 'theme-light');
+    });
+})();
+</script>
 """, unsafe_allow_html=True)
 
 
@@ -401,18 +585,7 @@ def show_distribution_chart(ratings_data):
 def main():
     """Main dashboard"""
     
-    # Navigation section at the top
-    st.markdown("""
-    <div style="margin-bottom: 1rem;">
-        <div class="nav-link">
-            <a href="https://cocopanwatchtower.com/" target="_blank">
-                🏢 ← Back to Uptime Dashboard
-            </a>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Button navigation for better visibility
+    # FIXED: Single navigation button (matching sku.py)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
         if st.button("🏢 ← Back to Uptime Dashboard", use_container_width=True):
@@ -421,10 +594,6 @@ def main():
             window.open('https://cocopanwatchtower.com/', '_blank');
             </script>
             """, unsafe_allow_html=True)
-    with col2:
-        pass
-    with col3:
-        pass
     
     # Header
     st.markdown("""
@@ -545,7 +714,7 @@ def main():
     except Exception as e:
         st.caption("Data timestamp unavailable")
     
-    # Metrics - REMOVED Perfect 5.0 and Below 4.0
+    # Metrics
     col1, col2 = st.columns(2)
     
     avg_rating = sum(r['rating'] for r in ratings_data) / len(ratings_data)
