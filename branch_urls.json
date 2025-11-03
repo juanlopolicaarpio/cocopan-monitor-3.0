@@ -1,6 +1,5 @@
 {
   "urls": [
-    "https://food.grab.com/ph/en/restaurant/cocopan-susano-road-novaliches-delivery/2-C6MEHBN2EX51EA",
     "https://food.grab.com/ph/en/restaurant/cocopan-evangelista-delivery/2-C7K2LTJDNE2VAE",
     "https://food.grab.com/ph/en/restaurant/cocopan-ortigas-delivery/2-C7KXCKNHG2JJGA",
 
@@ -73,6 +72,8 @@
     "https://food.grab.com/ph/en/restaurant/cocopan-polo-m-h-del-pilar-delivery/2-C66BHCDEKF6YUE",
     "https://food.grab.com/ph/en/restaurant/cocopan-grace-park-delivery/2-C7LDVGEVEPDTGN",
     "https://food.grab.com/ph/en/restaurant/cocopan-dela-paz-delivery/2-C7NVEBVAEJVYEX",
+    "https://food.grab.com/ph/en/restaurant/cocopan-san-isidro-delivery/2-C7K2PCAZAXNXEA?sourceID=20251022_150248_40991888FC774198AB3FD8CB0B476FAF_MEXMPS&nameSlug=online-delivery&id=2-C7K2PCAZAXNXEA",
+    "https://food.grab.com/ph/en/restaurant/cocopan-blumentritt-delivery/2-C7NVEBU3RRAHV6?sourceID=20251022_150557_40991888FC774198AB3FD8CB0B476FAF_MEXMPS&nameSlug=online-delivery&id=2-C7NVEBU3RRAHV6",
     "https://www.foodpanda.ph/restaurant/m90j/cocopan-aglipay",
     "https://www.foodpanda.ph/restaurant/bnn1/cocopan-anonas",
     "https://www.foodpanda.ph/restaurant/i51s/cocopan-altura",
@@ -148,6 +149,9 @@
     "https://www.foodpanda.ph/restaurant/jaxy/cocopan-polo-valenzuela",
     "https://www.foodpanda.ph/restaurant/wtd9/cocopan-pacita-complex",
     "https://www.foodpanda.ph/restaurant/dgir/cocopan-almeda-sto-rosario"
+  ],
+  "disabled_urls": [
+    "https://food.grab.com/ph/en/restaurant/cocopan-susano-road-novaliches-delivery/2-C6MEHBN2EX51EA"
   ],
   "meta": {
     "total_stores": 144,

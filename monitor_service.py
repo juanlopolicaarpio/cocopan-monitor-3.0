@@ -23,6 +23,8 @@ from typing import List, Dict, Any, Optional, Set, Tuple
 from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import urlparse
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 import pytz
 import requests
@@ -192,73 +194,331 @@ def extract_grabfood_merchant_id(url: str) -> Optional[str]:
         logger.debug(f"Error extracting merchant ID: {e}")
         return None
 
+# ==============================================================================
+# ✨ ENHANCED: GrabFood API Helper Function with DETAILED LOGGING
+# ==============================================================================
+
 def fetch_grabfood_api_data(merchant_id: str, referer_url: str, user_agents: List[str], 
                             ph_latlng: str = "14.5995,120.9842", 
                             max_retries: int = 3) -> Optional[Dict[str, Any]]:
     """
-    ✨ NEW FUNCTION
-    Fetch store data from GrabFood API endpoints
-    Returns JSON data if successful, None otherwise
+    ✨ ENHANCED: Fetch store data from GrabFood API endpoints
+    🆕 Added comprehensive logging to debug blocking issues
     """
     
+    # 🆕 ADD: Log function entry
+    logger.info(f"")
+    logger.info(f"{'─'*60}")
+    logger.info(f"🌐 API REQUEST START")
+    logger.info(f"{'─'*60}")
+    logger.info(f"  Merchant ID: {merchant_id}")
+    logger.info(f"  Location: {ph_latlng}")
+    logger.debug(f"  Referer: {referer_url}")
+    logger.debug(f"  Max retries: {max_retries}")
+    
+    # API endpoints to try
     api_urls = [
         f"https://portal.grab.com/foodweb/v2/restaurant?merchantCode={merchant_id}&latlng={ph_latlng}",
         f"https://portal.grab.com/foodweb/v2/merchants/{merchant_id}?latlng={ph_latlng}"
     ]
     
-    session = requests.Session()
+    # Randomize user agent
+    selected_ua = random.choice(user_agents)
+    logger.debug(f"  User-Agent: {selected_ua[:80]}...")
     
-    for api_url in api_urls:
+    # Build headers
+    headers = {
+        "User-Agent": selected_ua,
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-PH,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Origin": "https://food.grab.com",
+        "Referer": referer_url,
+        "Connection": "keep-alive",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+    }
+    
+    logger.debug(f"  Request headers: {len(headers)} headers set")
+    
+    # Try each API endpoint
+    for endpoint_idx, api_url in enumerate(api_urls, 1):
+        logger.info(f"")
+        logger.info(f"  📡 Endpoint #{endpoint_idx}/{len(api_urls)}")
+        logger.debug(f"     URL: {api_url}")
+        
+        # Retry logic for each endpoint
         for attempt in range(1, max_retries + 1):
             try:
-                headers = {
-                    'User-Agent': random.choice(user_agents),
-                    'Accept': 'application/json, text/plain, */*',
-                    'Accept-Language': 'en-PH,en;q=0.9',
-                    'Origin': 'https://food.grab.com',
-                    'Referer': referer_url,
-                    'Connection': 'keep-alive',
-                }
+                logger.info(f"     Attempt {attempt}/{max_retries}...")
                 
-                # Small delay to avoid rate limiting
-                time.sleep(random.uniform(0.5, 1.5))
+                # Pre-request delay (anti-detection)
+                if attempt > 1:
+                    delay = min(3.0 * attempt, 10)
+                    logger.debug(f"     Waiting {delay:.1f}s before retry...")
+                    time.sleep(delay)
                 
+                # 🆕 ADD: Log right before making request
+                request_start = time.time()
+                logger.debug(f"     Making HTTP GET request...")
+                
+                # Make the request with SSL handling
                 try:
-                    resp = session.get(api_url, headers=headers, timeout=15)
+                    response = requests.get(
+                        api_url,
+                        headers=headers,
+                        timeout=15,
+                        verify=True
+                    )
                 except requests.exceptions.SSLError:
-                    resp = session.get(api_url, headers=headers, timeout=15, verify=False)
+                    logger.warning(f"     ⚠️ SSL Error - retrying without verification")
+                    response = requests.get(
+                        api_url,
+                        headers=headers,
+                        timeout=15,
+                        verify=False
+                    )
                 
-                if resp.status_code == 200:
-                    try:
-                        return resp.json()
-                    except json.JSONDecodeError:
-                        logger.debug(f"Non-JSON response from API: {api_url}")
+                request_time = time.time() - request_start
+                
+                # 🆕 ADD: Detailed response logging
+                logger.info(f"     📥 Response received in {request_time:.2f}s")
+                logger.info(f"     Status: {response.status_code} {response.reason}")
+                logger.debug(f"     Content-Length: {len(response.content)} bytes")
+                logger.debug(f"     Content-Type: {response.headers.get('content-type', 'unknown')}")
+                
+                # 🆕 ADD: Log important response headers for debugging
+                important_headers = [
+                    'cf-ray', 'cf-cache-status', 'x-ratelimit-limit', 
+                    'x-ratelimit-remaining', 'x-ratelimit-reset',
+                    'server', 'x-powered-by'
+                ]
+                for header in important_headers:
+                    if header in response.headers:
+                        logger.debug(f"     {header}: {response.headers[header]}")
+                
+                # Check for blocking/rate limiting
+                if response.status_code == 403:
+                    logger.warning(f"     🚫 BLOCKED (403 Forbidden)")
+                    logger.warning(f"        Possible bot detection or IP ban")
+                    logger.debug(f"        Response preview: {response.text[:200]}")
+                    
+                    if 'cloudflare' in response.text.lower() or 'cf-ray' in response.headers:
+                        logger.warning(f"        Cloudflare protection detected!")
+                    
+                    if attempt < max_retries:
+                        logger.info(f"        Will retry with different UA/delay...")
+                        # Rotate user agent on 403
+                        selected_ua = random.choice(user_agents)
+                        headers["User-Agent"] = selected_ua
                         continue
-                        
-                elif resp.status_code >= 500 and attempt < max_retries:
-                    # Server error, retry with backoff
-                    time.sleep(2.0 * attempt)
-                    continue
-                    
-                elif resp.status_code == 403 and attempt < max_retries:
-                    # Forbidden, wait and retry
-                    time.sleep(random.uniform(2, 4))
-                    continue
-                    
-            except requests.exceptions.Timeout:
-                if attempt == max_retries:
-                    logger.debug(f"API timeout after {max_retries} attempts: {api_url}")
-                    break
-                time.sleep(2.0 * attempt)
+                    else:
+                        logger.error(f"        Max retries reached for endpoint #{endpoint_idx}")
+                        continue  # Try next endpoint
                 
-            except Exception as e:
-                logger.debug(f"API request error (attempt {attempt}): {e}")
-                if attempt == max_retries:
+                elif response.status_code == 429:
+                    logger.warning(f"     ⏱️ RATE LIMITED (429 Too Many Requests)")
+                    
+                    # Check for rate limit headers
+                    retry_after = response.headers.get('retry-after')
+                    if retry_after:
+                        logger.warning(f"        Retry-After: {retry_after}s")
+                    
+                    rate_remaining = response.headers.get('x-ratelimit-remaining')
+                    if rate_remaining:
+                        logger.warning(f"        Rate limit remaining: {rate_remaining}")
+                    
+                    if attempt < max_retries:
+                        delay = int(retry_after) if retry_after else 30
+                        logger.info(f"        Waiting {delay}s before retry...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"        Max retries reached for endpoint #{endpoint_idx}")
+                        continue  # Try next endpoint
+                
+                elif response.status_code == 404:
+                    logger.warning(f"     ❌ NOT FOUND (404)")
+                    logger.warning(f"        Merchant {merchant_id} may not exist or URL is wrong")
+                    # Don't retry on 404, try next endpoint immediately
                     break
-                time.sleep(2.0 * attempt)
+                
+                elif response.status_code >= 500:
+                    logger.error(f"     💥 SERVER ERROR ({response.status_code})")
+                    logger.error(f"        GrabFood server issue")
+                    if attempt < max_retries:
+                        logger.info(f"        Will retry...")
+                        continue
+                    else:
+                        logger.error(f"        Max retries reached for endpoint #{endpoint_idx}")
+                        continue  # Try next endpoint
+                
+                elif response.status_code == 200:
+                    logger.info(f"     ✅ SUCCESS (200 OK)")
+                    
+                    # Try to parse JSON
+                    try:
+                        json_data = response.json()
+                        
+                        # 🆕 ADD: Validate JSON structure
+                        if not isinstance(json_data, dict):
+                            logger.warning(f"     ⚠️ Response is not a JSON object")
+                            logger.debug(f"     Response type: {type(json_data)}")
+                            if attempt < max_retries:
+                                continue
+                            else:
+                                break
+                        
+                        # Log JSON structure
+                        logger.debug(f"     JSON keys: {list(json_data.keys())[:10]}")
+                        
+                        # Check if response contains data
+                        if not json_data:
+                            logger.warning(f"     ⚠️ Empty JSON response")
+                            if attempt < max_retries:
+                                continue
+                            else:
+                                break
+                        
+                        logger.info(f"     ✅ Valid JSON data received")
+                        logger.info(f"{'─'*60}")
+                        logger.info(f"✅ API REQUEST SUCCESS (endpoint #{endpoint_idx})")
+                        logger.info(f"{'─'*60}")
+                        return json_data
+                    
+                    except json.JSONDecodeError as e:
+                        logger.error(f"     ❌ JSON DECODE ERROR: {e}")
+                        logger.debug(f"     Response preview: {response.text[:300]}")
+                        if attempt < max_retries:
+                            continue
+                        else:
+                            break
+                
+                else:
+                    logger.warning(f"     ⚠️ UNEXPECTED STATUS: {response.status_code}")
+                    logger.debug(f"     Response preview: {response.text[:200]}")
+                    if attempt < max_retries:
+                        continue
+                    else:
+                        break
+            
+            except requests.exceptions.Timeout:
+                logger.error(f"     ⏱️ TIMEOUT after 15s")
+                if attempt < max_retries:
+                    logger.info(f"        Will retry...")
+                    continue
+                else:
+                    logger.error(f"        Max retries reached for endpoint #{endpoint_idx}")
+                    break
+            
+            except requests.exceptions.ConnectionError as e:
+                logger.error(f"     🔌 CONNECTION ERROR")
+                logger.error(f"        {type(e).__name__}: {str(e)[:100]}")
+                if attempt < max_retries:
+                    logger.info(f"        Will retry...")
+                    continue
+                else:
+                    logger.error(f"        Max retries reached for endpoint #{endpoint_idx}")
+                    break
+            
+            except Exception as e:
+                logger.error(f"     💥 UNEXPECTED ERROR")
+                logger.error(f"        {type(e).__name__}: {str(e)[:150]}")
+                if attempt < max_retries:
+                    logger.info(f"        Will retry...")
+                    continue
+                else:
+                    logger.error(f"        Max retries reached for endpoint #{endpoint_idx}")
+                    break
+        
+        # If we got here, all retries failed for this endpoint
+        logger.warning(f"  ❌ Endpoint #{endpoint_idx} failed after {max_retries} attempts")
+        logger.info(f"     Trying next endpoint...")
+    
+    # All endpoints failed
+    logger.error(f"")
+    logger.error(f"{'─'*60}")
+    logger.error(f"❌ API REQUEST FAILED")
+    logger.error(f"{'─'*60}")
+    logger.error(f"  All {len(api_urls)} endpoints exhausted")
+    logger.error(f"  Merchant ID: {merchant_id}")
+    logger.error(f"  This may indicate:")
+    logger.error(f"    • IP is blocked/rate limited")
+    logger.error(f"    • Merchant ID is invalid")
+    logger.error(f"    • GrabFood API is down")
+    logger.error(f"    • Cloudflare protection is active")
+    logger.error(f"{'─'*60}")
     
     return None
 
+
+def extract_status_from_api_json(json_data: Dict[str, Any]) -> Tuple[Optional[str], Optional[float], Optional[int]]:
+    """
+    ✨ ENHANCED: Extract status from GrabFood API JSON response
+    🆕 Added logging for debugging
+    Returns: (status, rating, vote_count)
+    """
+    
+    logger.debug(f"🔍 Extracting status from API response...")
+    
+    if not json_data or not isinstance(json_data, dict):
+        logger.warning(f"  ⚠️ Invalid or empty JSON data")
+        return None, None, None
+    
+    # Try different possible locations for status field
+    status = None
+    rating = None
+    vote_count = None
+    
+    # Pattern 1: Top-level status
+    if 'status' in json_data:
+        status = json_data.get('status')
+        logger.debug(f"  Found status at top level: {status}")
+    
+    # Pattern 2: merchant.status
+    if not status and 'merchant' in json_data:
+        merchant = json_data.get('merchant', {})
+        if isinstance(merchant, dict):
+            status = merchant.get('status')
+            if status:
+                logger.debug(f"  Found status in merchant object: {status}")
+            
+            # Also extract rating info if available
+            rating = merchant.get('rating')
+            vote_count = merchant.get('voteCount') or merchant.get('vote_count')
+    
+    # Pattern 3: data.merchant.status
+    if not status and 'data' in json_data:
+        data = json_data.get('data', {})
+        if isinstance(data, dict) and 'merchant' in data:
+            merchant = data.get('merchant', {})
+            if isinstance(merchant, dict):
+                status = merchant.get('status')
+                if status:
+                    logger.debug(f"  Found status in data.merchant: {status}")
+                
+                rating = merchant.get('rating')
+                vote_count = merchant.get('voteCount') or merchant.get('vote_count')
+    
+    # Pattern 4: restaurant.status (alternative field name)
+    if not status:
+        for key in ['restaurant', 'store', 'shop']:
+            if key in json_data:
+                obj = json_data.get(key, {})
+                if isinstance(obj, dict):
+                    status = obj.get('status')
+                    if status:
+                        logger.debug(f"  Found status in {key} object: {status}")
+                        break
+    
+    if not status:
+        logger.warning(f"  ⚠️ Could not find status field in response")
+        logger.debug(f"  Available top-level keys: {list(json_data.keys())[:10]}")
+    else:
+        logger.debug(f"  ✅ Extracted: status={status}, rating={rating}, votes={vote_count}")
+    
+    return status, rating, vote_count
 def extract_status_from_api_json(json_data: Dict[str, Any]) -> Tuple[Optional[str], Optional[float], Optional[int]]:
     """
     ✨ NEW FUNCTION
@@ -1172,25 +1432,27 @@ class StoreNameManager:
 # ------------------------------------------------------------------------------
 # Enhanced GrabFood Monitor with Client Email Integration (EXISTING - UNCHANGED)
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Enhanced GrabFood Monitor with Selenium Scraping
+# ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+# Enhanced GrabFood Monitor with Selenium Scraping
+# ------------------------------------------------------------------------------
 class GrabFoodMonitor:
-    """GrabFood monitor with immediate client email alerts when stores go offline"""
+    """GrabFood monitor using Selenium scraping with immediate client email alerts"""
 
     def __init__(self):
         self.store_urls = self._load_grabfood_urls()
         self.name_manager = StoreNameManager()
         self.timezone = config.get_timezone()
         self.stats = {}
-        self.previous_offline_stores = set()  # Track state changes
-        self.ph_latlng = "14.5995,120.9842"  # ✨ NEW: Manila coordinates for API calls
+        self.previous_offline_stores = set()
+        self.driver: Optional[webdriver.Chrome] = None
+        
+        # Setup Selenium WebDriver
+        self._setup_driver()
 
-        # User agents for rotation
-        self.user_agents = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        ]
-
-        logger.info(f"🛒 GrabFood Monitor initialized (API-based checking)")
+        logger.info(f"🛒 GrabFood Monitor initialized (Selenium-based checking)")
         logger.info(f"   📋 {len(self.store_urls)} GrabFood stores to monitor")
 
         if HAS_ADMIN_ALERTS:
@@ -1199,6 +1461,33 @@ class GrabFoodMonitor:
             logger.info(f"   📬 Client alerts enabled (immediate offline notifications)")
         else:
             logger.warning(f"   ⚠️ Client alerts NOT available - offline notifications disabled")
+
+    def _setup_driver(self):
+        """Setup Chrome WebDriver for Selenium scraping"""
+        chrome_options = Options()
+        chrome_options.add_argument('--headless=new')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_argument('--window-size=1920,1080')
+
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
+        chrome_options.add_argument(f'user-agent={random.choice(user_agents)}')
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+
+        try:
+            self.driver = webdriver.Chrome(options=chrome_options)
+            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            logger.info("✓ Chrome WebDriver ready")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize Chrome WebDriver: {e}")
+            logger.error("   Make sure Chrome and chromedriver are installed!")
+            raise
 
     def _load_grabfood_urls(self):
         """Load ONLY GrabFood URLs from branch_urls.json"""
@@ -1221,124 +1510,290 @@ class GrabFoodMonitor:
             logger.error(f"Failed to load URLs: {e}")
             return []
     
+    def _log_html_content(self, url: str, title: str, visible_text: str, html_length: int):
+        """
+        ✨ NEW: Log HTML content for debugging
+        Shows what we're actually seeing in the page
+        """
+        logger.info(f"   📄 HTML Content Analysis:")
+        logger.info(f"      URL: {url}")
+        logger.info(f"      Page Title: '{title}'")
+        logger.info(f"      HTML Length: {html_length} bytes")
+        logger.info(f"      Visible Text Length: {len(visible_text)} chars")
+        logger.info(f"   📝 First 800 chars of visible text:")
+        logger.info(f"      {'-'*60}")
+        # Show first 800 chars, with line breaks preserved
+        preview = visible_text[:800].strip()
+        for line in preview.split('\n')[:20]:  # Show max 20 lines
+            if line.strip():
+                logger.info(f"      {line.strip()[:100]}")
+        logger.info(f"      {'-'*60}")
+
+    def _check_for_closed_keywords(self, title_lower: str, visible_lower: str) -> Tuple[bool, Optional[str]]:
+        """
+        ✨ UPDATED: Combined check for ALL closed/terminated/offline keywords
+        Returns: (is_closed, keyword_found)
+        """
+        # ALL keywords that indicate store is closed/terminated/offline
+        closed_keywords = [
+            'closed',
+            'currently closed',
+            'temporarily closed',
+            'terminated',
+            'permanently closed',
+            'closed permanently',
+            'no longer available',
+            'not available anymore',
+            'store has closed',
+            'not available',
+            'unavailable',
+            'not accepting orders',
+            'offline',
+            'store is closed',
+            'temporarily unavailable'
+        ]
+        
+        # Check in title first
+        for keyword in closed_keywords:
+            if keyword in title_lower:
+                logger.info(f"   🔍 Found '{keyword}' in TITLE → Store is CLOSED")
+                return True, keyword
+        
+        # Check in first 1000 chars of visible text
+        first_1000 = visible_lower[:1000]
+        for keyword in closed_keywords:
+            if keyword in first_1000:
+                logger.info(f"   🔍 Found '{keyword}' in visible text → Store is CLOSED")
+                return True, keyword
+        
+        # No closed keywords found
+        logger.info(f"   🔍 NO closed keywords found → Store appears OPEN")
+        return False, None
+
+    def _is_error_page(self, title_lower: str, visible_lower: str, html: str) -> bool:
+        """Check if page is an error page or blocked"""
+        error_indicators = [
+            ('oops' in title_lower and 'something went wrong' in title_lower),
+            ('404' in title_lower or 'not found' in title_lower),
+            ('403' in title_lower or 'forbidden' in title_lower),
+            ('401' in title_lower or 'unauthorized' in title_lower),
+            ('cloudflare' in html.lower() and 'checking your browser' in html.lower()),
+            ('access denied' in visible_lower and len(visible_lower) < 500)
+        ]
+        
+        if any(error_indicators):
+            logger.info(f"   ⚠️ Error page detected in HTML")
+            return True
+        return False
+
+    def _check_next_data(self, soup: BeautifulSoup, store_name: str, url: str, response_time: int) -> Optional[CheckResult]:
+        """Extract status from __NEXT_DATA__ JSON"""
+        try:
+            next_data = soup.find('script', {'id': '__NEXT_DATA__'})
+            if not next_data or not next_data.string:
+                logger.debug(f"   📊 __NEXT_DATA__ not found in page")
+                return None
+            
+            data = json.loads(next_data.string)
+            props = data.get('props', {}).get('pageProps', {})
+            
+            if 'merchant' not in props:
+                logger.debug(f"   📊 __NEXT_DATA__ found but no merchant data")
+                return None
+            
+            merchant = props['merchant']
+            actual_name = merchant.get('name', store_name)
+            
+            # Check various status indicators
+            is_closed = merchant.get('isClosed', False)
+            is_available = merchant.get('available', True)
+            merchant_status = merchant.get('status', '').upper()
+            
+            logger.info(f"   📊 __NEXT_DATA__ found: status={merchant_status}, isClosed={is_closed}, available={is_available}")
+            
+            # Determine status
+            if merchant_status == 'INACTIVE' or is_closed or not is_available:
+                status = StoreStatus.OFFLINE
+                message = f"__NEXT_DATA__: status={merchant_status}, isClosed={is_closed}, available={is_available}"
+            else:
+                status = StoreStatus.ONLINE
+                message = f"__NEXT_DATA__: status={merchant_status}, store is accepting orders"
+            
+            return CheckResult(
+                status=status,
+                response_time=response_time,
+                message=message,
+                confidence=0.95
+            )
+            
+        except json.JSONDecodeError as e:
+            logger.debug(f"   ⚠️ __NEXT_DATA__ JSON parse error: {e}")
+            return None
+        except Exception as e:
+            logger.debug(f"   ⚠️ Error parsing __NEXT_DATA__: {e}")
+            return None
+
+    def _check_html_parsing(self, title: str, visible_text: str, response_time: int) -> Optional[CheckResult]:
+        """Extract status from HTML parsing as fallback"""
+        try:
+            # Pattern: "Restaurant Name ⭐ Rating"
+            match = re.match(r'^(.+?)\s*⭐\s*([\d.]+)', title)
+            if not match:
+                logger.debug(f"   📄 HTML title doesn't match rating pattern")
+                return None
+            
+            rating_str = match.group(2)
+            
+            try:
+                rating = float(rating_str)
+                logger.info(f"   📄 HTML parsing: Found rating {rating}★ in title → Store appears ONLINE")
+            except:
+                rating = None
+            
+            # If we can parse the title with rating, assume store is open
+            return CheckResult(
+                status=StoreStatus.ONLINE,
+                response_time=response_time,
+                message=f"HTML title shows rating: {rating}★ - store appears active",
+                confidence=0.75
+            )
+            
+        except Exception as e:
+            logger.debug(f"   ⚠️ HTML parsing error: {e}")
+            return None
+    
     def check_grabfood_store(self, url: str, retry_count: int = 0) -> CheckResult:
         """
-        ✨ UPDATED: Check store using GrabFood API (not HTML scraping)
-        Much more reliable and faster than parsing HTML!
+        ✨ UPDATED CHECK LOGIC:
+        1. FIRST: Check if NO "closed" keywords found → ONLINE (85% confidence)
+        2. Check if "closed" keywords found → OFFLINE (95% confidence)
+        3. Check for error pages → ERROR/BLOCKED
+        4. Try __NEXT_DATA__ extraction → ONLINE/OFFLINE (95% confidence)
+        5. Try HTML parsing fallback → ONLINE (75% confidence)
         """
         start_time = time.time()
         max_retries = 2
 
         try:
-            # Extract merchant ID from URL
-            merchant_id = extract_grabfood_merchant_id(url)
+            # Load page with Selenium
+            logger.info(f"   🌐 Loading page: {url}")
+            self.driver.get(url)
+            time.sleep(3)  # Wait for page to load
             
-            if not merchant_id:
-                response_time = int((time.time() - start_time) * 1000)
-                return CheckResult(
-                    StoreStatus.ERROR, 
-                    response_time, 
-                    "Could not extract merchant ID from URL",
-                    0.3
-                )
+            # Get page source
+            html = self.driver.page_source
+            soup = BeautifulSoup(html, 'html.parser')
             
-            # Fetch data from GrabFood API
-            json_data = fetch_grabfood_api_data(
-                merchant_id, 
-                url, 
-                self.user_agents,
-                self.ph_latlng,
-                max_retries=3
-            )
+            # Get visible text
+            soup_copy = BeautifulSoup(html, 'html.parser')
+            for tag in soup_copy(["script", "style", "meta", "link"]):
+                tag.decompose()
+            visible_text = soup_copy.get_text(separator='\n', strip=True)
             
+            # Calculate response time
             response_time = int((time.time() - start_time) * 1000)
             
-            if not json_data:
-                # API request failed
-                if retry_count < max_retries:
-                    time.sleep(random.uniform(2, 4))
-                    return self.check_grabfood_store(url, retry_count + 1)
-                return CheckResult(
-                    StoreStatus.BLOCKED, 
-                    response_time, 
-                    "API request failed after retries",
-                    0.7
-                )
+            # Get page title
+            page_title = self.driver.title
             
-            # Extract status from API response
-            api_status, rating, vote_count = extract_status_from_api_json(json_data)
+            # ✨ LOG EVERYTHING WE FETCHED
+            self._log_html_content(url, page_title, visible_text, len(html))
             
-            if not api_status:
-                # Got JSON but no status field
-                return CheckResult(
-                    StoreStatus.UNKNOWN, 
-                    response_time, 
-                    "API response missing status field",
-                    0.5
-                )
+            # Get lowercase versions for checking
+            title_lower = page_title.lower()
+            visible_lower = visible_text.lower()
             
-            # Determine online/offline based on API status
-            api_status_upper = api_status.upper()
+            # ✅ PRIORITY 1 & 2: Check for closed keywords
+            is_closed, found_keyword = self._check_for_closed_keywords(title_lower, visible_lower)
             
-            if api_status_upper == "ACTIVE":
-                # Store is online and accepting orders
-                message = f"API status: {api_status}"
-                if rating is not None:
-                    message += f" | Rating: {rating:.1f}★"
-                if vote_count is not None:
-                    message += f" | Votes: {vote_count}"
-                
+            if is_closed:
+                # Found "closed" keywords → Store is OFFLINE
                 return CheckResult(
-                    StoreStatus.ONLINE, 
-                    response_time, 
-                    message,
-                    0.95  # High confidence from API
+                    status=StoreStatus.OFFLINE,
+                    response_time=response_time,
+                    message=f"Store is closed (found keyword: '{found_keyword}')",
+                    confidence=0.95
                 )
-                
-            elif api_status_upper in ["INACTIVE", "CLOSED", "UNAVAILABLE"]:
-                # Store is offline
-                message = f"API status: {api_status}"
-                
-                return CheckResult(
-                    StoreStatus.OFFLINE, 
-                    response_time, 
-                    message,
-                    0.95  # High confidence from API
-                )
-                
             else:
-                # Unknown status value
+                # NO "closed" keywords found → Store is ONLINE!
                 return CheckResult(
-                    StoreStatus.UNKNOWN, 
-                    response_time, 
-                    f"Unknown API status: {api_status}",
-                    0.6
+                    status=StoreStatus.ONLINE,
+                    response_time=response_time,
+                    message="No closed indicators found - store appears open",
+                    confidence=0.85
                 )
-
-        except requests.exceptions.Timeout:
-            response_time = int((time.time() - start_time) * 1000)
-            return CheckResult(StoreStatus.ERROR, response_time, "Request timeout", 0.3)
             
-        except requests.exceptions.ConnectionError as e:
-            response_time = int((time.time() - start_time) * 1000)
-            return CheckResult(StoreStatus.ERROR, response_time, f"Connection error: {str(e)[:50]}", 0.3)
+            # Note: Below code is now unreachable since we always return above
+            # But keeping it as fallback in case you want to change logic later
+            
+            # PRIORITY 3: Check for error pages
+            if self._is_error_page(title_lower, visible_lower, html):
+                if retry_count < max_retries:
+                    logger.info(f"   ⚠️ Error page detected, retrying...")
+                    self.driver.refresh()
+                    time.sleep(3)
+                    return self.check_grabfood_store(url, retry_count + 1)
+                
+                return CheckResult(
+                    status=StoreStatus.ERROR,
+                    response_time=response_time,
+                    message="Error page or blocked",
+                    confidence=0.8
+                )
+            
+            # PRIORITY 4: Try to extract data from __NEXT_DATA__
+            store_name = self.name_manager.extract_store_name_from_url(url)
+            next_data_result = self._check_next_data(soup, store_name, url, response_time)
+            if next_data_result:
+                logger.info(f"   ✅ Extracted from __NEXT_DATA__: {next_data_result.status.value.upper()}")
+                return next_data_result
+            
+            # PRIORITY 5: Try HTML parsing
+            html_parse_result = self._check_html_parsing(page_title, visible_text, response_time)
+            if html_parse_result:
+                logger.info(f"   ✅ Extracted from HTML: {html_parse_result.status.value.upper()}")
+                return html_parse_result
+            
+            # If we get here, we couldn't determine status
+            if retry_count < max_retries:
+                logger.info(f"   ❓ Unknown status, retrying...")
+                self.driver.refresh()
+                time.sleep(3)
+                return self.check_grabfood_store(url, retry_count + 1)
+            
+            # All attempts exhausted
+            return CheckResult(
+                status=StoreStatus.UNKNOWN,
+                response_time=response_time,
+                message="Could not determine store status",
+                confidence=0.3
+            )
             
         except Exception as e:
             response_time = int((time.time() - start_time) * 1000)
-            return CheckResult(StoreStatus.ERROR, response_time, f"Error: {str(e)[:50]}", 0.2)
+            logger.error(f"   ❌ Error checking store: {e}")
+            
+            if retry_count < max_retries:
+                time.sleep(2)
+                return self.check_grabfood_store(url, retry_count + 1)
+            
+            return CheckResult(
+                status=StoreStatus.ERROR,
+                response_time=response_time,
+                message=f"Exception: {str(e)[:100]}",
+                confidence=0.2
+            )
 
     def check_all_grabfood_stores_with_client_alerts(self):
-        """UPDATED: Check stores and send immediate client emails when offline"""
+        """Check stores using Selenium and send immediate client emails when offline"""
         
-        # ✅ FIXED: Calculate target hour correctly
+        # ✅ Calculate target hour correctly
         tz = self.timezone
         now = datetime.now(tz)
         
         if now.minute >= 45:
-            # Running at :45 = preparing data for NEXT hour
             effective_at = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         else:
-            # Running early = use current hour
             effective_at = now.replace(minute=0, second=0, microsecond=0)
         
         run_id = uuid.uuid4()
@@ -1355,11 +1810,11 @@ class GrabFoodMonitor:
         current_time = config.get_current_time()
         target_hour = effective_at.hour
         
-        # ✅ Enhanced logging to show the fix
-        logger.info(f"🛒 GRABFOOD MONITORING with CLIENT ALERTS at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logger.info(f"🛒 GRABFOOD MONITORING (SELENIUM) with CLIENT ALERTS at {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         logger.info(f"📋 Checking {len(self.store_urls)} GrabFood stores")
         logger.info(f"🎯 Current time: {now.strftime('%H:%M')}, Target hour slot: {effective_at.strftime('%H:00')}")
         logger.info(f"💾 Data will be saved to: {effective_at.strftime('%Y-%m-%d %H:00:00')}")
+        logger.info(f"✨ Logic: NO 'closed' keywords = ONLINE | 'closed' keywords found = OFFLINE")
 
         all_results: List[Dict[str, Any]] = []
         blocked_stores: List[str] = []
@@ -1371,7 +1826,6 @@ class GrabFoodMonitor:
             if result:
                 all_results.append(result)
                 
-                # Track offline stores for client alerts
                 if result['result'].status == StoreStatus.OFFLINE:
                     current_offline_stores.add(url)
                 elif result['result'].status == StoreStatus.BLOCKED:
@@ -1379,9 +1833,9 @@ class GrabFoodMonitor:
 
             # Delay between requests
             if i < len(self.store_urls):
-                time.sleep(random.uniform(5, 7))
+                time.sleep(random.uniform(3, 5))
 
-        # Retry logic for blocked stores (same as before)
+        # Retry logic for blocked stores
         retry_round = 1
         max_retry_rounds = 5
 
@@ -1420,7 +1874,6 @@ class GrabFoodMonitor:
                                 newly_unblocked.append(url)
                                 self.stats['retry_successes'] += 1
                                 
-                                # Update offline tracking after retry
                                 if retry_result['result'].status == StoreStatus.OFFLINE:
                                     current_offline_stores.add(url)
                                 else:
@@ -1472,13 +1925,13 @@ class GrabFoodMonitor:
         # Update previous offline stores for next cycle
         self.previous_offline_stores = current_offline_stores.copy()
 
-        # Send regular hourly status update (all offline stores)
+        # Send regular hourly status update
         self._send_client_alerts(all_results)
 
         # Save results
         self._save_all_results(all_results, effective_at, run_id)
 
-        # Admin alerts for blocked/error stores
+        # Admin alerts
         if HAS_ADMIN_ALERTS:
             self._send_friendly_admin_alerts(all_results)
 
@@ -1515,7 +1968,7 @@ class GrabFoodMonitor:
             logger.info(f"   [{index}/{total}] Checking {store_name}{retry_text}...")
             result = self.check_grabfood_store(url)
 
-            if not is_retry:  # Only update stats for initial checks
+            if not is_retry:
                 self.stats['checked'] += 1
                 self._bump_stats(result.status)
 
@@ -1528,8 +1981,8 @@ class GrabFoodMonitor:
             }.get(result.status, "❓")
 
             logger.info(f"      {emoji} {result.status.value.upper()} ({result.response_time}ms)")
-            if result.message and result.status in [StoreStatus.BLOCKED, StoreStatus.ERROR]:
-                logger.debug(f"      📝 {result.message}")
+            if result.message:
+                logger.info(f"      📝 {result.message}")
 
             return {'url': url, 'name': store_name, 'result': result}
 
@@ -1690,16 +2143,20 @@ class GrabFoodMonitor:
         if error_count > 0:
             logger.warning(f"   ⚠️ {error_count} database errors")
 
-        # ✅ Enhanced logging to confirm fix
         logger.info(f"💾 Data saved to hour slot: {effective_at.strftime('%Y-%m-%d %H:00:00')}")
 
+    def close(self):
+        """Close Selenium driver"""
+        if self.driver:
+            try:
+                self.driver.quit()
+                logger.info("✓ Selenium WebDriver closed")
+            except:
+                pass
 
-def signal_handler(signum, frame):
-    """Handle shutdown signals gracefully"""
-    logger.info(f"🛑 Received signal {signum}, shutting down...")
-    sys.exit(0)# ==============================================================================
-# ✨ MODIFIED: Main function with smart SKU scraping control
-# ==============================================================================
+    def __del__(self):
+        """Cleanup on deletion"""
+        self.close()
 def main():
     """Main entry point - ENHANCED WITH SMART SKU SCRAPING"""
     logger.info("=" * 80)
@@ -1716,8 +2173,8 @@ def main():
         logger.error("❌ Timezone validation failed!")
         sys.exit(1)
 
-    signal.signal(signal.SIGTERM, signal_handler)
-    signal.signal(signal.SIGINT, signal_handler)
+    #signal.signal(signal.SIGTERM, signal_handler)
+    #signal.signal(signal.SIGINT, signal_handler)
 
     try:
         monitor = GrabFoodMonitor()
