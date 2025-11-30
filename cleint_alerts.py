@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CocoPan Client Alert System
+CocoPan Client Alert System - UPDATED WITH CUSTOM TEMPLATE
 Sends business-friendly notifications to operations teams about store status
 """
 import json
@@ -162,7 +162,22 @@ class ClientAlertManager:
             return False
 
     def send_hourly_status_alert(self, offline_stores: List[StoreAlert], total_stores: int) -> bool:
-        """Send hourly status update to clients"""
+        """
+        ✨ UPDATED: Send hourly status update with Dana's custom format
+        
+        Format:
+        EMPORIA UPDATE
+        November 24, 2025 (Monday) 9:00 AM
+        
+        Grabfood (2) Offline stores:
+        🔴 Citisquare
+        🔴 Sierra Madre
+        
+        Foodpanda (3) Offline stores:
+        🔴 Citisquare Malabon
+        🔴 Moonwalk
+        🔴 Pulang Lupa
+        """
         if not offline_stores:
             logger.debug("No offline stores - skipping client alert")
             return True
@@ -172,21 +187,15 @@ class ClientAlertManager:
             return False
 
         try:
-            current_time = fmt_mnl()
-            online_stores = total_stores - len(offline_stores)
+            current_time = now_mnl()
             
-            # Determine alert level
-            offline_pct = len(offline_stores) / max(total_stores, 1) * 100
-            if offline_pct > 20:
-                alert_level = "🔴 High Priority"
-                priority = "high"
-            elif offline_pct > 10:
-                alert_level = "🟡 Medium Priority"
-                priority = "medium"
-            else:
-                alert_level = "🟢 Low Priority"
-                priority = "low"
-
+            # Format: "November 24, 2025 (Monday) 9:00 AM"
+            formatted_date = current_time.strftime('%B %d, %Y (%A) %-I:%M %p')
+            
+            # Group stores by platform
+            grabfood_offline = [s for s in offline_stores if s.platform.lower() == 'grabfood']
+            foodpanda_offline = [s for s in offline_stores if s.platform.lower() == 'foodpanda']
+            
             # Send to each enabled client group
             sent_count = 0
             for client_id, client_config in self.config.get('clients', {}).items():
@@ -198,105 +207,117 @@ class ClientAlertManager:
                 if 'store_offline' not in alert_types:
                     continue
 
-                # Check priority threshold
-                client_threshold = client_config.get('priority_threshold', 'low')
-                if client_threshold == 'high' and priority != 'high':
-                    continue
-                if client_threshold == 'medium' and priority == 'low':
-                    continue
-
                 recipients = client_config.get('emails', [])
                 if not recipients:
                     continue
 
-                # Compose email
-                subject = f"CocoPan Status Update: {len(offline_stores)} Store{'s' if len(offline_stores) != 1 else ''} Temporarily Offline"
+                # ═══════════════════════════════════════════════════════════
+                # ✨ CUSTOM TEMPLATE - Dana's Format
+                # ═══════════════════════════════════════════════════════════
+                
+                # Subject line
+                subject = f"EMPORIA UPDATE - {len(offline_stores)} Store(s) Offline"
 
-                # Text version
-                text_body = f"""
-CocoPan Operations Status Update
-{current_time}
+                # TEXT VERSION (for email clients that don't support HTML)
+                text_body = f"""EMPORIA UPDATE
+{formatted_date}
 
-{alert_level} - Store Status Summary:
-• Online: {online_stores}/{total_stores} stores ({(online_stores/total_stores*100):.1f}%)
-• Temporarily Offline: {len(offline_stores)} stores
-
-Stores Currently Offline:
 """
                 
-                for store in offline_stores[:10]:  # Limit to first 10
-                    platform_emoji = "🛒" if store.platform == "GrabFood" else "🍔"
-                    text_body += f"• {platform_emoji} {store.name.replace('Cocopan ', '').replace('Cocopan - ', '')}\n"
+                if grabfood_offline:
+                    text_body += f"Grabfood ({len(grabfood_offline)}) Offline stores:\n"
+                    for store in grabfood_offline:
+                        # Clean store name (remove "Cocopan" prefix if present)
+                        clean_name = store.name.replace('Cocopan ', '').replace('Cocopan - ', '').strip()
+                        text_body += f"🔴 {clean_name}\n"
+                    text_body += "\n"
                 
-                if len(offline_stores) > 10:
-                    text_body += f"... and {len(offline_stores) - 10} more stores\n"
+                if foodpanda_offline:
+                    text_body += f"Foodpanda ({len(foodpanda_offline)}) Offline stores:\n"
+                    for store in foodpanda_offline:
+                        # Clean store name
+                        clean_name = store.name.replace('Cocopan ', '').replace('Cocopan - ', '').strip()
+                        text_body += f"🔴 {clean_name}\n"
+                    text_body += "\n"
+                
+                text_body += "———\n\n"
+                text_body += "This is an automated alert from CocoPan Operations Monitoring.\n"
+                text_body += "Dashboard: https://cocopan-monitor.railway.app\n"
 
-                text_body += f"""
-These stores are being monitored continuously and will automatically return to online status once they resume operations.
-
-Dashboard: https://cocopan-monitor.railway.app
-Support: operations@cocopan.com
-
-This is an automated update from CocoPan Operations Monitoring.
-"""
-
-                # HTML version
+                # HTML VERSION (prettier formatting)
                 html_body = f"""
-<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
-<div style="background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-  <h1 style="margin: 0; font-size: 24px;">🏢 CocoPan Operations Update</h1>
-  <p style="margin: 5px 0 0 0; opacity: 0.9;">{current_time}</p>
-</div>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
 
-<div style="background: #F8FAFC; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
-  <h2 style="color: #1E293B; margin-top: 0;">{alert_level} - Store Status Summary</h2>
-  <div style="display: flex; gap: 20px; margin: 15px 0;">
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 6px; flex: 1;">
-      <div style="font-size: 24px; font-weight: bold; color: #059669;">{online_stores}</div>
-      <div style="font-size: 12px; color: #64748B;">ONLINE STORES</div>
-    </div>
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 6px; flex: 1;">
-      <div style="font-size: 24px; font-weight: bold; color: #DC2626;">{len(offline_stores)}</div>
-      <div style="font-size: 12px; color: #64748B;">TEMPORARILY OFFLINE</div>
-    </div>
-  </div>
-</div>
-
-<h3 style="color: #1E293B;">Stores Currently Offline:</h3>
-<ul style="background: #FEF2F2; padding: 15px; border-radius: 6px; border-left: 4px solid #EF4444;">
-"""
-                
-                for store in offline_stores[:10]:
-                    platform_emoji = "🛒" if store.platform == "GrabFood" else "🍔"
-                    clean_name = store.name.replace('Cocopan ', '').replace('Cocopan - ', '')
-                    html_body += f"<li>{platform_emoji} <strong>{clean_name}</strong></li>"
-                
-                if len(offline_stores) > 10:
-                    html_body += f"<li><em>... and {len(offline_stores) - 10} more stores</em></li>"
-
-                html_body += f"""
-</ul>
-
-<div style="background: #EBF8FF; border: 1px solid #3B82F6; border-radius: 6px; padding: 15px; margin: 20px 0;">
-  <p style="margin: 0; font-size: 14px; color: #1E40AF;">
-    <strong>Note:</strong> These stores are being monitored continuously and will automatically return to online status once they resume operations.
+<div style="background: #f8f9fa; border-left: 4px solid #dc3545; padding: 20px; margin-bottom: 20px; border-radius: 4px;">
+  <h2 style="margin: 0 0 10px 0; color: #1a1a1a; font-size: 20px; font-weight: 600;">
+    EMPORIA UPDATE
+  </h2>
+  <p style="margin: 0; color: #666; font-size: 14px;">
+    {formatted_date}
   </p>
 </div>
+"""
 
-<div style="text-align: center; margin: 30px 0;">
-  <a href="https://cocopan-monitor.railway.app" style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                if grabfood_offline:
+                    html_body += f"""
+<div style="margin-bottom: 25px;">
+  <h3 style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 16px; font-weight: 600;">
+    Grabfood ({len(grabfood_offline)}) Offline stores:
+  </h3>
+  <ul style="list-style: none; padding: 0; margin: 0;">
+"""
+                    for store in grabfood_offline:
+                        clean_name = store.name.replace('Cocopan ', '').replace('Cocopan - ', '').strip()
+                        html_body += f"""
+    <li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+      <span style="color: #dc3545; font-weight: bold;">🔴</span> {clean_name}
+    </li>
+"""
+                    html_body += """
+  </ul>
+</div>
+"""
+
+                if foodpanda_offline:
+                    html_body += f"""
+<div style="margin-bottom: 25px;">
+  <h3 style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 16px; font-weight: 600;">
+    Foodpanda ({len(foodpanda_offline)}) Offline stores:
+  </h3>
+  <ul style="list-style: none; padding: 0; margin: 0;">
+"""
+                    for store in foodpanda_offline:
+                        clean_name = store.name.replace('Cocopan ', '').replace('Cocopan - ', '').strip()
+                        html_body += f"""
+    <li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+      <span style="color: #dc3545; font-weight: bold;">🔴</span> {clean_name}
+    </li>
+"""
+                    html_body += """
+  </ul>
+</div>
+"""
+
+                html_body += """
+<hr style="border: none; border-top: 2px solid #eee; margin: 30px 0;">
+
+<div style="text-align: center; margin: 20px 0;">
+  <a href="https://cocopan-monitor.railway.app" 
+     style="display: inline-block; background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600;">
     View Live Dashboard
   </a>
 </div>
 
-<hr style="border: 1px solid #E5E7EB; margin: 20px 0;">
-<p style="color: #6B7280; font-size: 12px; text-align: center;">
-  This is an automated update from CocoPan Operations Monitoring<br>
-  Support: operations@cocopan.com
+<p style="color: #999; font-size: 12px; text-align: center; margin: 20px 0 0 0;">
+  This is an automated alert from CocoPan Operations Monitoring
 </p>
-</body></html>
+
+</body>
+</html>
 """
 
+                # Send email
                 success = self._send_email(subject, text_body, html_body, recipients)
                 if success:
                     sent_count += 1

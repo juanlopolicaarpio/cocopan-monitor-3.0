@@ -855,7 +855,126 @@ class GrabFoodSKUScraper:
                 "https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN", 
                 "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6"
             ]
+    # ==============================================================================
+# ✨ NEW FUNCTION: Send Combined Email at :00
+# ==============================================================================
+
+def send_combined_email_for_hour_slot(hour_slot: datetime) -> bool:
+    """
+    Send combined platform email based on SAVED hour slot data
+    This runs at :00 (e.g., 10:00 AM) to email data from that hour slot
     
+    Args:
+        hour_slot: The hour slot to send email for (e.g., 10:00 AM)
+    
+    Returns:
+        True if email sent successfully
+    """
+    try:
+        logger.info("=" * 70)
+        logger.info(f"📧 SENDING EMAIL FOR HOUR SLOT: {hour_slot.strftime('%Y-%m-%d %H:00')}")
+        logger.info("=" * 70)
+        
+        if not HAS_CLIENT_ALERTS:
+            logger.warning("Client alerts module not available")
+            return False
+        
+        # Fetch offline stores for this hour slot from database
+        with db.get_connection() as conn:
+            cur = conn.cursor()
+            
+            # Get GrabFood offline stores for this hour
+            cur.execute("""
+                SELECT 
+                    s.id,
+                    s.name,
+                    s.platform,
+                    ssh.status
+                FROM store_status_hourly ssh
+                JOIN stores s ON ssh.store_id = s.id
+                WHERE ssh.platform = 'grabfood'
+                  AND ssh.effective_at = %s
+                  AND ssh.status = 'OFFLINE'
+                ORDER BY s.name
+            """, (hour_slot,))
+            
+            grabfood_offline = []
+            for row in cur.fetchall():
+                store_id, store_name, platform, status = row
+                grabfood_offline.append(StoreAlert(
+                    name=store_name,
+                    platform="GrabFood",
+                    status="OFFLINE",
+                    last_check=hour_slot
+                ))
+            
+            # Get Foodpanda offline stores for this hour
+            cur.execute("""
+                SELECT 
+                    s.id,
+                    s.name,
+                    s.platform,
+                    ssh.status
+                FROM store_status_hourly ssh
+                JOIN stores s ON ssh.store_id = s.id
+                WHERE ssh.platform = 'foodpanda'
+                  AND ssh.effective_at = %s
+                  AND ssh.status = 'OFFLINE'
+                ORDER BY s.name
+            """, (hour_slot,))
+            
+            foodpanda_offline = []
+            for row in cur.fetchall():
+                store_id, store_name, platform, status = row
+                foodpanda_offline.append(StoreAlert(
+                    name=store_name,
+                    platform="Foodpanda",
+                    status="OFFLINE",
+                    last_check=hour_slot
+                ))
+            
+            # Get total store counts
+            cur.execute("""
+                SELECT COUNT(DISTINCT store_id) 
+                FROM store_status_hourly 
+                WHERE platform = 'grabfood' 
+                  AND effective_at = %s
+            """, (hour_slot,))
+            total_grabfood = cur.fetchone()[0] or 0
+            
+            cur.execute("""
+                SELECT COUNT(DISTINCT store_id) 
+                FROM store_status_hourly 
+                WHERE platform = 'foodpanda'
+                  AND effective_at = %s
+            """, (hour_slot,))
+            total_foodpanda = cur.fetchone()[0] or 0
+        
+        # Combine both platforms
+        all_offline_stores = grabfood_offline + foodpanda_offline
+        total_stores = total_grabfood + total_foodpanda
+        
+        logger.info(f"   🛒 GrabFood: {len(grabfood_offline)} offline (out of {total_grabfood})")
+        logger.info(f"   🐼 Foodpanda: {len(foodpanda_offline)} offline (out of {total_foodpanda})")
+        logger.info(f"   📊 Total: {len(all_offline_stores)} offline (out of {total_stores})")
+        logger.info("=" * 70)
+        
+        # Send email
+        if total_stores > 0:
+            success = client_alerts.send_hourly_status_alert(all_offline_stores, total_stores)
+            if success:
+                logger.info(f"✅ Email sent successfully for {hour_slot.strftime('%I:00 %p')}")
+                return True
+            else:
+                logger.warning(f"⚠️ Email failed for {hour_slot.strftime('%I:00 %p')}")
+                return False
+        else:
+            logger.info("📧 No data available for this hour slot yet")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Error sending email for hour slot: {e}")
+        return False
     def extract_merchant_id(self, url: str) -> Optional[str]:
         """Extract merchant ID from GrabFood URL"""
         try:
@@ -1901,39 +2020,6 @@ class GrabFoodMonitor:
         self.stats['newly_online'] = len(newly_online_stores)
 
         # Send immediate alerts for newly offline stores
-        if newly_offline_stores and HAS_CLIENT_ALERTS:
-            newly_offline_alerts = []
-            for result_data in all_results:
-                if result_data['url'] in newly_offline_stores:
-                    platform = self.name_manager.get_platform_from_url(result_data['url'])
-                    platform_name = "GrabFood" if platform == "grabfood" else "Unknown"
-                    newly_offline_alerts.append(StoreAlert(
-                        name=result_data['name'],
-                        platform=platform_name,
-                        status="OFFLINE",
-                        last_check=datetime.now(self.timezone)
-                    ))
-            
-            if newly_offline_alerts:
-                logger.info(f"🚨 IMMEDIATE ALERT: {len(newly_offline_alerts)} stores just went offline!")
-                success = client_alerts.send_immediate_offline_alert(newly_offline_alerts, len(self.store_urls))
-                if success:
-                    logger.info("✅ Immediate offline alert sent to clients")
-                else:
-                    logger.warning("⚠️ Immediate offline alert failed or skipped")
-
-        # Update previous offline stores for next cycle
-        self.previous_offline_stores = current_offline_stores.copy()
-
-        # Send regular hourly status update
-        self._send_client_alerts(all_results)
-
-        # Save results
-        self._save_all_results(all_results, effective_at, run_id)
-
-        # Admin alerts
-        if HAS_ADMIN_ALERTS:
-            self._send_friendly_admin_alerts(all_results)
 
         # Final stats
         self.stats['cycle_end'] = datetime.now()
@@ -2233,6 +2319,21 @@ def main():
                 else:
                     logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
 
+            def send_email_job():
+                """Send combined email at :00 based on saved hour slot data"""
+                now = config.get_current_time()
+                now_hour = now.hour
+                
+                # Create hour slot for current hour (e.g., 10:00 AM)
+                hour_slot = now.replace(minute=0, second=0, microsecond=0)
+                
+                if config.is_monitor_time(now_hour):
+                    logger.info(f"📧 Email job triggered for {hour_slot.strftime('%I:00 %p')}")
+                    send_combined_email_for_hour_slot(hour_slot)
+                else:
+                    logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
+
+
             def daily_sku_scraping_job():
                 """✨ MODIFIED: Daily SKU scraping at 10AM - with duplicate prevention"""
                 logger.info("🛒 Daily scheduled GrabFood SKU scraping triggered...")
@@ -2256,6 +2357,14 @@ def main():
                 func=early_check_job,
                 trigger=CronTrigger(minute=45, timezone=ph_tz),
                 id='early_grabfood_check_with_client_alerts',
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=300
+            )
+            scheduler.add_job(
+                func=send_email_job,
+                trigger=CronTrigger(minute=0, timezone=ph_tz),
+                id='send_email_at_00',
                 max_instances=1,
                 coalesce=True,
                 misfire_grace_time=300

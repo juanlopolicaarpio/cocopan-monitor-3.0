@@ -3,7 +3,26 @@
     "cocopan_ops": {
       "name": "CocoPan Operations Team",
       "emails": [
-        "juanlopolicarpio@gmail.com"
+        "juanlopolicarpio@gmail.com",
+        "wthomas@emporiagroupph.com",
+        "dinaerispe@gmail.com",
+        "melissa.cordova.chan88@gmail.com",
+        "gino.rodriguez@cocopan.ph",
+        "robert.deguzman@cocopan.ph",
+        "vida.rodriguez@cocopan.ph",
+        "mavi.principe@cocopan.ph",
+        "neil.lozada@cocopan.ph",
+        "catherine.caparic@cocopan.ph",
+        "roberto.avila@cocopan.ph",
+        "gerald.salac@cocopan.ph",
+        "anthony.mamarlao@cocopan.ph",
+        "julius.dingle@cocopan.ph",
+        "rj.moreno@cocopan.ph",
+        "grace.dizon@cocopan.ph",
+        "rochell.nantona@cocopan.ph",
+        "janice.arnoco@cocopan.ph",
+        "Krisna.butalid@cocopan.ph",
+        "ddpertubal@emporiagroupph.com"
       ],
       "alert_types": [
         "store_offline"
@@ -39,7 +58,7 @@
     "templates": {
       "company_name": "CocoPan",
       "logo_url": "https://your-domain.com/logo.png",
-      "dashboard_url": "https://cocopanwatchtower.com",
+      "dashboard_url": "https://cocopan-monitor.railway.app",
       "support_email": "support@cocopan.com",
       "company_website": "https://cocopan.com"
     },
