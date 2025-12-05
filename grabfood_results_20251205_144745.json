@@ -1,0 +1,1953 @@
+{
+  "scrape_time": "2025-12-05T14:45:51.941246",
+  "total_stores": 3,
+  "stores": [
+    {
+      "store_name": "Cocopan Maysilo",
+      "url": "https://food.grab.com/ph/en/restaurant/cocopan-maysilo-delivery/2-C6TATTL2UF2UDA",
+      "all_items": [],
+      "available_items": [],
+      "unavailable_items": []
+    },
+    {
+      "store_name": "Cocopan - Anonas",
+      "url": "https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN",
+      "all_items": [
+        {
+          "name": "Milo Overload",
+          "description": "Milo blended with milk to give a refreshing chocolate-malt flavor—available hot or iced",
+          "price": "85.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 1
+        },
+        {
+          "name": "Milky Cheese Donut",
+          "description": "Creamy, cheesy goodness that melts in your mouth",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 2
+        },
+        {
+          "name": "Snack Box (Assorted 10 Pcs)",
+          "description": "Enjoy a curated mix of 10 COCOPAN favorites, handpicked for the ultimate treat experience",
+          "price": "150.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 3
+        },
+        {
+          "name": "Vietnamese Coffee",
+          "description": "Need an energy boost? Here’s a sweet way to power through your day the Vietnamese way",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 4
+        },
+        {
+          "name": "Cafe Espanol",
+          "description": "Say hola! to this sweet and creamy coffee treat",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 5
+        },
+        {
+          "name": "Salted Caramel Coffee",
+          "description": "Taste the rich, sweet caramel balanced with a touch of saltiness",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 6
+        },
+        {
+          "name": "Original Matcha Milk",
+          "description": "Say hello to your new matcha, you're guaranteed to say \"mine\" at first sip",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 7
+        },
+        {
+          "name": "Spanish Bread",
+          "description": "Spanish bread is a Filipino bread roll with a traditional sweet filling made of bread crumbs, mantikilya and brown sugar. Muy delicioso!",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 8
+        },
+        {
+          "name": "Pan de Coco",
+          "description": "Our house specialty, Pan de Coco, is a soft, fluffy bun with perfectly sweetened coconut filling. Best with coffee, it’s sure to be a hit",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 12
+        },
+        {
+          "name": "Twistea",
+          "description": "Our Signature Iced Tea Blend",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 14
+        },
+        {
+          "name": "Double Cheese Roll",
+          "description": "Double Cheese Roll! Cheesy and crunchy on the outside, melty and cheesy on the inside—every bite is pure comfort and indulgence!",
+          "price": "20.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 15
+        },
+        {
+          "name": "Cinnamon Roll Deluxe",
+          "description": "An elevated cinnamon roll experience, crowned with a layer of indulgent, creamy buttercream",
+          "price": "25.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 16
+        },
+        {
+          "name": "Perfect Pair",
+          "description": "2  Classic Favorites\n1 Drink (16oz)",
+          "price": "79.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 17
+        },
+        {
+          "name": "Perfect Pair",
+          "description": "2  Classic Favorites\n1 Drink (16oz)",
+          "price": "69.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 18
+        },
+        {
+          "name": "Corned Beed Pan De Sal",
+          "description": "Soft pandesal with corned beef filling inside",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 19
+        },
+        {
+          "name": "Pinoy Pan Garlic Butter",
+          "description": "Soft and savory bun brushed with flavorful garlic butter",
+          "price": "12.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 20
+        },
+        {
+          "name": "Pinoy Pan Butter Sugar",
+          "description": "Soft and fluffy bun topped with crisp, buttery sugar",
+          "price": "12.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 21
+        },
+        {
+          "name": "Choco Cream Pan",
+          "description": "Pillowy bread with custard filling topped with chocolate frost",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 22
+        },
+        {
+          "name": "Superbox (Assorted 13 Pcs)",
+          "description": "Enjoy a curated mix of 13 COCOPAN favorites, handpicked for the ultimate treat experience",
+          "price": "300.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 23
+        },
+        {
+          "name": "Build A Box (Superbox 13 Pcs)",
+          "description": "Build a Super Box filled with COCOPAN treats of your choice. Pick from the delicious selection below!",
+          "price": "300.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 25
+        },
+        {
+          "name": "Build A Box (Snack Box 10 Pcs)",
+          "description": "Build a Snack Box filled with COCOPAN treats of your choice. Select your favorites from the options below!",
+          "price": "150.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 26
+        },
+        {
+          "name": "Cheese Roll",
+          "description": "Sugar and cheese, please! Put them together and you have this yummy cheese roll",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 27
+        },
+        {
+          "name": "Banana Bread (Sliced)",
+          "description": "Here's a slice of banana bread to brighten up your day. You'll go bananas over this",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 29
+        },
+        {
+          "name": "Coffee Bun",
+          "description": "Drink your coffee and eat it too, with our delectable and buttery coffee bun",
+          "price": "40.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 30
+        },
+        {
+          "name": "Blueberry Muffin",
+          "description": "Freshly baked muffin with a swirl of sweet blueberry flavor for a deliciously fruity treat",
+          "price": "40.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 31
+        },
+        {
+          "name": "Choco Roll",
+          "description": "Who says you can't have cheese and chocolate all rolled into one?",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 32
+        },
+        {
+          "name": "Cinnamon Roll Classic",
+          "description": "A softer, richer take on the classic, perfectly swirled with cinnamon and topped with a sweet, delicious glaze",
+          "price": "20.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 33
+        },
+        {
+          "name": "Choco Chip  Muffin",
+          "description": "Soft and loaded with chocolate chips where each bite will be a comforting treat that satisfies your sweet cravings",
+          "price": "40.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 34
+        },
+        {
+          "name": "Choco Cheese Donut",
+          "description": "Chocolate and cheese, all in a chewy, milky donut. This well-balanced piece will keep you begging for 'more, please'",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 35
+        },
+        {
+          "name": "Sugar Donut",
+          "description": "Sweet, simple, and oh-so-delicious! Treat yourself to our classic sugar donut today",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 36
+        },
+        {
+          "name": "Choco Frost Donut",
+          "description": "Donut topped with a layer of rich, smooth chocolate frosting; it’s the ultimate treat for chocolate lovers!",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 37
+        },
+        {
+          "name": "Strawberry Sprinkle Donut",
+          "description": "Soft and fluffy donut, topped with a sweet and tangy berry glaze with colorful sprinkles in top. The burst of berry goodness, combined with the crunchiness of the sprinkles, makes every bite super fun and satisfying",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 38
+        },
+        {
+          "name": "Cheese Burst Donut",
+          "description": "Soft fluffy donut bursting with delectable cheese",
+          "price": "30.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 39
+        },
+        {
+          "name": "Glazed Donut",
+          "description": "Say hello to our new glazed donut. Simple yet satisfying & it's glazy good",
+          "price": "20.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 40
+        },
+        {
+          "name": "Cheesy Ham Roll",
+          "description": "A soft dough wrapped with savory ham and melted cheese deliciously gooey in every bite!",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 41
+        },
+        {
+          "name": "Pan de Floss (Original)",
+          "description": "Feeling flossy? This pan de floss is sure to satisfy your savory cravings",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 42
+        },
+        {
+          "name": "Pan de Floss (Spicy)",
+          "description": "Spice up your floss, with this spicy version of pan de floss",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 43
+        },
+        {
+          "name": "Italian Cheese Roll",
+          "description": "Say 'Ciao' to a flavorful twist on our classic favorite! Our new Italian Cheese Rolls are seasoned with the perfect blend of savory cheese and aromatic herbs",
+          "price": "20.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 44
+        },
+        {
+          "name": "Tuna Bun",
+          "description": "Our Tuna Bun is a soft bread filled with savory tuna goodness and a kick of spice",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 45
+        },
+        {
+          "name": "Cheesy Sausage Roll",
+          "description": "Our Cheesy Sausage Roll is made from Purefoods Tender Juicy sausage, wrapped in a soft bun, topped with barbecue sauce, mayo, and aromatic herbs for a delicious finish",
+          "price": "45.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 46
+        },
+        {
+          "name": "Chicken Asado Bun",
+          "description": "A soft, golden bun filled with rich, savory chicken asado",
+          "price": "25.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 47
+        },
+        {
+          "name": "Pan De Sal Pack (10pcs)",
+          "description": "Soft, fluffy, and freshly baked. A perfect pack for breakfast or snacks!",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 48
+        },
+        {
+          "name": "Raisin Loaf",
+          "description": "Soft bread filled with sweet raisins, perfect for a tasty snack or breakfast",
+          "price": "75.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 49
+        },
+        {
+          "name": "Italian Herb Loaf",
+          "description": "Bring a little taste of Italy to your table! Freshly baked and soft, our Italian Herbs Loaf is a fragrant and flavorful twist on our classic loaf bread",
+          "price": "75.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 50
+        },
+        {
+          "name": "Express Caramel Coffee",
+          "description": "A refreshing blend of smooth coffee, creamy milk and buttery caramel, served over ice, made with Nescafe",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 51
+        },
+        {
+          "name": "Express Sweet & Creamy Iced Coffee",
+          "description": "A richer, sweeter, creamier take on smooth iced coffee, made with Nescafé Gold",
+          "price": "60.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 52
+        },
+        {
+          "name": "Express Classic Iced Coffee",
+          "description": "Smooth iced coffee with just the right creaminess, made with Nescafé Gold for everyday comfort",
+          "price": "45.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 53
+        },
+        {
+          "name": "Creamy Vanilla Coffee",
+          "description": "Creamy coffee with a hint of vanilla",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 55
+        },
+        {
+          "name": "Dark Choco Coffee",
+          "description": "Strong coffee with heartwarming notes of chocolate",
+          "price": "85.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 57
+        },
+        {
+          "name": "Signature Milky Coffee",
+          "description": "Smooth, creamy, and perfectly balanced. A classic blend of espresso and steamed milk for any moment!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 58
+        },
+        {
+          "name": "Signature Black Coffee",
+          "description": "Black and bold coffee. For those who love the intense coffee flavor",
+          "price": "50.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 59
+        },
+        {
+          "name": "Strawberry Matcha Milk",
+          "description": "Enjoy the tropical vibe of strawberry together with the earthiness of matcha",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 60
+        },
+        {
+          "name": "Viet Coffee Matcha",
+          "description": "Enjoy the perfect blend of Vietnamese coffee and matcha, a fusion capturing the best of both worlds in each sip",
+          "price": "95.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 61
+        },
+        {
+          "name": "Lemon Berry Cooler",
+          "description": "Be Berry refreshed this summer with this tangy lemonade with a sweet burst of strawberries!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 62
+        },
+        {
+          "name": "Fruity Melon Milk",
+          "description": "This cool, refreshing melon milk will quench your thirst with every sip",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 63
+        },
+        {
+          "name": "Fruity Strawberry Milk",
+          "description": "Fall in love with our strawberry milk! Swoon over the sweetness of strawberries with the smoothness of milk",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 64
+        },
+        {
+          "name": "Lemon Passion Cooler",
+          "description": "Squeeze the day with Lemon Passion Cooler! A refreshing blend of citrusy lemon and luscious passion fruit. Served ice-cold for the perfect summer cooldown!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 65
+        },
+        {
+          "name": "Fruity Milk Mango",
+          "description": "Escape to a tropical getaway! Taste the sun-ripened mangoes with the creaminess of milk",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 66
+        },
+        {
+          "name": "Mango Sunrise Cooler",
+          "description": "Sip into something sunny with our signature iced tea blend with a splash of mango goodness!",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 67
+        },
+        {
+          "name": "Ruby Twistea",
+          "description": "A crisp, ruby red iced tea with a refreshing, fruity finish — the perfect sip to brighten any moment",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 68
+        }
+      ],
+      "available_items": [
+        {
+          "name": "Milo Overload",
+          "description": "Milo blended with milk to give a refreshing chocolate-malt flavor—available hot or iced",
+          "price": "85.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 1
+        },
+        {
+          "name": "Milky Cheese Donut",
+          "description": "Creamy, cheesy goodness that melts in your mouth",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 2
+        },
+        {
+          "name": "Snack Box (Assorted 10 Pcs)",
+          "description": "Enjoy a curated mix of 10 COCOPAN favorites, handpicked for the ultimate treat experience",
+          "price": "150.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 3
+        },
+        {
+          "name": "Vietnamese Coffee",
+          "description": "Need an energy boost? Here’s a sweet way to power through your day the Vietnamese way",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 4
+        },
+        {
+          "name": "Cafe Espanol",
+          "description": "Say hola! to this sweet and creamy coffee treat",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 5
+        },
+        {
+          "name": "Salted Caramel Coffee",
+          "description": "Taste the rich, sweet caramel balanced with a touch of saltiness",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 6
+        },
+        {
+          "name": "Original Matcha Milk",
+          "description": "Say hello to your new matcha, you're guaranteed to say \"mine\" at first sip",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 7
+        },
+        {
+          "name": "Spanish Bread",
+          "description": "Spanish bread is a Filipino bread roll with a traditional sweet filling made of bread crumbs, mantikilya and brown sugar. Muy delicioso!",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 8
+        },
+        {
+          "name": "Pan de Coco",
+          "description": "Our house specialty, Pan de Coco, is a soft, fluffy bun with perfectly sweetened coconut filling. Best with coffee, it’s sure to be a hit",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 12
+        },
+        {
+          "name": "Twistea",
+          "description": "Our Signature Iced Tea Blend",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 14
+        },
+        {
+          "name": "Double Cheese Roll",
+          "description": "Double Cheese Roll! Cheesy and crunchy on the outside, melty and cheesy on the inside—every bite is pure comfort and indulgence!",
+          "price": "20.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 15
+        },
+        {
+          "name": "Perfect Pair",
+          "description": "2  Classic Favorites\n1 Drink (16oz)",
+          "price": "79.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 17
+        },
+        {
+          "name": "Perfect Pair",
+          "description": "2  Classic Favorites\n1 Drink (16oz)",
+          "price": "69.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 18
+        },
+        {
+          "name": "Corned Beed Pan De Sal",
+          "description": "Soft pandesal with corned beef filling inside",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 19
+        },
+        {
+          "name": "Pinoy Pan Garlic Butter",
+          "description": "Soft and savory bun brushed with flavorful garlic butter",
+          "price": "12.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 20
+        },
+        {
+          "name": "Pinoy Pan Butter Sugar",
+          "description": "Soft and fluffy bun topped with crisp, buttery sugar",
+          "price": "12.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 21
+        },
+        {
+          "name": "Choco Cream Pan",
+          "description": "Pillowy bread with custard filling topped with chocolate frost",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 22
+        },
+        {
+          "name": "Superbox (Assorted 13 Pcs)",
+          "description": "Enjoy a curated mix of 13 COCOPAN favorites, handpicked for the ultimate treat experience",
+          "price": "300.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 23
+        },
+        {
+          "name": "Cheese Roll",
+          "description": "Sugar and cheese, please! Put them together and you have this yummy cheese roll",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 27
+        },
+        {
+          "name": "Banana Bread (Sliced)",
+          "description": "Here's a slice of banana bread to brighten up your day. You'll go bananas over this",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 29
+        },
+        {
+          "name": "Coffee Bun",
+          "description": "Drink your coffee and eat it too, with our delectable and buttery coffee bun",
+          "price": "40.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 30
+        },
+        {
+          "name": "Blueberry Muffin",
+          "description": "Freshly baked muffin with a swirl of sweet blueberry flavor for a deliciously fruity treat",
+          "price": "40.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 31
+        },
+        {
+          "name": "Choco Roll",
+          "description": "Who says you can't have cheese and chocolate all rolled into one?",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 32
+        },
+        {
+          "name": "Choco Cheese Donut",
+          "description": "Chocolate and cheese, all in a chewy, milky donut. This well-balanced piece will keep you begging for 'more, please'",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 35
+        },
+        {
+          "name": "Sugar Donut",
+          "description": "Sweet, simple, and oh-so-delicious! Treat yourself to our classic sugar donut today",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 36
+        },
+        {
+          "name": "Choco Frost Donut",
+          "description": "Donut topped with a layer of rich, smooth chocolate frosting; it’s the ultimate treat for chocolate lovers!",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 37
+        },
+        {
+          "name": "Strawberry Sprinkle Donut",
+          "description": "Soft and fluffy donut, topped with a sweet and tangy berry glaze with colorful sprinkles in top. The burst of berry goodness, combined with the crunchiness of the sprinkles, makes every bite super fun and satisfying",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 38
+        },
+        {
+          "name": "Cheesy Ham Roll",
+          "description": "A soft dough wrapped with savory ham and melted cheese deliciously gooey in every bite!",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 41
+        },
+        {
+          "name": "Pan de Floss (Original)",
+          "description": "Feeling flossy? This pan de floss is sure to satisfy your savory cravings",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 42
+        },
+        {
+          "name": "Pan de Floss (Spicy)",
+          "description": "Spice up your floss, with this spicy version of pan de floss",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 43
+        },
+        {
+          "name": "Italian Cheese Roll",
+          "description": "Say 'Ciao' to a flavorful twist on our classic favorite! Our new Italian Cheese Rolls are seasoned with the perfect blend of savory cheese and aromatic herbs",
+          "price": "20.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 44
+        },
+        {
+          "name": "Tuna Bun",
+          "description": "Our Tuna Bun is a soft bread filled with savory tuna goodness and a kick of spice",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 45
+        },
+        {
+          "name": "Pan De Sal Pack (10pcs)",
+          "description": "Soft, fluffy, and freshly baked. A perfect pack for breakfast or snacks!",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 48
+        },
+        {
+          "name": "Raisin Loaf",
+          "description": "Soft bread filled with sweet raisins, perfect for a tasty snack or breakfast",
+          "price": "75.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 49
+        },
+        {
+          "name": "Italian Herb Loaf",
+          "description": "Bring a little taste of Italy to your table! Freshly baked and soft, our Italian Herbs Loaf is a fragrant and flavorful twist on our classic loaf bread",
+          "price": "75.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 50
+        },
+        {
+          "name": "Express Caramel Coffee",
+          "description": "A refreshing blend of smooth coffee, creamy milk and buttery caramel, served over ice, made with Nescafe",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 51
+        },
+        {
+          "name": "Express Sweet & Creamy Iced Coffee",
+          "description": "A richer, sweeter, creamier take on smooth iced coffee, made with Nescafé Gold",
+          "price": "60.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 52
+        },
+        {
+          "name": "Express Classic Iced Coffee",
+          "description": "Smooth iced coffee with just the right creaminess, made with Nescafé Gold for everyday comfort",
+          "price": "45.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 53
+        },
+        {
+          "name": "Creamy Vanilla Coffee",
+          "description": "Creamy coffee with a hint of vanilla",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 55
+        },
+        {
+          "name": "Dark Choco Coffee",
+          "description": "Strong coffee with heartwarming notes of chocolate",
+          "price": "85.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 57
+        },
+        {
+          "name": "Signature Milky Coffee",
+          "description": "Smooth, creamy, and perfectly balanced. A classic blend of espresso and steamed milk for any moment!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 58
+        },
+        {
+          "name": "Signature Black Coffee",
+          "description": "Black and bold coffee. For those who love the intense coffee flavor",
+          "price": "50.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 59
+        },
+        {
+          "name": "Strawberry Matcha Milk",
+          "description": "Enjoy the tropical vibe of strawberry together with the earthiness of matcha",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 60
+        },
+        {
+          "name": "Viet Coffee Matcha",
+          "description": "Enjoy the perfect blend of Vietnamese coffee and matcha, a fusion capturing the best of both worlds in each sip",
+          "price": "95.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 61
+        },
+        {
+          "name": "Lemon Berry Cooler",
+          "description": "Be Berry refreshed this summer with this tangy lemonade with a sweet burst of strawberries!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 62
+        },
+        {
+          "name": "Fruity Melon Milk",
+          "description": "This cool, refreshing melon milk will quench your thirst with every sip",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 63
+        },
+        {
+          "name": "Fruity Strawberry Milk",
+          "description": "Fall in love with our strawberry milk! Swoon over the sweetness of strawberries with the smoothness of milk",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 64
+        },
+        {
+          "name": "Lemon Passion Cooler",
+          "description": "Squeeze the day with Lemon Passion Cooler! A refreshing blend of citrusy lemon and luscious passion fruit. Served ice-cold for the perfect summer cooldown!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 65
+        },
+        {
+          "name": "Fruity Milk Mango",
+          "description": "Escape to a tropical getaway! Taste the sun-ripened mangoes with the creaminess of milk",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 66
+        },
+        {
+          "name": "Mango Sunrise Cooler",
+          "description": "Sip into something sunny with our signature iced tea blend with a splash of mango goodness!",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 67
+        },
+        {
+          "name": "Ruby Twistea",
+          "description": "A crisp, ruby red iced tea with a refreshing, fruity finish — the perfect sip to brighten any moment",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 68
+        }
+      ],
+      "unavailable_items": [
+        {
+          "name": "Cinnamon Roll Deluxe",
+          "description": "An elevated cinnamon roll experience, crowned with a layer of indulgent, creamy buttercream",
+          "price": "25.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 16
+        },
+        {
+          "name": "Build A Box (Superbox 13 Pcs)",
+          "description": "Build a Super Box filled with COCOPAN treats of your choice. Pick from the delicious selection below!",
+          "price": "300.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 25
+        },
+        {
+          "name": "Build A Box (Snack Box 10 Pcs)",
+          "description": "Build a Snack Box filled with COCOPAN treats of your choice. Select your favorites from the options below!",
+          "price": "150.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 26
+        },
+        {
+          "name": "Cinnamon Roll Classic",
+          "description": "A softer, richer take on the classic, perfectly swirled with cinnamon and topped with a sweet, delicious glaze",
+          "price": "20.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 33
+        },
+        {
+          "name": "Choco Chip  Muffin",
+          "description": "Soft and loaded with chocolate chips where each bite will be a comforting treat that satisfies your sweet cravings",
+          "price": "40.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 34
+        },
+        {
+          "name": "Cheese Burst Donut",
+          "description": "Soft fluffy donut bursting with delectable cheese",
+          "price": "30.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 39
+        },
+        {
+          "name": "Glazed Donut",
+          "description": "Say hello to our new glazed donut. Simple yet satisfying & it's glazy good",
+          "price": "20.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 40
+        },
+        {
+          "name": "Cheesy Sausage Roll",
+          "description": "Our Cheesy Sausage Roll is made from Purefoods Tender Juicy sausage, wrapped in a soft bun, topped with barbecue sauce, mayo, and aromatic herbs for a delicious finish",
+          "price": "45.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 46
+        },
+        {
+          "name": "Chicken Asado Bun",
+          "description": "A soft, golden bun filled with rich, savory chicken asado",
+          "price": "25.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 47
+        }
+      ]
+    },
+    {
+      "store_name": "Cocopan - Altura Santa Mesa",
+      "url": "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6",
+      "all_items": [
+        {
+          "name": "Build A Box (Snack Box 10 Pcs)",
+          "description": "Build a Snack Box filled with COCOPAN treats of your choice. Select your favorites from the options",
+          "price": "150.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 1
+        },
+        {
+          "name": "Super Box (Assorted 13 Pcs)",
+          "description": "Enjoy a curated mix of 13 COCOPAN favorites, handpicked for the ultimate treat experience",
+          "price": "300.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 2
+        },
+        {
+          "name": "Milo Overload",
+          "description": "Milo blended with milk to give a refreshing chocolate-malt flavor—available hot or iced",
+          "price": "85.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 3
+        },
+        {
+          "name": "Vietnamese Coffee",
+          "description": "Need an energy boost? Here’s a sweet way to power through your day the Vietnamese way",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 4
+        },
+        {
+          "name": "Pan de coco",
+          "description": "Our house specialty, Pan de Coco, is a soft, fluffy bun with perfectly sweetened coconut filling. Best with coffee, it’s sure to be a hit",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 5
+        },
+        {
+          "name": "Cinnamon Roll Deluxe",
+          "description": "An elevated cinnamon roll experience, crowned with a layer of indulgent, creamy buttercream",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 6
+        },
+        {
+          "name": "Spanish Bread",
+          "description": "Spanish bread is a Filipino bread roll with a traditional sweet filling made of bread crumbs, mantikilya and brown sugar. Muy delicioso!",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 7
+        },
+        {
+          "name": "Salted Caramel Coffee",
+          "description": "Taste the rich, sweet caramel balanced with a touch of saltiness",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 8
+        },
+        {
+          "name": "Original Matcha Milk",
+          "description": "Say hello to your new matcha, you're guaranteed to say \"mine\" at first sip",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 13
+        },
+        {
+          "name": "Twistea",
+          "description": "Our Signature Iced Tea Blend",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 14
+        },
+        {
+          "name": "Double Cheese Roll",
+          "description": "Double Cheese Roll Cheesy and crunchy on the outside melty and cheesy on the inside every bite is pure comfort and indulgence",
+          "price": "20.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 15
+        },
+        {
+          "name": "Milky Cheese Donut",
+          "description": "Creamy, cheesy goodness that melts in your mouth",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 16
+        },
+        {
+          "name": "Perfect Pair",
+          "description": "2  Classic Favorites\n1 Drink (16oz)",
+          "price": "79.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 17
+        },
+        {
+          "name": "Perfect Pair",
+          "description": "2  Classic Favorites\n1 Drink (16oz)",
+          "price": "69.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 18
+        },
+        {
+          "name": "Corn Beef Pandesal",
+          "description": "Soft pandesal with corned beef filing inside",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 19
+        },
+        {
+          "name": "Pinoy Pan Butter Sugar",
+          "description": "Soft and fluffy bun topped with crisp, buttery sugar",
+          "price": "12.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 20
+        },
+        {
+          "name": "Choco Cream Pan",
+          "description": "Pillowy bread with custard filling topped with chocolate frost",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 21
+        },
+        {
+          "name": "Express Caramel Coffee",
+          "description": "A refreshing blend of smooth coffee, creamy milk and buttery caramel, served over ice, made with Nescafe",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 22
+        },
+        {
+          "name": "Express Sweet & Creamy Iced Coffee",
+          "description": "A richer, sweeter, creamier take on smooth iced coffee, made with Nescafé Gold",
+          "price": "60.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 23
+        },
+        {
+          "name": "Express Classic Iced Coffee",
+          "description": "Smooth iced coffee with just the right creaminess, made with Nescafé Gold for everyday comfort",
+          "price": "45.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 24
+        },
+        {
+          "name": "Pinoy Pan Garlic Butter",
+          "description": "Soft and savory bun brushed with flavorful garlic butter",
+          "price": "12.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 25
+        },
+        {
+          "name": "Build A Box (Super Box 13 Pcs)",
+          "description": "Build a Super Box filled with COCOPAN treats of your choice. Pick from the delicious selections",
+          "price": "300.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 26
+        },
+        {
+          "name": "Snack Box (Assorted 10 Pcs)",
+          "description": "Enjoy a curated mix of 10 COCOPAN favorites, handpicked for the ultimate treat experience",
+          "price": "150.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 29
+        },
+        {
+          "name": "Cheese Roll",
+          "description": "Sugar and cheese, please! Put them together and you have this yummy cheese roll",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 30
+        },
+        {
+          "name": "Choco Roll",
+          "description": "Who says you can't have cheese and chocolate all rolled into one?",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 32
+        },
+        {
+          "name": "Pan De Sal Pack (10pcs)",
+          "description": "Soft, fluffy, and freshly baked. A perfect pack for breakfast or snacks!",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 33
+        },
+        {
+          "name": "Banana Bread (Sliced)",
+          "description": "Here's a slice of banana bread to brighten up your day. You'll go bananas over this",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 34
+        },
+        {
+          "name": "Blueberry Muffin",
+          "description": "Freshly baked muffin with a swirl of sweet blueberry flavor for a deliciously fruity treat",
+          "price": "40.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 35
+        },
+        {
+          "name": "Cinnamon Roll Classic",
+          "description": "A softer, richer take on the classic, perfectly swirled with cinnamon and topped with a sweet, delicious glaze",
+          "price": "20.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 36
+        },
+        {
+          "name": "Coffee Bun",
+          "description": "Drink your coffee and eat it too, with our delectable and buttery coffee bun",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 37
+        },
+        {
+          "name": "Choco Chip Muffin",
+          "description": "Soft and loaded with chocolate chips where each bite will be a comforting treat that satisfies your sweet cravings",
+          "price": "40.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 38
+        },
+        {
+          "name": "Choco Cheese Donut",
+          "description": "Chocolate and cheese, all in a chewy, milky donut. This well-balanced piece will keep you begging for 'more, please'",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 39
+        },
+        {
+          "name": "Sugar Donut",
+          "description": "Sweet, simple, and oh-so-delicious! Treat yourself to our classic sugar donut today",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 40
+        },
+        {
+          "name": "Cheese Burst Donut",
+          "description": "Soft fluffy donut bursting with delectable cheese",
+          "price": "30.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 41
+        },
+        {
+          "name": "Glazed Donut",
+          "description": "Say hello to our new glazed donut. Simple yet satisfying & it's glazy good",
+          "price": "20.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 42
+        },
+        {
+          "name": "Choco Frost Donut",
+          "description": "Donut topped with a layer of rich, smooth chocolate frosting, its the ultimate treat for chocolate lovers",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 43
+        },
+        {
+          "name": "Strawberry Sprinkle Donut",
+          "description": "Soft and fluffy donut, topped with a sweet and tangy berry glaze with colorful sprinkles in top. The burst of berry goodness, combined with the crunchiness of the sprinkles, makes every bite super fun and satisfying",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 44
+        },
+        {
+          "name": "Cheesy Ham Roll",
+          "description": "A soft dough wrapped with savory ham and melted cheese deliciously gooey in every bite!",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 45
+        },
+        {
+          "name": "Pan de Floss (Original)",
+          "description": "Feeling flossy? This pan de floss is sure to satisfy your savory cravings",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 46
+        },
+        {
+          "name": "Pan de Floss (Spicy)",
+          "description": "Spice up your floss, with this spicy version of pan de floss",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 47
+        },
+        {
+          "name": "Italian Cheese Roll",
+          "description": "Say 'Ciao' to a flavorful twist on our classic favorite! Our new Italian Cheese Rolls are seasoned with the perfect blend of savory cheese and aromatic herbs",
+          "price": "20.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 48
+        },
+        {
+          "name": "Cheesy Sausage Roll",
+          "description": "Our Cheesy Sausage Roll is made from Purefoods Tender Juicy sausage, wrapped in a soft bun, topped with barbecue sauce, mayo, and aromatic herbs for a delicious finish",
+          "price": "45.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 49
+        },
+        {
+          "name": "Tuna Bun",
+          "description": "Our Tuna Bun is a soft bread filled with savory tuna goodness and a kick of spice",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 50
+        },
+        {
+          "name": "Chicken Asado Bun",
+          "description": "A soft, golden bun filled with rich, savory chicken asado",
+          "price": "25.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 51
+        },
+        {
+          "name": "Raisin Loaf",
+          "description": "Soft bread filled with sweet raisins, perfect for a tasty snack or breakfast",
+          "price": "75.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 52
+        },
+        {
+          "name": "Italian Herb Loaf",
+          "description": "Bring a little taste of Italy to your table! Freshly baked and soft, our Italian Herbs Loaf is a fragrant and flavorful twist on our classic loaf bread",
+          "price": "75.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 53
+        },
+        {
+          "name": "Café Espanol",
+          "description": "Say hola! to this sweet and creamy coffee treat",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 54
+        },
+        {
+          "name": "Creamy Vanilla Coffee",
+          "description": "Creamy coffee with a hint of vanilla",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 55
+        },
+        {
+          "name": "Dark Choco Coffee",
+          "description": "Strong coffee with heartwarming notes of chocolate",
+          "price": "85.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 57
+        },
+        {
+          "name": "Signature Milky Coffee",
+          "description": "Smooth, creamy, and perfectly balanced. A classic blend of espresso and steamed milk for any moment!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 58
+        },
+        {
+          "name": "Signature Black Coffee",
+          "description": "Black and bold coffee. For those who love the intense coffee flavor",
+          "price": "50.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 59
+        },
+        {
+          "name": "Strawberry Matcha Milk",
+          "description": "Enjoy the tropical vibe of strawberry together with the earthiness of matcha",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 60
+        },
+        {
+          "name": "Viet Coffee Matcha",
+          "description": "Enjoy the perfect blend of Vietnamese coffee and matcha, a fusion capturing the best of both worlds in each sip",
+          "price": "95.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 61
+        },
+        {
+          "name": "Lemon Berry Cooler",
+          "description": "Be Berry refreshed this summer with this tangy lemonade with a sweet burst of strawberries!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 62
+        },
+        {
+          "name": "Fruity Melon Milk",
+          "description": "This cool, refreshing melon milk will quench your thirst with every sip",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 63
+        },
+        {
+          "name": "Fruity Strawberry Milk",
+          "description": "Fall in love with our strawberry milk! Swoon over the sweetness of strawberries with the smoothness of milk",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 64
+        },
+        {
+          "name": "Lemon Passion Cooler",
+          "description": "Squeeze the day with Lemon Passion Cooler! A refreshing blend of citrusy lemon and luscious passion fruit. Served ice-cold for the perfect summer cooldown!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 65
+        },
+        {
+          "name": "Fruity Milk Mango",
+          "description": "Escape to a tropical getaway! Taste the sun-ripened mangoes with the creaminess of milk",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 66
+        },
+        {
+          "name": "Mango Sunrise Cooler",
+          "description": "Sip into something sunny with our signature iced tea blend with a splash of mango goodness!",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 67
+        },
+        {
+          "name": "Ruby Twistea",
+          "description": "A crisp, ruby red iced tea with a refreshing, fruity finish — the perfect sip to brighten any moment",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 68
+        }
+      ],
+      "available_items": [
+        {
+          "name": "Build A Box (Snack Box 10 Pcs)",
+          "description": "Build a Snack Box filled with COCOPAN treats of your choice. Select your favorites from the options",
+          "price": "150.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 1
+        },
+        {
+          "name": "Super Box (Assorted 13 Pcs)",
+          "description": "Enjoy a curated mix of 13 COCOPAN favorites, handpicked for the ultimate treat experience",
+          "price": "300.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 2
+        },
+        {
+          "name": "Milo Overload",
+          "description": "Milo blended with milk to give a refreshing chocolate-malt flavor—available hot or iced",
+          "price": "85.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 3
+        },
+        {
+          "name": "Vietnamese Coffee",
+          "description": "Need an energy boost? Here’s a sweet way to power through your day the Vietnamese way",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 4
+        },
+        {
+          "name": "Pan de coco",
+          "description": "Our house specialty, Pan de Coco, is a soft, fluffy bun with perfectly sweetened coconut filling. Best with coffee, it’s sure to be a hit",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 5
+        },
+        {
+          "name": "Cinnamon Roll Deluxe",
+          "description": "An elevated cinnamon roll experience, crowned with a layer of indulgent, creamy buttercream",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 6
+        },
+        {
+          "name": "Spanish Bread",
+          "description": "Spanish bread is a Filipino bread roll with a traditional sweet filling made of bread crumbs, mantikilya and brown sugar. Muy delicioso!",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 7
+        },
+        {
+          "name": "Salted Caramel Coffee",
+          "description": "Taste the rich, sweet caramel balanced with a touch of saltiness",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 8
+        },
+        {
+          "name": "Original Matcha Milk",
+          "description": "Say hello to your new matcha, you're guaranteed to say \"mine\" at first sip",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 13
+        },
+        {
+          "name": "Twistea",
+          "description": "Our Signature Iced Tea Blend",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 14
+        },
+        {
+          "name": "Double Cheese Roll",
+          "description": "Double Cheese Roll Cheesy and crunchy on the outside melty and cheesy on the inside every bite is pure comfort and indulgence",
+          "price": "20.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 15
+        },
+        {
+          "name": "Perfect Pair",
+          "description": "2  Classic Favorites\n1 Drink (16oz)",
+          "price": "79.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 17
+        },
+        {
+          "name": "Perfect Pair",
+          "description": "2  Classic Favorites\n1 Drink (16oz)",
+          "price": "69.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 18
+        },
+        {
+          "name": "Corn Beef Pandesal",
+          "description": "Soft pandesal with corned beef filing inside",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 19
+        },
+        {
+          "name": "Pinoy Pan Butter Sugar",
+          "description": "Soft and fluffy bun topped with crisp, buttery sugar",
+          "price": "12.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 20
+        },
+        {
+          "name": "Choco Cream Pan",
+          "description": "Pillowy bread with custard filling topped with chocolate frost",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 21
+        },
+        {
+          "name": "Express Caramel Coffee",
+          "description": "A refreshing blend of smooth coffee, creamy milk and buttery caramel, served over ice, made with Nescafe",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 22
+        },
+        {
+          "name": "Express Sweet & Creamy Iced Coffee",
+          "description": "A richer, sweeter, creamier take on smooth iced coffee, made with Nescafé Gold",
+          "price": "60.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 23
+        },
+        {
+          "name": "Express Classic Iced Coffee",
+          "description": "Smooth iced coffee with just the right creaminess, made with Nescafé Gold for everyday comfort",
+          "price": "45.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 24
+        },
+        {
+          "name": "Build A Box (Super Box 13 Pcs)",
+          "description": "Build a Super Box filled with COCOPAN treats of your choice. Pick from the delicious selections",
+          "price": "300.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 26
+        },
+        {
+          "name": "Snack Box (Assorted 10 Pcs)",
+          "description": "Enjoy a curated mix of 10 COCOPAN favorites, handpicked for the ultimate treat experience",
+          "price": "150.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 29
+        },
+        {
+          "name": "Cheese Roll",
+          "description": "Sugar and cheese, please! Put them together and you have this yummy cheese roll",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 30
+        },
+        {
+          "name": "Choco Roll",
+          "description": "Who says you can't have cheese and chocolate all rolled into one?",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 32
+        },
+        {
+          "name": "Pan De Sal Pack (10pcs)",
+          "description": "Soft, fluffy, and freshly baked. A perfect pack for breakfast or snacks!",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 33
+        },
+        {
+          "name": "Banana Bread (Sliced)",
+          "description": "Here's a slice of banana bread to brighten up your day. You'll go bananas over this",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 34
+        },
+        {
+          "name": "Blueberry Muffin",
+          "description": "Freshly baked muffin with a swirl of sweet blueberry flavor for a deliciously fruity treat",
+          "price": "40.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 35
+        },
+        {
+          "name": "Choco Cheese Donut",
+          "description": "Chocolate and cheese, all in a chewy, milky donut. This well-balanced piece will keep you begging for 'more, please'",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 39
+        },
+        {
+          "name": "Sugar Donut",
+          "description": "Sweet, simple, and oh-so-delicious! Treat yourself to our classic sugar donut today",
+          "price": "15.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 40
+        },
+        {
+          "name": "Cheesy Ham Roll",
+          "description": "A soft dough wrapped with savory ham and melted cheese deliciously gooey in every bite!",
+          "price": "25.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 45
+        },
+        {
+          "name": "Pan de Floss (Original)",
+          "description": "Feeling flossy? This pan de floss is sure to satisfy your savory cravings",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 46
+        },
+        {
+          "name": "Pan de Floss (Spicy)",
+          "description": "Spice up your floss, with this spicy version of pan de floss",
+          "price": "35.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 47
+        },
+        {
+          "name": "Italian Cheese Roll",
+          "description": "Say 'Ciao' to a flavorful twist on our classic favorite! Our new Italian Cheese Rolls are seasoned with the perfect blend of savory cheese and aromatic herbs",
+          "price": "20.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 48
+        },
+        {
+          "name": "Raisin Loaf",
+          "description": "Soft bread filled with sweet raisins, perfect for a tasty snack or breakfast",
+          "price": "75.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 52
+        },
+        {
+          "name": "Italian Herb Loaf",
+          "description": "Bring a little taste of Italy to your table! Freshly baked and soft, our Italian Herbs Loaf is a fragrant and flavorful twist on our classic loaf bread",
+          "price": "75.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 53
+        },
+        {
+          "name": "Café Espanol",
+          "description": "Say hola! to this sweet and creamy coffee treat",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 54
+        },
+        {
+          "name": "Creamy Vanilla Coffee",
+          "description": "Creamy coffee with a hint of vanilla",
+          "price": "80.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 55
+        },
+        {
+          "name": "Dark Choco Coffee",
+          "description": "Strong coffee with heartwarming notes of chocolate",
+          "price": "85.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 57
+        },
+        {
+          "name": "Signature Milky Coffee",
+          "description": "Smooth, creamy, and perfectly balanced. A classic blend of espresso and steamed milk for any moment!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 58
+        },
+        {
+          "name": "Signature Black Coffee",
+          "description": "Black and bold coffee. For those who love the intense coffee flavor",
+          "price": "50.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 59
+        },
+        {
+          "name": "Strawberry Matcha Milk",
+          "description": "Enjoy the tropical vibe of strawberry together with the earthiness of matcha",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 60
+        },
+        {
+          "name": "Viet Coffee Matcha",
+          "description": "Enjoy the perfect blend of Vietnamese coffee and matcha, a fusion capturing the best of both worlds in each sip",
+          "price": "95.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 61
+        },
+        {
+          "name": "Lemon Berry Cooler",
+          "description": "Be Berry refreshed this summer with this tangy lemonade with a sweet burst of strawberries!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 62
+        },
+        {
+          "name": "Fruity Melon Milk",
+          "description": "This cool, refreshing melon milk will quench your thirst with every sip",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 63
+        },
+        {
+          "name": "Fruity Strawberry Milk",
+          "description": "Fall in love with our strawberry milk! Swoon over the sweetness of strawberries with the smoothness of milk",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 64
+        },
+        {
+          "name": "Lemon Passion Cooler",
+          "description": "Squeeze the day with Lemon Passion Cooler! A refreshing blend of citrusy lemon and luscious passion fruit. Served ice-cold for the perfect summer cooldown!",
+          "price": "65.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 65
+        },
+        {
+          "name": "Fruity Milk Mango",
+          "description": "Escape to a tropical getaway! Taste the sun-ripened mangoes with the creaminess of milk",
+          "price": "70.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 66
+        },
+        {
+          "name": "Mango Sunrise Cooler",
+          "description": "Sip into something sunny with our signature iced tea blend with a splash of mango goodness!",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 67
+        },
+        {
+          "name": "Ruby Twistea",
+          "description": "A crisp, ruby red iced tea with a refreshing, fruity finish — the perfect sip to brighten any moment",
+          "price": "55.00",
+          "is_available": true,
+          "reason": "Has enabled add button",
+          "item_number": 68
+        }
+      ],
+      "unavailable_items": [
+        {
+          "name": "Milky Cheese Donut",
+          "description": "Creamy, cheesy goodness that melts in your mouth",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 16
+        },
+        {
+          "name": "Pinoy Pan Garlic Butter",
+          "description": "Soft and savory bun brushed with flavorful garlic butter",
+          "price": "12.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 25
+        },
+        {
+          "name": "Cinnamon Roll Classic",
+          "description": "A softer, richer take on the classic, perfectly swirled with cinnamon and topped with a sweet, delicious glaze",
+          "price": "20.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 36
+        },
+        {
+          "name": "Coffee Bun",
+          "description": "Drink your coffee and eat it too, with our delectable and buttery coffee bun",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 37
+        },
+        {
+          "name": "Choco Chip Muffin",
+          "description": "Soft and loaded with chocolate chips where each bite will be a comforting treat that satisfies your sweet cravings",
+          "price": "40.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 38
+        },
+        {
+          "name": "Cheese Burst Donut",
+          "description": "Soft fluffy donut bursting with delectable cheese",
+          "price": "30.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 41
+        },
+        {
+          "name": "Glazed Donut",
+          "description": "Say hello to our new glazed donut. Simple yet satisfying & it's glazy good",
+          "price": "20.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 42
+        },
+        {
+          "name": "Choco Frost Donut",
+          "description": "Donut topped with a layer of rich, smooth chocolate frosting, its the ultimate treat for chocolate lovers",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 43
+        },
+        {
+          "name": "Strawberry Sprinkle Donut",
+          "description": "Soft and fluffy donut, topped with a sweet and tangy berry glaze with colorful sprinkles in top. The burst of berry goodness, combined with the crunchiness of the sprinkles, makes every bite super fun and satisfying",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 44
+        },
+        {
+          "name": "Cheesy Sausage Roll",
+          "description": "Our Cheesy Sausage Roll is made from Purefoods Tender Juicy sausage, wrapped in a soft bun, topped with barbecue sauce, mayo, and aromatic herbs for a delicious finish",
+          "price": "45.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 49
+        },
+        {
+          "name": "Tuna Bun",
+          "description": "Our Tuna Bun is a soft bread filled with savory tuna goodness and a kick of spice",
+          "price": "35.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 50
+        },
+        {
+          "name": "Chicken Asado Bun",
+          "description": "A soft, golden bun filled with rich, savory chicken asado",
+          "price": "25.00",
+          "is_available": false,
+          "reason": "No enabled add button found",
+          "item_number": 51
+        }
+      ]
+    }
+  ]
+}
