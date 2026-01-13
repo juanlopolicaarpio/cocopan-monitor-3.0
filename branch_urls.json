@@ -2,7 +2,6 @@
   "urls": [
     "https://food.grab.com/ph/en/restaurant/cocopan-evangelista-delivery/2-C7K2LTJDNE2VAE",
     "https://food.grab.com/ph/en/restaurant/cocopan-ortigas-delivery/2-C7KXCKNHG2JJGA",
-
     "https://food.grab.com/ph/en/restaurant/cocopan-maysilo-delivery/2-C6TATTL2UF2UDA",
     "https://food.grab.com/ph/en/restaurant/cocopan-anonas-delivery/2-C6XVCUDGNXNZNN",
     "https://food.grab.com/ph/en/restaurant/cocopan-altura-santa-mesa-delivery/2-C7EUVP2UEJ43L6",
@@ -25,7 +24,6 @@
     "https://food.grab.com/ph/en/restaurant/cocopan-victor-medina-delivery/2-C7EUVP2UAXNGHE",
     "https://food.grab.com/ph/en/restaurant/cocopan-kamuning-delivery/2-C66BGTUBBBAENA",
     "https://food.grab.com/ph/en/restaurant/cocopan-kanlaon-delivery/2-C6UYGKT2DGEFJA",
-    "https://food.grab.com/ph/en/restaurant/cocopan-katuparan-delivery/2-C6TBJ6VTCAXUPE",
     "https://food.grab.com/ph/en/restaurant/cocopan-kalentong-delivery/2-C35GCT3KGYUKT6",
     "https://food.grab.com/ph/en/restaurant/cocopan-la-huerta-delivery/2-C7E1CYC3R4EDGE",
     "https://food.grab.com/ph/en/restaurant/cocopan-galas-delivery/2-C66BGTT2CPXGWE",
@@ -49,7 +47,14 @@
     "https://food.grab.com/ph/en/restaurant/cocopan-pedro-gil-delivery/2-C4E2FAJECANYCT",
     "https://food.grab.com/ph/en/restaurant/cocopan-pio-valenzuela-delivery/2-C6TATUVFRAJBLX",
     "https://food.grab.com/ph/en/restaurant/cocopan-pulang-lupa-delivery/2-C6MCSA4EPBWAC6",
-    
+    "https://food.grab.com/ph/en/restaurant/cocopan-citisquare-delivery/2-C7TAAAKWRFNJCT",
+    "https://food.grab.com/ph/en/restaurant/cocopan-pureza-delivery/2-C7TAAALDNGEGCE",
+    "https://food.grab.com/ph/en/restaurant/cocopan-shoe-avenue-delivery/2-C7TDJVJKRBCZEJ",
+    "https://food.grab.com/ph/en/restaurant/cocopan-pinatubo-delivery/2-C7TAAJCBNFWKHE",
+    "https://food.grab.com/ph/en/restaurant/cocopan-malinta-delivery/2-C7NVV2CUJCLYV2",
+    "https://r.grab.com/g/6-20251022_150557_40991888FC774198AB3FD8CB0B476FAF_MEXMPS-2-C7NVEBU3RRAHV6",
+    "https://r.grab.com/g/6-20260112_101206_78210C28CC3C48B681023630FDAD96BA_MEXMPS-2-C7UFCEXXTVD3KE",
+    "https://r.grab.com/g/6-20260112_101047_78210C28CC3C48B681023630FDAD96BA_MEXMPS-2-C7VCGLMFTVAFCJ",
     "Can't find it on the web or on mobile",
     "https://food.grab.com/ph/en/restaurant/cocopan-pinagsama-delivery/2-C6TATPA2V8KAGA",
     "https://food.grab.com/ph/en/restaurant/cocopan-putatan-delivery/2-C66BGTUAWEUFEA",
@@ -73,12 +78,6 @@
     "https://food.grab.com/ph/en/restaurant/cocopan-grace-park-delivery/2-C7LDVGEVEPDTGN",
     "https://food.grab.com/ph/en/restaurant/cocopan-dela-paz-delivery/2-C7NVEBVAEJVYEX",
     "https://food.grab.com/ph/en/restaurant/cocopan-san-isidro-delivery/2-C7K2PCAZAXNXEA?sourceID=20251022_150248_40991888FC774198AB3FD8CB0B476FAF_MEXMPS&nameSlug=online-delivery&id=2-C7K2PCAZAXNXEA",
-    "https://food.grab.com/ph/en/restaurant/cocopan-blumentritt-delivery/2-C7NVEBU3RRAHV6?sourceID=20251022_150557_40991888FC774198AB3FD8CB0B476FAF_MEXMPS&nameSlug=online-delivery&id=2-C7NVEBU3RRAHV6",
-    "https://food.grab.com/ph/en/restaurant/cocopan-citisquare-delivery/2-C7TAAAKWRFNJCT",
-"https://food.grab.com/ph/en/restaurant/cocopan-pureza-delivery/2-C7TAAALDNGEGCE",
-"https://food.grab.com/ph/en/restaurant/cocopan-shoe-avenue-delivery/2-C7TDJVJKRBCZEJ",
-"https://food.grab.com/ph/en/restaurant/cocopan-pinatubo-delivery/2-C7TAAJCBNFWKHE",
-"https://food.grab.com/ph/en/restaurant/cocopan-malinta-delivery/2-C7NVV2CUJCLYV2",
     "https://www.foodpanda.ph/restaurant/m90j/cocopan-aglipay",
     "https://www.foodpanda.ph/restaurant/bnn1/cocopan-anonas",
     "https://www.foodpanda.ph/restaurant/i51s/cocopan-altura",
@@ -153,13 +152,30 @@
     "https://www.foodpanda.ph/restaurant/ta5r/cocopan-zapote-bacoor",
     "https://www.foodpanda.ph/restaurant/jaxy/cocopan-polo-valenzuela",
     "https://www.foodpanda.ph/restaurant/wtd9/cocopan-pacita-complex",
-    "https://www.foodpanda.ph/restaurant/dgir/cocopan-almeda-sto-rosario"
+    "https://www.foodpanda.ph/restaurant/dgir/cocopan-almeda-sto-rosario",
+    "https://www.foodpanda.ph/restaurant/ucvg/cocopan-pinagbuhatan",
+    "https://www.foodpanda.ph/restaurant/o0aq/cocopan-pureza-sta-mesa",
+    "https://www.foodpanda.ph/restaurant/hj95/cocopan-shoe-avenue",
+    "https://www.foodpanda.ph/restaurant/bvdw/cocopan-barangka",
+    "https://www.foodpanda.ph/restaurant/q2w4/cocopan-pinatubo",
+    "https://www.foodpanda.ph/restaurant/swrp/cocopan-agora",
+    "https://www.foodpanda.ph/restaurant/y18e/cocopan-gen-t-de-leon",
+    "https://www.foodpanda.ph/restaurant/z77x/cocopan-cm-recto",
+    "https://www.foodpanda.ph/restaurant/kzsx/cocopan-paco",
+    "https://www.foodpanda.ph/restaurant/zb3k/cocopan-kalentong",
+    "https://www.foodpanda.ph/restaurant/tn2t/cocopan-naga-road",
+    "https://www.foodpanda.ph/restaurant/bwpg/cocopan-malibay",
+    "https://www.foodpanda.ph/restaurant/l6ge/cocopan-felix-huertas-street",
+    "https://www.foodpanda.ph/restaurant/j84t/cocopan-governor-santiago-malinta",
+    "https://www.foodpanda.ph/restaurant/ziri/cocopan-milagrosa",
+    "https://www.foodpanda.ph/restaurant/d2p1/cocopan-poblacion-dos",
+    "https://www.foodpanda.ph/restaurant/s87o/cocopan-tuktukan"
   ],
   "disabled_urls": [
     "https://food.grab.com/ph/en/restaurant/cocopan-susano-road-novaliches-delivery/2-C6MEHBN2EX51EA"
   ],
   "meta": {
     "total_stores": 144,
-    "duplicates_removed": 1
+    "duplicates_removed": 12
   }
 }

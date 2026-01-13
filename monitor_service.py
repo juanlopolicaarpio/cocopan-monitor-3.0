@@ -575,21 +575,32 @@ def extract_status_from_api_json(json_data: Dict[str, Any]) -> Tuple[Optional[st
 class SKUMapper:
     """Maps scraped product names to SKU codes using fuzzy matching"""
     
-    def __init__(self):
+    def __init__(self, platform: str = 'grabfood'):
+        """
+        Initialize SKU Mapper for specific platform
+        
+        Args:
+            platform: 'grabfood' or 'foodpanda'
+        """
         try:
-            logger.info("🔧 Initializing SKU Mapper...")
+            self.platform = platform.lower()
+            logger.info(f"🔧 Initializing SKU Mapper for platform: {self.platform.upper()}...")
             
             # Load master SKUs from database
-            logger.info("📥 Loading GrabFood SKUs from database...")
-            self.grabfood_skus = self._load_grabfood_master_skus()
-            logger.info(f"✅ Loaded {len(self.grabfood_skus)} GrabFood SKUs")
+            logger.info(f"📥 Loading {self.platform.upper()} SKUs from database...")
+            self.master_skus = self._load_master_skus()
+            logger.info(f"✅ Loaded {len(self.master_skus)} {self.platform.upper()} SKUs")
             
             # Build name mappings
-            logger.info("🗺️ Building name → SKU mappings...")
+            logger.info("🗺️  Building name → SKU mappings...")
             self.name_to_sku_map = self._build_name_mapping()
             logger.info(f"✅ Built {len(self.name_to_sku_map)} name mappings")
             
-            logger.info(f"📦 SKU Mapper initialized successfully")
+            # Build SKU set for quick lookup
+            self.all_sku_codes = set(sku['sku_code'] for sku in self.master_skus)
+            logger.info(f"📦 Total SKU codes in database: {len(self.all_sku_codes)}")
+            
+            logger.info(f"✅ SKU Mapper initialized successfully for {self.platform.upper()}")
             
         except Exception as e:
             logger.error(f"❌ Failed to initialize SKU Mapper: {e}")
@@ -597,25 +608,29 @@ class SKUMapper:
             logger.error(traceback.format_exc())
             raise
     
-    def _load_grabfood_master_skus(self) -> List[Dict]:
-        """Load ALL GrabFood SKUs from database - NO FALLBACK"""
+    def _load_master_skus(self) -> List[Dict]:
+        """Load ALL SKUs from database for the specified platform"""
         try:
-            skus = db.get_master_skus_by_platform('grabfood')
+            # Use the global db object (same as working SKU mapper)
+            from database import db
+            
+            skus = db.get_master_skus_by_platform(self.platform)
+            
             if skus:
-                logger.debug(f"📦 Loaded {len(skus)} GrabFood SKUs from database")
+                logger.debug(f"📦 Loaded {len(skus)} {self.platform.upper()} SKUs from database")
                 return skus
             else:
-                logger.error("❌ No GrabFood SKUs found in database!")
-                logger.error("❌ Please run populate_direct.py first to populate the database")
-                raise RuntimeError("Database has no GrabFood SKUs - run populate_direct.py first")
+                logger.error(f"❌ No {self.platform.upper()} SKUs found in database!")
+                logger.error(f"❌ Please run populate_direct.py first to populate the database")
+                raise RuntimeError(f"Database has no {self.platform.upper()} SKUs - run populate_direct.py first")
         except Exception as e:
             logger.error(f"❌ Failed to load SKUs from database: {e}")
-            raise RuntimeError(f"Cannot load GrabFood SKUs from database: {e}")
+            raise RuntimeError(f"Cannot load {self.platform.upper()} SKUs from database: {e}")
     
     def _build_name_mapping(self) -> Dict[str, str]:
         """Build mapping from normalized names to SKU codes"""
         mapping = {}
-        for sku in self.grabfood_skus:
+        for sku in self.master_skus:
             normalized_name = self._normalize_name(sku['product_name'])
             mapping[normalized_name] = sku['sku_code']
         return mapping
@@ -662,7 +677,14 @@ class SKUMapper:
     
     def find_sku_for_name(self, scraped_name: str, min_confidence: int = 85) -> Optional[str]:
         """
-        Find SKU code using fuzzy matching (NO explicit mappings)
+        Find SKU code using fuzzy matching
+        
+        Args:
+            scraped_name: Product name from scraping
+            min_confidence: Minimum confidence score (0-100) for fuzzy matching
+            
+        Returns:
+            SKU code if found, None otherwise
         """
         if not scraped_name or not scraped_name.strip():
             return None
@@ -716,26 +738,96 @@ class SKUMapper:
         logger.debug(f"❌ No match found for: '{scraped_name}'")
         return None
     
-    def map_scraped_names_to_skus(self, scraped_names: List[str]) -> Tuple[List[str], List[str]]:
+    def map_scraped_items(self, scraped_items: List[Dict]) -> Dict:
         """
-        Map list of scraped names to SKU codes
-        Returns: (matched_sku_codes, unknown_products)
-        """
-        matched_skus = []
-        unknown_products = []
+        Map scraped items to SKUs and identify matches/unknowns
         
-        for scraped_name in scraped_names:
+        Args:
+            scraped_items: List of dicts with 'name' and 'price' keys
+            
+        Returns:
+            Dict with:
+                - matched: List of {scraped_name, sku_code, price, confidence}
+                - unknown: List of {scraped_name, price}
+                - matched_skus: Set of matched SKU codes
+        """
+        matched = []
+        unknown = []
+        matched_skus = set()
+        
+        for item in scraped_items:
+            scraped_name = item.get('name', '')
+            price = item.get('price')
+            
             sku_code = self.find_sku_for_name(scraped_name)
+            
             if sku_code:
-                matched_skus.append(sku_code)
+                matched.append({
+                    'scraped_name': scraped_name,
+                    'sku_code': sku_code,
+                    'price': price,
+                    'normalized_name': self._normalize_name(scraped_name)
+                })
+                matched_skus.add(sku_code)
                 logger.debug(f"✅ Mapped: '{scraped_name}' → {sku_code}")
             else:
-                unknown_products.append(scraped_name)
+                unknown.append({
+                    'scraped_name': scraped_name,
+                    'price': price,
+                    'normalized_name': self._normalize_name(scraped_name)
+                })
                 logger.warning(f"❓ Unknown product: '{scraped_name}'")
         
-        return matched_skus, unknown_products# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-# UPDATED: GrabFood SKU Scraper - Load URLs from branch_urls.json
+        return {
+            'matched': matched,
+            'unknown': unknown,
+            'matched_skus': matched_skus
+        }
+    
+    def find_out_of_stock_skus(self, matched_skus: Set[str]) -> Dict:
+        """
+        Find SKUs that are in database but not in scraped items (out of stock for Foodpanda)
+        
+        Args:
+            matched_skus: Set of SKU codes that were found in scraping
+            
+        Returns:
+            Dict with:
+                - out_of_stock_skus: List of SKU codes not found
+                - out_of_stock_details: List of dicts with SKU details
+                - total_in_db: Total SKUs in database
+                - total_scraped: Total SKUs scraped
+                - out_of_stock_count: Count of out of stock
+        """
+        out_of_stock_skus = self.all_sku_codes - matched_skus
+        
+        # Get details for out of stock items
+        out_of_stock_details = []
+        for sku_code in out_of_stock_skus:
+            # Find the SKU details from master list
+            for sku_data in self.master_skus:
+                if sku_data['sku_code'] == sku_code:
+                    out_of_stock_details.append({
+                        'sku_code': sku_code,
+                        'product_name': sku_data['product_name'],
+                        'category': sku_data.get('category', 'Unknown')
+                    })
+                    break
+        
+        return {
+            'out_of_stock_skus': sorted(out_of_stock_skus),
+            'out_of_stock_details': sorted(out_of_stock_details, key=lambda x: x['sku_code']),
+            'total_in_db': len(self.all_sku_codes),
+            'total_scraped': len(matched_skus),
+            'out_of_stock_count': len(out_of_stock_skus)
+        }
+    
+    def get_master_sku_info(self, sku_code: str) -> Optional[Dict]:
+        """Get full info for a SKU from master list"""
+        for sku in self.master_skus:
+            if sku['sku_code'] == sku_code:
+                return sku
+        return None
 # ------------------------------------------------------------------------------
 class GrabFoodSKUScraper:
     """GrabFood SKU/OOS scraper with same reliability as store status checker"""

@@ -1,0 +1,981 @@
+{
+  "test_timestamp": "2025-12-11T11:08:37.721245",
+  "test_url": "https://www.foodpanda.ph/restaurant/m90j/cocopan-aglipay",
+  "scraped_items_count": 59,
+  "scraped_items": [
+    {
+      "name": "Milky Cheese Donut",
+      "price": 35.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Vietnamese Coffee",
+      "price": 70.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Salted Caramel Coffee",
+      "price": 80.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Choco Frost Donut",
+      "price": 35.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Milo Overload",
+      "price": 85.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Cinnamon Roll Deluxe",
+      "price": 25.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Pan de Coco",
+      "price": 15.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Original Matcha Milk",
+      "price": 65.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Twistea",
+      "price": 55.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Double Cheese Roll",
+      "price": 20.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Snowy Caramel Coffee",
+      "price": 85.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Corned Beef Pandesal",
+      "price": 35.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Perfect Pair 1",
+      "price": 69.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Perfect Pair 2",
+      "price": 79.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Pinoy Pan Garlic Butter",
+      "price": 12.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Pinoy Pan Butter Sugar",
+      "price": 12.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Choco Cream Pan",
+      "price": 25.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Build A Box (Superbox 13 Pcs)",
+      "price": 300.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Superbox (Assorted 13 Pcs)",
+      "price": 300.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Build A Box (Snack Box 10Pcs)",
+      "price": 150.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Snack Box (Assorted 10 Pcs)",
+      "price": 150.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Cheese Roll",
+      "price": 15.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Spanish Bread",
+      "price": 15.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Choco Roll",
+      "price": 15.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Cinnamon Roll Classic",
+      "price": 20.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Coffee Bun",
+      "price": 40.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Blueberry Muffin",
+      "price": 40.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Choco Chip Muffin",
+      "price": 40.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Banana Bread (Sliced)",
+      "price": 25.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Choco Cheese Donut",
+      "price": 35.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Sugar Donut",
+      "price": 15.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Glazed Donut",
+      "price": 20.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Strawberry Sprinkle Donut",
+      "price": 35.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Cheesy Sausage Roll",
+      "price": 45.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Cheesy Ham Roll",
+      "price": 25.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Pan De Floss (Original)",
+      "price": 35.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Pan De Floss (Spicy)",
+      "price": 35.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Italian Cheese Roll",
+      "price": 20.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Tuna Bun",
+      "price": 35.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Pan De Sal  Pack (10 Pcs)",
+      "price": 55.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Raisin Loaf",
+      "price": 75.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Italian Herb Loaf",
+      "price": 75.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Express Caramel Coffee",
+      "price": 65.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Express Sweet & Creamy Iced Coffee",
+      "price": 60.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Express Classic Iced Coffee",
+      "price": 45.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Cafe Espanol",
+      "price": 80.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Creamy Vanilla Coffee",
+      "price": 80.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Dark Chocolate Coffee",
+      "price": 85.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Signature Milky Coffee",
+      "price": 65.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Signature Black Coffee",
+      "price": 50.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Strawberry Matcha",
+      "price": 70.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Viet Coffee Matcha",
+      "price": 95.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Lemon Berry Cooler",
+      "price": 65.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Fruity Melon Milk",
+      "price": 70.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Fruity Strawberry Milk",
+      "price": 70.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Lemon Passion Cooler",
+      "price": 65.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Fruity Mango Milk",
+      "price": 70.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Mango Sunrise Cooler",
+      "price": 55.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    },
+    {
+      "name": "Ruby Twistea",
+      "price": 55.0,
+      "description": "",
+      "category": "",
+      "available": true,
+      "image_url": null,
+      "source": "HTML:data-testid menu"
+    }
+  ],
+  "mapping": {
+    "matched_count": 59,
+    "unknown_count": 0,
+    "unique_skus_count": 58,
+    "matched_items": [
+      {
+        "scraped_name": "Milky Cheese Donut",
+        "sku_code": "FB113",
+        "price": 35.0,
+        "normalized_name": "MILKY CHEESE DONUT"
+      },
+      {
+        "scraped_name": "Vietnamese Coffee",
+        "sku_code": "FD028",
+        "price": 70.0,
+        "normalized_name": "VIETNAMESE COFFEE"
+      },
+      {
+        "scraped_name": "Salted Caramel Coffee",
+        "sku_code": "FD055",
+        "price": 80.0,
+        "normalized_name": "SALTED CARAMEL COFFEE"
+      },
+      {
+        "scraped_name": "Choco Frost Donut",
+        "sku_code": "FB111",
+        "price": 35.0,
+        "normalized_name": "CHOCO FROST DONUT"
+      },
+      {
+        "scraped_name": "Milo Overload",
+        "sku_code": "FD050",
+        "price": 85.0,
+        "normalized_name": "MILO OVERLOAD"
+      },
+      {
+        "scraped_name": "Cinnamon Roll Deluxe",
+        "sku_code": "FB089",
+        "price": 25.0,
+        "normalized_name": "CINNAMON ROLL DELUXE"
+      },
+      {
+        "scraped_name": "Pan de Coco",
+        "sku_code": "FB001",
+        "price": 15.0,
+        "normalized_name": "PAN DE COCO"
+      },
+      {
+        "scraped_name": "Original Matcha Milk",
+        "sku_code": "FD051",
+        "price": 65.0,
+        "normalized_name": "ORIGINAL MATCHA MILK"
+      },
+      {
+        "scraped_name": "Twistea",
+        "sku_code": "FD117",
+        "price": 55.0,
+        "normalized_name": "TWISTEA"
+      },
+      {
+        "scraped_name": "Double Cheese Roll",
+        "sku_code": "FB096",
+        "price": 20.0,
+        "normalized_name": "DOUBLE CHEESE ROLL"
+      },
+      {
+        "scraped_name": "Snowy Caramel Coffee",
+        "sku_code": "FD060",
+        "price": 85.0,
+        "normalized_name": "SNOWY CARAMEL COFFEE"
+      },
+      {
+        "scraped_name": "Corned Beef Pandesal",
+        "sku_code": "FB108",
+        "price": 35.0,
+        "normalized_name": "CORNED BEEF PANDESAL"
+      },
+      {
+        "scraped_name": "Perfect Pair 1",
+        "sku_code": "FP011",
+        "price": 69.0,
+        "normalized_name": "PERFECT PAIR 1"
+      },
+      {
+        "scraped_name": "Perfect Pair 2",
+        "sku_code": "FP012",
+        "price": 79.0,
+        "normalized_name": "PERFECT PAIR 2"
+      },
+      {
+        "scraped_name": "Pinoy Pan Garlic Butter",
+        "sku_code": "FB098",
+        "price": 12.0,
+        "normalized_name": "PINOY PAN GARLIC BUTTER"
+      },
+      {
+        "scraped_name": "Pinoy Pan Butter Sugar",
+        "sku_code": "FB097",
+        "price": 12.0,
+        "normalized_name": "PINOY PAN BUTTER SUGAR"
+      },
+      {
+        "scraped_name": "Choco Cream Pan",
+        "sku_code": "FB095",
+        "price": 25.0,
+        "normalized_name": "CHOCO CREAM PAN"
+      },
+      {
+        "scraped_name": "Build A Box (Superbox 13 Pcs)",
+        "sku_code": "FP007",
+        "price": 300.0,
+        "normalized_name": "BUILD A BOX SUPERBOX 13 PCS"
+      },
+      {
+        "scraped_name": "Superbox (Assorted 13 Pcs)",
+        "sku_code": "FP008",
+        "price": 300.0,
+        "normalized_name": "SUPERBOX ASSORTED 13 PCS"
+      },
+      {
+        "scraped_name": "Build A Box (Snack Box 10Pcs)",
+        "sku_code": "FP009",
+        "price": 150.0,
+        "normalized_name": "BUILD A BOX SNACK BOX 10PCS"
+      },
+      {
+        "scraped_name": "Snack Box (Assorted 10 Pcs)",
+        "sku_code": "FP010",
+        "price": 150.0,
+        "normalized_name": "SNACK BOX ASSORTED 10 PCS"
+      },
+      {
+        "scraped_name": "Cheese Roll",
+        "sku_code": "FB003",
+        "price": 15.0,
+        "normalized_name": "CHEESE ROLL"
+      },
+      {
+        "scraped_name": "Spanish Bread",
+        "sku_code": "FB002",
+        "price": 15.0,
+        "normalized_name": "SPANISH BREAD"
+      },
+      {
+        "scraped_name": "Choco Roll",
+        "sku_code": "FB004",
+        "price": 15.0,
+        "normalized_name": "CHOCO ROLL"
+      },
+      {
+        "scraped_name": "Cinnamon Roll Classic",
+        "sku_code": "FB090",
+        "price": 20.0,
+        "normalized_name": "CINNAMON ROLL CLASSIC"
+      },
+      {
+        "scraped_name": "Coffee Bun",
+        "sku_code": "FB091",
+        "price": 40.0,
+        "normalized_name": "COFFEE BUN"
+      },
+      {
+        "scraped_name": "Blueberry Muffin",
+        "sku_code": "FB093",
+        "price": 40.0,
+        "normalized_name": "BLUEBERRY MUFFIN"
+      },
+      {
+        "scraped_name": "Choco Chip Muffin",
+        "sku_code": "FB094",
+        "price": 40.0,
+        "normalized_name": "CHOCO CHIP MUFFIN"
+      },
+      {
+        "scraped_name": "Banana Bread (Sliced)",
+        "sku_code": "FB092",
+        "price": 25.0,
+        "normalized_name": "BANANA BREAD SLICED"
+      },
+      {
+        "scraped_name": "Choco Cheese Donut",
+        "sku_code": "FB112",
+        "price": 35.0,
+        "normalized_name": "CHOCO CHEESE DONUT"
+      },
+      {
+        "scraped_name": "Sugar Donut",
+        "sku_code": "FB109",
+        "price": 15.0,
+        "normalized_name": "SUGAR DONUT"
+      },
+      {
+        "scraped_name": "Glazed Donut",
+        "sku_code": "FB110",
+        "price": 20.0,
+        "normalized_name": "GLAZED DONUT"
+      },
+      {
+        "scraped_name": "Strawberry Sprinkle Donut",
+        "sku_code": "FB115",
+        "price": 35.0,
+        "normalized_name": "STRAWBERRY SPRINKLE DONUT"
+      },
+      {
+        "scraped_name": "Cheesy Sausage Roll",
+        "sku_code": "FB106",
+        "price": 45.0,
+        "normalized_name": "CHEESY SAUSAGE ROLL"
+      },
+      {
+        "scraped_name": "Cheesy Ham Roll",
+        "sku_code": "FB102",
+        "price": 25.0,
+        "normalized_name": "CHEESY HAM ROLL"
+      },
+      {
+        "scraped_name": "Pan De Floss (Original)",
+        "sku_code": "FB103",
+        "price": 35.0,
+        "normalized_name": "PAN DE FLOSS ORIGINAL"
+      },
+      {
+        "scraped_name": "Pan De Floss (Spicy)",
+        "sku_code": "FB104",
+        "price": 35.0,
+        "normalized_name": "PAN DE FLOSS SPICY"
+      },
+      {
+        "scraped_name": "Italian Cheese Roll",
+        "sku_code": "FB101",
+        "price": 20.0,
+        "normalized_name": "ITALIAN CHEESE ROLL"
+      },
+      {
+        "scraped_name": "Tuna Bun",
+        "sku_code": "FB105",
+        "price": 35.0,
+        "normalized_name": "TUNA BUN"
+      },
+      {
+        "scraped_name": "Pan De Sal  Pack (10 Pcs)",
+        "sku_code": "FB005",
+        "price": 55.0,
+        "normalized_name": "PAN DE SAL PACK 10 PCS"
+      },
+      {
+        "scraped_name": "Raisin Loaf",
+        "sku_code": "FB100",
+        "price": 75.0,
+        "normalized_name": "RAISIN LOAF"
+      },
+      {
+        "scraped_name": "Italian Herb Loaf",
+        "sku_code": "FB099",
+        "price": 75.0,
+        "normalized_name": "ITALIAN HERB LOAF"
+      },
+      {
+        "scraped_name": "Express Caramel Coffee",
+        "sku_code": "FD060",
+        "price": 65.0,
+        "normalized_name": "EXPRESS CARAMEL COFFEE"
+      },
+      {
+        "scraped_name": "Express Sweet & Creamy Iced Coffee",
+        "sku_code": "FD059",
+        "price": 60.0,
+        "normalized_name": "EXPRESS SWEET & CREAMY ICED COFFEE"
+      },
+      {
+        "scraped_name": "Express Classic Iced Coffee",
+        "sku_code": "FD058",
+        "price": 45.0,
+        "normalized_name": "EXPRESS CLASSIC ICED COFFEE"
+      },
+      {
+        "scraped_name": "Cafe Espanol",
+        "sku_code": "FD049",
+        "price": 80.0,
+        "normalized_name": "CAFE ESPANOL"
+      },
+      {
+        "scraped_name": "Creamy Vanilla Coffee",
+        "sku_code": "FD054",
+        "price": 80.0,
+        "normalized_name": "CREAMY VANILLA COFFEE"
+      },
+      {
+        "scraped_name": "Dark Chocolate Coffee",
+        "sku_code": "FD034",
+        "price": 85.0,
+        "normalized_name": "DARK CHOCOLATE COFFEE"
+      },
+      {
+        "scraped_name": "Signature Milky Coffee",
+        "sku_code": "FD056",
+        "price": 65.0,
+        "normalized_name": "SIGNATURE MILKY COFFEE"
+      },
+      {
+        "scraped_name": "Signature Black Coffee",
+        "sku_code": "FD057",
+        "price": 50.0,
+        "normalized_name": "SIGNATURE BLACK COFFEE"
+      },
+      {
+        "scraped_name": "Strawberry Matcha",
+        "sku_code": "FD052",
+        "price": 70.0,
+        "normalized_name": "STRAWBERRY MATCHA"
+      },
+      {
+        "scraped_name": "Viet Coffee Matcha",
+        "sku_code": "FD053",
+        "price": 95.0,
+        "normalized_name": "VIET COFFEE MATCHA"
+      },
+      {
+        "scraped_name": "Lemon Berry Cooler",
+        "sku_code": "FD061",
+        "price": 65.0,
+        "normalized_name": "LEMON BERRY COOLER"
+      },
+      {
+        "scraped_name": "Fruity Melon Milk",
+        "sku_code": "FD065",
+        "price": 70.0,
+        "normalized_name": "FRUITY MELON MILK"
+      },
+      {
+        "scraped_name": "Fruity Strawberry Milk",
+        "sku_code": "FD066",
+        "price": 70.0,
+        "normalized_name": "FRUITY STRAWBERRY MILK"
+      },
+      {
+        "scraped_name": "Lemon Passion Cooler",
+        "sku_code": "FD062",
+        "price": 65.0,
+        "normalized_name": "LEMON PASSION COOLER"
+      },
+      {
+        "scraped_name": "Fruity Mango Milk",
+        "sku_code": "FD067",
+        "price": 70.0,
+        "normalized_name": "FRUITY MANGO MILK"
+      },
+      {
+        "scraped_name": "Mango Sunrise Cooler",
+        "sku_code": "FD063",
+        "price": 55.0,
+        "normalized_name": "MANGO SUNRISE COOLER"
+      },
+      {
+        "scraped_name": "Ruby Twistea",
+        "sku_code": "FD064",
+        "price": 55.0,
+        "normalized_name": "RUBY TWISTEA"
+      }
+    ],
+    "unknown_items": [],
+    "matched_skus": [
+      "FB106",
+      "FD055",
+      "FP012",
+      "FB100",
+      "FB111",
+      "FB102",
+      "FD067",
+      "FB005",
+      "FB090",
+      "FB095",
+      "FP011",
+      "FD053",
+      "FB098",
+      "FP009",
+      "FD063",
+      "FB004",
+      "FD065",
+      "FD050",
+      "FB002",
+      "FD117",
+      "FP007",
+      "FD057",
+      "FD054",
+      "FD061",
+      "FD064",
+      "FB096",
+      "FD049",
+      "FD034",
+      "FB001",
+      "FB097",
+      "FP008",
+      "FP010",
+      "FD028",
+      "FB094",
+      "FD056",
+      "FB091",
+      "FD066",
+      "FB104",
+      "FD051",
+      "FB108",
+      "FB099",
+      "FB115",
+      "FB101",
+      "FB105",
+      "FB089",
+      "FB003",
+      "FB112",
+      "FD060",
+      "FB113",
+      "FB103",
+      "FD052",
+      "FD059",
+      "FB109",
+      "FD058",
+      "FB110",
+      "FB093",
+      "FB092",
+      "FD062"
+    ]
+  },
+  "out_of_stock": {
+    "total_in_db": 60,
+    "total_scraped": 58,
+    "out_of_stock_count": 2,
+    "out_of_stock_skus": [
+      "FB107",
+      "FB114"
+    ],
+    "out_of_stock_details": [
+      {
+        "sku_code": "FB107",
+        "product_name": "Chicken Asado Bun",
+        "category": "Breads"
+      },
+      {
+        "sku_code": "FB114",
+        "product_name": "Cheese Burst Donut",
+        "category": "Donuts"
+      }
+    ]
+  }
+}

@@ -54,7 +54,7 @@ class StandaloneSKUScraper:
         logger.info("="*80)
         logger.info("🛒 STANDALONE GRABFOOD SKU SCRAPER")
         logger.info("="*80)
-        logger.info(f"📦 Loaded {len(self.sku_mapper.grabfood_skus)} master SKU products")
+        logger.info(f"📦 Loaded {len(self.sku_mapper.master_skus)} master SKU products")
         logger.info(f"📋 Loaded {len(self.store_urls)} GrabFood store URLs")
         logger.info(f"💾 Will save results to database")
         logger.info(f"🔄 Max retries per store: {self.max_retries}")
