@@ -2208,7 +2208,6 @@ def main():
 
     try:
         monitor = GrabFoodMonitor()
-        sku_scraper = GrabFoodSKUScraper()
 
         if not monitor.store_urls:
             logger.error("❌ No GrabFood URLs loaded!")
@@ -2236,19 +2235,6 @@ def main():
                 logger.error(f"❌ Client email test error: {e}")
 
         # ✨ MODIFIED: Smart SKU scraping on startup
-        if should_run_startup_sku_test():
-            logger.info("🧪 Running startup GrabFood SKU scraping test...")
-            try:
-                test_results = sku_scraper.scrape_all_stores()
-                if test_results['successful_scrapes'] > 0:
-                    logger.info("✅ GrabFood SKU scraping test successful!")
-                    logger.info(f"   📊 Scraped {test_results['successful_scrapes']} stores")
-                else:
-                    logger.warning("⚠️ GrabFood SKU scraping test failed - check configuration")
-            except Exception as e:
-                logger.error(f"❌ GrabFood SKU scraping test error: {e}")
-        else:
-            logger.info("⏭️ Skipping startup SKU test (will run at scheduled time or use --test-sku)")
 
         # Scheduler
         if HAS_SCHEDULER:
@@ -2263,24 +2249,6 @@ def main():
                 else:
                     logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
 
-            def daily_sku_scraping_job():
-                """✨ MODIFIED: Daily SKU scraping at 10AM - with duplicate prevention"""
-                logger.info("🛒 Daily scheduled GrabFood SKU scraping triggered...")
-                
-                # Double-check if already ran today (race condition protection)
-                if has_sku_scraping_run_today():
-                    logger.info("⏭️ SKU scraping already completed today - Skipping scheduled run")
-                    return
-                
-                try:
-                    results = sku_scraper.scrape_all_stores()
-                    if results['successful_scrapes'] > 0:
-                        logger.info(f"✅ Daily SKU scraping completed: {results['successful_scrapes']} stores processed")
-                    else:
-                        logger.error("❌ Daily SKU scraping failed - no successful scrapes")
-                except Exception as e:
-                    logger.error(f"❌ Daily SKU scraping error: {e}")
-
             # Schedule at :45 minutes past each hour (existing)
             scheduler.add_job(
                 func=early_check_job,
@@ -2292,15 +2260,6 @@ def main():
             )
 
             # Schedule daily SKU scraping at 10AM
-            scheduler.add_job(
-                func=daily_sku_scraping_job,
-                trigger=CronTrigger(hour=10, minute=0, timezone=ph_tz),
-                id='daily_grabfood_sku_scraping',
-                max_instances=1,
-                coalesce=True,
-                misfire_grace_time=300
-            )
-
             logger.info(f"⏰ Scheduled GrabFood checks at :45 past each hour for client email integration")
             logger.info(f"⏰ Scheduled daily GrabFood SKU scraping at 10:00 AM")
             logger.info("🔍 Running initial GrabFood check with client alerts...")
@@ -2322,13 +2281,6 @@ def main():
                         monitor.check_all_grabfood_stores_with_client_alerts()
                         
                         # ✨ MODIFIED: Check if it's 10AM and hasn't run today
-                        if now_hour == 10 and not has_sku_scraping_run_today():
-                            logger.info("🛒 Starting daily GrabFood SKU scraping...")
-                            try:
-                                results = sku_scraper.scrape_all_stores()
-                                logger.info(f"✅ Daily SKU scraping completed: {results['successful_scrapes']} stores processed")
-                            except Exception as e:
-                                logger.error(f"❌ Daily SKU scraping error: {e}")
                     else:
                         logger.info(f"😴 Outside monitoring hours ({now_hour}:00)")
                     time.sleep(3600)  # Sleep for 1 hour
