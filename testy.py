@@ -46,7 +46,7 @@ def load_foodpanda_urls():
         return []
 
 # ============================================================================
-# Selenium Scraping Functions
+# Selenium Scraping Functions - FIXED
 # ============================================================================
 
 def find_chrome_binary():
@@ -54,8 +54,9 @@ def find_chrome_binary():
     import subprocess
     import os
     
-    # Common Chrome locations on Mac
+    # Common Chrome locations on Mac (YOUR Chrome location first!)
     mac_paths = [
+        '/Users/arthur.policarpio/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  # ← YOUR CHROME
         '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         '/Applications/Chromium.app/Contents/MacOS/Chromium',
         os.path.expanduser('~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'),
@@ -64,6 +65,7 @@ def find_chrome_binary():
     # Try common paths first
     for path in mac_paths:
         if os.path.exists(path):
+            logger.info(f"✅ Found Chrome at: {path}")
             return path
     
     # Try using 'which' command
@@ -75,11 +77,15 @@ def find_chrome_binary():
     except:
         pass
     
+    logger.warning("⚠️ Chrome not found in standard locations")
     return None
 
 def create_driver():
-    """Create Chrome driver for scraping."""
+    """Create Chrome driver for scraping - FIXED for Chrome 143"""
     chrome_binary = find_chrome_binary()
+    
+    if not chrome_binary:
+        raise Exception("Chrome not found! Please install Chrome or check the path.")
     
     options = uc.ChromeOptions()
     options.add_argument('--no-sandbox')
@@ -90,17 +96,13 @@ def create_driver():
     ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
     options.add_argument(f'--user-agent={ua}')
     
-    if chrome_binary:
-        driver = uc.Chrome(
-            options=options,
-            browser_executable_path=chrome_binary,
-            use_subprocess=False
-        )
-    else:
-        driver = uc.Chrome(
-            options=options,
-            use_subprocess=False
-        )
+    # Create driver with explicit Chrome binary and version
+    driver = uc.Chrome(
+        options=options,
+        browser_executable_path=chrome_binary,
+        version_main=143,  # ← FIXED: Explicitly set to 143 to match your Chrome
+        use_subprocess=False
+    )
     
     return driver
 

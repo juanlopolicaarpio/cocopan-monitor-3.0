@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-GrabFood SKU Scraper - FIXED VERSION v2
+GrabFood SKU Scraper - FIXED VERSION v3
 ✅ Fixed product name extraction (no more concatenated descriptions)
 ✅ Fixed out-of-stock detection (better add button detection)
+✅ Fixed ChromeDriver with undetected-chromedriver (auto version matching)
 """
 import os
 import json
@@ -12,8 +13,6 @@ import random
 import re
 from datetime import datetime
 from typing import List, Dict, Optional
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 
 # Setup logging
@@ -33,7 +32,7 @@ STORE_URLS = [
 ]
 
 # ============================================================================
-# GrabFood Scraper - Fixed Version
+# GrabFood Scraper - Fixed Version with undetected-chromedriver
 # ============================================================================
 class GrabFoodScraper:
     """Fixed scraper with correct name extraction and OOS detection"""
@@ -43,25 +42,38 @@ class GrabFoodScraper:
         self.setup_driver()
     
     def setup_driver(self):
-        """Setup Chrome driver"""
-        chrome_options = Options()
-        chrome_options.add_argument('--headless=new')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
-        
-        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        chrome_options.add_argument(f'user-agent={user_agent}')
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
-        
+        """Setup Chrome driver with undetected-chromedriver (auto version matching)"""
         try:
-            self.driver = webdriver.Chrome(options=chrome_options)
-            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            logger.info("✅ Chrome WebDriver initialized")
+            import undetected_chromedriver as uc
+            
+            logger.info("🔧 Setting up Chrome with undetected-chromedriver...")
+            logger.info("   (This will automatically match your Chrome version)")
+            chrome_binary = "/Users/arthur.policarpio/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+            
+            # Configure options
+            options = uc.ChromeOptions()
+            options.add_argument('--headless=new')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--window-size=1920,1080')
+            
+            user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            options.add_argument(f'user-agent={user_agent}')
+            
+            # Create driver (automatically handles version matching!)
+            self.driver = uc.Chrome(options=options,browser_executable_path=chrome_binary, version_main=143)
+            
+            logger.info("✅ Chrome WebDriver initialized with auto version matching")
+            
+        except ImportError:
+            logger.error("❌ undetected-chromedriver not installed!")
+            logger.error("🔧 Install it with: pip install undetected-chromedriver")
+            raise
         except Exception as e:
             logger.error(f"❌ Failed to initialize Chrome: {e}")
+            logger.error("🔧 Make sure Google Chrome is installed")
             raise
     
     def extract_store_name(self, url: str) -> str:
@@ -380,7 +392,7 @@ class GrabFoodScraper:
         
         return "N/A"
     
-    def _check_availability(self, wrapper) -> tuple[bool, str]:
+    def _check_availability(self, wrapper) -> tuple:
         """
         Check if item is available - FIXED v2
         
@@ -548,9 +560,10 @@ class GrabFoodScraper:
 def main():
     """Main entry point"""
     logger.info("="*80)
-    logger.info("🛒 GrabFood SKU Scraper - FIXED VERSION v2")
+    logger.info("🛒 GrabFood SKU Scraper - FIXED VERSION v3")
     logger.info("✅ Fixed product name extraction (no concatenated descriptions)")
     logger.info("✅ Fixed out-of-stock detection (improved button detection)")
+    logger.info("✅ Fixed ChromeDriver with undetected-chromedriver (auto version)")
     logger.info("="*80)
     logger.info("")
     
@@ -577,8 +590,9 @@ def main():
         
         logger.info(f"Total stores: {results['total_stores']}")
         logger.info(f"Total items: {total_items}")
-        logger.info(f"  🟢 Available: {total_available} ({total_available/total_items*100:.1f}%)")
-        logger.info(f"  🔴 Unavailable: {total_unavailable} ({total_unavailable/total_items*100:.1f}%)")
+        if total_items > 0:
+            logger.info(f"  🟢 Available: {total_available} ({total_available/total_items*100:.1f}%)")
+            logger.info(f"  🔴 Unavailable: {total_unavailable} ({total_unavailable/total_items*100:.1f}%)")
         
         # List all unavailable items across all stores
         if total_unavailable > 0:
