@@ -3,6 +3,7 @@
 GrabFood SKU Scraper - FIXED VERSION v3
 ✅ Fixed product name extraction (no more concatenated descriptions)
 ✅ Fixed out-of-stock detection (better add button detection)
+
 ✅ Fixed ChromeDriver with undetected-chromedriver (auto version matching)
 """
 import os
