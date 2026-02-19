@@ -64,7 +64,7 @@ class GrabFoodScraper:
             options.add_argument(f'user-agent={user_agent}')
             
             # Create driver (automatically handles version matching!)
-            self.driver = uc.Chrome(options=options,browser_executable_path=chrome_binary, version_main=143)
+            self.driver = uc.Chrome(options=options, browser_executable_path=chrome_binary)
             
             logger.info("✅ Chrome WebDriver initialized with auto version matching")
             

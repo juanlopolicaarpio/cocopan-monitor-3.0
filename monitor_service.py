@@ -110,6 +110,35 @@ class CheckResult:
 # ==============================================================================
 # ✨ NEW FUNCTIONS: Smart SKU Scraping Control
 # ==============================================================================
+# ==============================================================================
+# ✨ NEW: Time-Restricted Store Filtering
+# ==============================================================================
+
+# Stores with time restrictions (store identifier -> start hour)
+TIME_RESTRICTED_STORES = {
+    'citisquare': 11,  # Only scrape from 10 AM onwards
+}
+
+def should_skip_store_by_time(url: str, current_hour: int) -> bool:
+    """
+    Check if a store should be skipped based on time restrictions.
+    
+    Args:
+        url: Store URL
+        current_hour: Current hour (0-23)
+        
+    Returns:
+        True if store should be skipped, False if it should be checked
+    """
+    url_lower = url.lower()
+    
+    for store_key, start_hour in TIME_RESTRICTED_STORES.items():
+        if store_key in url_lower:
+            if current_hour < start_hour:
+                logger.info(f"⏰ Skipping {store_key} - only available from {start_hour}:00 onwards (current: {current_hour}:00)")
+                return True
+    
+    return False
 
 def has_sku_scraping_run_today() -> bool:
     """
@@ -1852,6 +1881,10 @@ class GrabFoodMonitor:
 
         # First pass - check all stores
         for i, url in enumerate(self.store_urls, 1):
+            current_hour = config.get_current_time().hour
+            if should_skip_store_by_time(url, current_hour):
+                continue
+
             result = self._check_single_store_safe(url, i, len(self.store_urls))
             if result:
                 all_results.append(result)

@@ -100,7 +100,6 @@ def create_driver():
     driver = uc.Chrome(
         options=options,
         browser_executable_path=chrome_binary,
-        version_main=143,  # ← FIXED: Explicitly set to 143 to match your Chrome
         use_subprocess=False
     )
     
