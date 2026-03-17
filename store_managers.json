@@ -1,0 +1,32 @@
+{
+  "_comment": "All contacts below receive alerts for ALL stores",
+  
+  "managers": {
+    "arthur": {
+      "name": "Arthur Policarpio",
+      "phone": "09175694375",
+      "role": "manager"
+    },
+    "juanlo": {
+      "name": "Juanlo Policarpio",
+      "phone": "09178005833",
+      "role": "manager"
+    }
+  },
+
+  "default_manager_ids": ["anna", "arthur", "juanlo"],
+
+  "stores": {
+  },
+
+  "alert_settings": {
+    "min_oos_to_alert": 1,
+    "include_compliance_pct": true,
+    "max_items_in_sms": 5,
+    "quiet_hours": {
+      "enabled": false,
+      "start": "22:00",
+      "end": "07:00"
+    }
+  }
+}

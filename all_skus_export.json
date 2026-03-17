@@ -1,0 +1,1086 @@
+{
+  "foodpanda": [
+    {
+      "id": 494,
+      "sku_code": "FB092",
+      "product_name": "Banana Bread (Sliced)",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 496,
+      "sku_code": "FB093",
+      "product_name": "Blueberry Muffin",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 400.0
+    },
+    {
+      "id": 426,
+      "sku_code": "FP009",
+      "product_name": "Build A Box (Snack Box 10 Pcs)",
+      "category": "Bundles",
+      "division": "Value Packs",
+      "flow_category": "",
+      "gmv_q3": 1500.0
+    },
+    {
+      "id": 422,
+      "sku_code": "FP007",
+      "product_name": "Build A Box (Super Box 13 Pcs)",
+      "category": "Bundles",
+      "division": "Value Packs",
+      "flow_category": "",
+      "gmv_q3": 3000.0
+    },
+    {
+      "id": 448,
+      "sku_code": "FD049",
+      "product_name": "Caf\u00e9 Espanol",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 800.0
+    },
+    {
+      "id": 538,
+      "sku_code": "FB114",
+      "product_name": "Cheese Burst Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 300.0
+    },
+    {
+      "id": 482,
+      "sku_code": "FB003",
+      "product_name": "Cheese Roll",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 514,
+      "sku_code": "FB102",
+      "product_name": "Cheesy Ham Roll",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 522,
+      "sku_code": "FB106",
+      "product_name": "Cheesy Sausage Roll",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 450.0
+    },
+    {
+      "id": 524,
+      "sku_code": "FB107",
+      "product_name": "Chicken Asado Bun",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 534,
+      "sku_code": "FB112",
+      "product_name": "Choco Cheese Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 498,
+      "sku_code": "FB094",
+      "product_name": "Choco Chip Muffin",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 400.0
+    },
+    {
+      "id": 500,
+      "sku_code": "FB095",
+      "product_name": "Choco Cream Pan",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 532,
+      "sku_code": "FB111",
+      "product_name": "Choco Frost Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 484,
+      "sku_code": "FB004",
+      "product_name": "Choco Roll",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 490,
+      "sku_code": "FB090",
+      "product_name": "Cinnamon Roll Classic",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 200.0
+    },
+    {
+      "id": 488,
+      "sku_code": "FB089",
+      "product_name": "Cinnamon Roll Deluxe",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 492,
+      "sku_code": "FB091",
+      "product_name": "Coffee Bun",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 526,
+      "sku_code": "FB108",
+      "product_name": "Corn Beef Pandesal",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 450,
+      "sku_code": "FD054",
+      "product_name": "Creamy Vanilla Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 800.0
+    },
+    {
+      "id": 446,
+      "sku_code": "FD034",
+      "product_name": "Dark Choco Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 850.0
+    },
+    {
+      "id": 502,
+      "sku_code": "FB096",
+      "product_name": "Double Cheese Roll",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 200.0
+    },
+    {
+      "id": 462,
+      "sku_code": "FD060",
+      "product_name": "Express Caramel Coffee",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 458,
+      "sku_code": "FD058",
+      "product_name": "Express Classic Iced Coffee",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 450.0
+    },
+    {
+      "id": 460,
+      "sku_code": "FD059",
+      "product_name": "Express Sweet & Creamy Iced Coffee",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 600.0
+    },
+    {
+      "id": 472,
+      "sku_code": "FD065",
+      "product_name": "Fruity Melon Milk",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    },
+    {
+      "id": 476,
+      "sku_code": "FD067",
+      "product_name": "Fruity Milk Mango",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    },
+    {
+      "id": 474,
+      "sku_code": "FD066",
+      "product_name": "Fruity Strawberry Milk",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    },
+    {
+      "id": 530,
+      "sku_code": "FB110",
+      "product_name": "Glazed Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 200.0
+    },
+    {
+      "id": 512,
+      "sku_code": "FB101",
+      "product_name": "Italian Cheese Roll",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 200.0
+    },
+    {
+      "id": 508,
+      "sku_code": "FB099",
+      "product_name": "Italian Herb Loaf",
+      "category": "Breads",
+      "division": "Daily Loaf",
+      "flow_category": "",
+      "gmv_q3": 750.0
+    },
+    {
+      "id": 464,
+      "sku_code": "FD061",
+      "product_name": "Lemon Berry Cooler",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 466,
+      "sku_code": "FD062",
+      "product_name": "Lemon Passion Cooler",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 468,
+      "sku_code": "FD063",
+      "product_name": "Mango Sunrise Cooler",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 550.0
+    },
+    {
+      "id": 536,
+      "sku_code": "FB113",
+      "product_name": "Milky Cheese Donut",
+      "category": "Donuts",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 436,
+      "sku_code": "FD050",
+      "product_name": "Milo Overload",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 850.0
+    },
+    {
+      "id": 438,
+      "sku_code": "FD051",
+      "product_name": "Original Matcha Milk",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 478,
+      "sku_code": "FB001",
+      "product_name": "Pan de coco",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 516,
+      "sku_code": "FB103",
+      "product_name": "Pan de Floss (Original)",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 518,
+      "sku_code": "FB104",
+      "product_name": "Pan de Floss (Spicy)",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 486,
+      "sku_code": "FB005",
+      "product_name": "Pan De Sal Pack (10pcs)",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 550.0
+    },
+    {
+      "id": 430,
+      "sku_code": "FP011",
+      "product_name": "Perfect Pair 1",
+      "category": "Bundles",
+      "division": "Promos",
+      "flow_category": "",
+      "gmv_q3": 690.0
+    },
+    {
+      "id": 432,
+      "sku_code": "FP012",
+      "product_name": "Perfect Pair 2",
+      "category": "Bundles",
+      "division": "Promos",
+      "flow_category": "",
+      "gmv_q3": 790.0
+    },
+    {
+      "id": 504,
+      "sku_code": "FB097",
+      "product_name": "Pinoy Pan Butter Sugar",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 120.0
+    },
+    {
+      "id": 506,
+      "sku_code": "FB098",
+      "product_name": "Pinoy Pan Garlic Butter",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 120.0
+    },
+    {
+      "id": 510,
+      "sku_code": "FB100",
+      "product_name": "Raisin Loaf",
+      "category": "Breads",
+      "division": "Daily Loaf",
+      "flow_category": "",
+      "gmv_q3": 750.0
+    },
+    {
+      "id": 470,
+      "sku_code": "FD064",
+      "product_name": "Ruby Twistea",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 550.0
+    },
+    {
+      "id": 452,
+      "sku_code": "FD055",
+      "product_name": "Salted Caramel Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 800.0
+    },
+    {
+      "id": 456,
+      "sku_code": "FD057",
+      "product_name": "Signature Black Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 500.0
+    },
+    {
+      "id": 454,
+      "sku_code": "FD056",
+      "product_name": "Signature Milky Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 428,
+      "sku_code": "FP010",
+      "product_name": "Snack Box (Assorted 10 Pcs)",
+      "category": "Bundles",
+      "division": "Value Packs",
+      "flow_category": "",
+      "gmv_q3": 1500.0
+    },
+    {
+      "id": 480,
+      "sku_code": "FB002",
+      "product_name": "Spanish Bread",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 442,
+      "sku_code": "FD052",
+      "product_name": "Strawberry Matcha Milk",
+      "category": "Drinks",
+      "division": "Matcha",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    },
+    {
+      "id": 540,
+      "sku_code": "FB115",
+      "product_name": "Strawberry Sprinkle Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 528,
+      "sku_code": "FB109",
+      "product_name": "Sugar Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 424,
+      "sku_code": "FP008",
+      "product_name": "Super Box (Assorted 13 Pcs)",
+      "category": "Bundles",
+      "division": "Value Packs",
+      "flow_category": "",
+      "gmv_q3": 3000.0
+    },
+    {
+      "id": 520,
+      "sku_code": "FB105",
+      "product_name": "Tuna Bun",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 440,
+      "sku_code": "FD117",
+      "product_name": "Twistea",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 550.0
+    },
+    {
+      "id": 444,
+      "sku_code": "FD053",
+      "product_name": "Viet Coffee Matcha",
+      "category": "Drinks",
+      "division": "Matcha",
+      "flow_category": "",
+      "gmv_q3": 950.0
+    },
+    {
+      "id": 434,
+      "sku_code": "FD028",
+      "product_name": "Vietnamese Coffee",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    }
+  ],
+  "grabfood": [
+    {
+      "id": 493,
+      "sku_code": "GB092",
+      "product_name": "Banana Bread (Sliced)",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 495,
+      "sku_code": "GB093",
+      "product_name": "Blueberry Muffin",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 400.0
+    },
+    {
+      "id": 425,
+      "sku_code": "GP009",
+      "product_name": "Build A Box (Snack Box 10 Pcs)",
+      "category": "Bundles",
+      "division": "Value Packs",
+      "flow_category": "",
+      "gmv_q3": 1500.0
+    },
+    {
+      "id": 421,
+      "sku_code": "GP007",
+      "product_name": "Build A Box (Super Box 13 Pcs)",
+      "category": "Bundles",
+      "division": "Value Packs",
+      "flow_category": "",
+      "gmv_q3": 3000.0
+    },
+    {
+      "id": 447,
+      "sku_code": "GD049",
+      "product_name": "Caf\u00e9 Espanol",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 800.0
+    },
+    {
+      "id": 537,
+      "sku_code": "GB114",
+      "product_name": "Cheese Burst Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 300.0
+    },
+    {
+      "id": 481,
+      "sku_code": "GB003",
+      "product_name": "Cheese Roll",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 513,
+      "sku_code": "GB102",
+      "product_name": "Cheesy Ham Roll",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 521,
+      "sku_code": "GB106",
+      "product_name": "Cheesy Sausage Roll",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 450.0
+    },
+    {
+      "id": 523,
+      "sku_code": "GB107",
+      "product_name": "Chicken Asado Bun",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 533,
+      "sku_code": "GB112",
+      "product_name": "Choco Cheese Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 497,
+      "sku_code": "GB094",
+      "product_name": "Choco Chip Muffin",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 400.0
+    },
+    {
+      "id": 499,
+      "sku_code": "GB095",
+      "product_name": "Choco Cream Pan",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 531,
+      "sku_code": "GB111",
+      "product_name": "Choco Frost Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 483,
+      "sku_code": "GB004",
+      "product_name": "Choco Roll",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 489,
+      "sku_code": "GB090",
+      "product_name": "Cinnamon Roll Classic",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 200.0
+    },
+    {
+      "id": 487,
+      "sku_code": "GB089",
+      "product_name": "Cinnamon Roll Deluxe",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 250.0
+    },
+    {
+      "id": 491,
+      "sku_code": "GB091",
+      "product_name": "Coffee Bun",
+      "category": "Breads",
+      "division": "Sweet Favorites",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 525,
+      "sku_code": "GB108",
+      "product_name": "Corn Beef Pandesal",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 449,
+      "sku_code": "GD054",
+      "product_name": "Creamy Vanilla Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 800.0
+    },
+    {
+      "id": 445,
+      "sku_code": "GD034",
+      "product_name": "Dark Choco Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 850.0
+    },
+    {
+      "id": 501,
+      "sku_code": "GB096",
+      "product_name": "Double Cheese Roll",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 200.0
+    },
+    {
+      "id": 461,
+      "sku_code": "GD060",
+      "product_name": "Express Caramel Coffee",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 457,
+      "sku_code": "GD058",
+      "product_name": "Express Classic Iced Coffee",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 450.0
+    },
+    {
+      "id": 459,
+      "sku_code": "GD059",
+      "product_name": "Express Sweet & Creamy Iced Coffee",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 600.0
+    },
+    {
+      "id": 471,
+      "sku_code": "GD065",
+      "product_name": "Fruity Melon Milk",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    },
+    {
+      "id": 475,
+      "sku_code": "GD067",
+      "product_name": "Fruity Milk Mango",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    },
+    {
+      "id": 473,
+      "sku_code": "GD066",
+      "product_name": "Fruity Strawberry Milk",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    },
+    {
+      "id": 529,
+      "sku_code": "GB110",
+      "product_name": "Glazed Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 200.0
+    },
+    {
+      "id": 511,
+      "sku_code": "GB101",
+      "product_name": "Italian Cheese Roll",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 200.0
+    },
+    {
+      "id": 507,
+      "sku_code": "GB099",
+      "product_name": "Italian Herb Loaf",
+      "category": "Breads",
+      "division": "Daily Loaf",
+      "flow_category": "",
+      "gmv_q3": 750.0
+    },
+    {
+      "id": 463,
+      "sku_code": "GD061",
+      "product_name": "Lemon Berry Cooler",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 465,
+      "sku_code": "GD062",
+      "product_name": "Lemon Passion Cooler",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 467,
+      "sku_code": "GD063",
+      "product_name": "Mango Sunrise Cooler",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 550.0
+    },
+    {
+      "id": 535,
+      "sku_code": "GB113",
+      "product_name": "Milky Cheese Donut",
+      "category": "Donuts",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 435,
+      "sku_code": "GD050",
+      "product_name": "Milo Overload",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 850.0
+    },
+    {
+      "id": 437,
+      "sku_code": "GD051",
+      "product_name": "Original Matcha Milk",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 477,
+      "sku_code": "GB001",
+      "product_name": "Pan de coco",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 515,
+      "sku_code": "GB103",
+      "product_name": "Pan de Floss (Original)",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 517,
+      "sku_code": "GB104",
+      "product_name": "Pan de Floss (Spicy)",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 485,
+      "sku_code": "GB005",
+      "product_name": "Pan De Sal Pack (10pcs)",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 550.0
+    },
+    {
+      "id": 429,
+      "sku_code": "GP011",
+      "product_name": "Perfect Pair 1",
+      "category": "Bundles",
+      "division": "Promos",
+      "flow_category": "",
+      "gmv_q3": 690.0
+    },
+    {
+      "id": 431,
+      "sku_code": "GP012",
+      "product_name": "Perfect Pair 2",
+      "category": "Bundles",
+      "division": "Promos",
+      "flow_category": "",
+      "gmv_q3": 790.0
+    },
+    {
+      "id": 503,
+      "sku_code": "GB097",
+      "product_name": "Pinoy Pan Butter Sugar",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 120.0
+    },
+    {
+      "id": 505,
+      "sku_code": "GB098",
+      "product_name": "Pinoy Pan Garlic Butter",
+      "category": "Breads",
+      "division": "New Offers",
+      "flow_category": "",
+      "gmv_q3": 120.0
+    },
+    {
+      "id": 509,
+      "sku_code": "GB100",
+      "product_name": "Raisin Loaf",
+      "category": "Breads",
+      "division": "Daily Loaf",
+      "flow_category": "",
+      "gmv_q3": 750.0
+    },
+    {
+      "id": 469,
+      "sku_code": "GD064",
+      "product_name": "Ruby Twistea",
+      "category": "Drinks",
+      "division": "Coolers",
+      "flow_category": "",
+      "gmv_q3": 550.0
+    },
+    {
+      "id": 451,
+      "sku_code": "GD055",
+      "product_name": "Salted Caramel Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 800.0
+    },
+    {
+      "id": 455,
+      "sku_code": "GD057",
+      "product_name": "Signature Black Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 500.0
+    },
+    {
+      "id": 453,
+      "sku_code": "GD056",
+      "product_name": "Signature Milky Coffee",
+      "category": "Drinks",
+      "division": "Brewed Coffee",
+      "flow_category": "",
+      "gmv_q3": 650.0
+    },
+    {
+      "id": 427,
+      "sku_code": "GP010",
+      "product_name": "Snack Box (Assorted 10 Pcs)",
+      "category": "Bundles",
+      "division": "Value Packs",
+      "flow_category": "",
+      "gmv_q3": 1500.0
+    },
+    {
+      "id": 479,
+      "sku_code": "GB002",
+      "product_name": "Spanish Bread",
+      "category": "Breads",
+      "division": "Classic Favorites",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 441,
+      "sku_code": "GD052",
+      "product_name": "Strawberry Matcha Milk",
+      "category": "Drinks",
+      "division": "Matcha",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    },
+    {
+      "id": 539,
+      "sku_code": "GB115",
+      "product_name": "Strawberry Sprinkle Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 527,
+      "sku_code": "GB109",
+      "product_name": "Sugar Donut",
+      "category": "Donuts",
+      "division": "Sweet Treats",
+      "flow_category": "",
+      "gmv_q3": 150.0
+    },
+    {
+      "id": 423,
+      "sku_code": "GP008",
+      "product_name": "Super Box (Assorted 13 Pcs)",
+      "category": "Bundles",
+      "division": "Value Packs",
+      "flow_category": "",
+      "gmv_q3": 3000.0
+    },
+    {
+      "id": 519,
+      "sku_code": "GB105",
+      "product_name": "Tuna Bun",
+      "category": "Breads",
+      "division": "Savory Favorites",
+      "flow_category": "",
+      "gmv_q3": 350.0
+    },
+    {
+      "id": 439,
+      "sku_code": "GD117",
+      "product_name": "Twistea",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 550.0
+    },
+    {
+      "id": 443,
+      "sku_code": "GD053",
+      "product_name": "Viet Coffee Matcha",
+      "category": "Drinks",
+      "division": "Matcha",
+      "flow_category": "",
+      "gmv_q3": 950.0
+    },
+    {
+      "id": 433,
+      "sku_code": "GD028",
+      "product_name": "Vietnamese Coffee",
+      "category": "Drinks",
+      "division": "Beverages",
+      "flow_category": "",
+      "gmv_q3": 700.0
+    }
+  ]
+}

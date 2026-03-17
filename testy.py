@@ -81,28 +81,27 @@ def find_chrome_binary():
     return None
 
 def create_driver():
-    """Create Chrome driver for scraping - FIXED for Chrome 143"""
+    """Create Chrome driver for scraping - match Chrome major version"""
     chrome_binary = find_chrome_binary()
-    
     if not chrome_binary:
         raise Exception("Chrome not found! Please install Chrome or check the path.")
-    
+
     options = uc.ChromeOptions()
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--window-size=1920,1080')
     options.add_argument('--lang=en-PH')
-    
-    ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+
+    # IMPORTANT: Your UA should match your installed Chrome major version (145)
+    ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
     options.add_argument(f'--user-agent={ua}')
-    
-    # Create driver with explicit Chrome binary and version
+
     driver = uc.Chrome(
         options=options,
         browser_executable_path=chrome_binary,
-        use_subprocess=False
+        version_main=145,              # ✅ force driver major version
+        use_subprocess=True            # ✅ more stable on mac for uc
     )
-    
     return driver
 
 def extract_next_data(html: str) -> Optional[List[Dict]]:

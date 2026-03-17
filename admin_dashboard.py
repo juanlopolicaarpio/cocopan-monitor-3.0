@@ -1,4 +1,3 @@
-
 import os
 import re
 import time
@@ -23,9 +22,22 @@ logger = logging.getLogger(__name__)
 # ===== App modules =====
 from config import config
 from database import db
+from sms_alerts import SMSAlertService
 
 # ------------------------------------------------------------------------------
-# Health check endpoint (hardened) - FROM DOCUMENT 2
+# Lazy-init the shared SMS service (survives Streamlit reruns)
+# ------------------------------------------------------------------------------
+@st.cache_resource
+def get_sms_service() -> SMSAlertService:
+    svc = SMSAlertService()
+    if svc.is_configured:
+        logger.info("✅ SMS alert service initialized")
+    else:
+        logger.warning("⚠️ SMS alert service NOT configured (no SEMAPHORE_API_KEY)")
+    return svc
+
+# ------------------------------------------------------------------------------
+# Health check endpoint (hardened)
 # ------------------------------------------------------------------------------
 _HEALTH_THREAD_STARTED = False
 _HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8504"))
@@ -36,14 +48,21 @@ def create_health_server():
             if self.path == "/healthz":
                 try:
                     db.get_database_stats()
-                    self.send_response(200); self.send_header("Content-type", "text/plain"); self.end_headers()
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/plain")
+                    self.end_headers()
                     self.wfile.write(b"OK - Admin Dashboard Healthy")
                 except Exception as e:
-                    self.send_response(500); self.send_header("Content-type", "text/plain"); self.end_headers()
+                    self.send_response(500)
+                    self.send_header("Content-type", "text/plain")
+                    self.end_headers()
                     self.wfile.write(f"ERROR - {e}".encode())
             else:
-                self.send_response(404); self.end_headers()
-        def log_message(self, *args, **kwargs): pass
+                self.send_response(404)
+                self.end_headers()
+
+        def log_message(self, *args, **kwargs):
+            pass
 
     class ReusableTCPServer(socketserver.TCPServer):
         allow_reuse_address = True
@@ -69,7 +88,7 @@ if os.getenv("RAILWAY_ENVIRONMENT") == "production" and not _HEALTH_THREAD_START
         logger.exception("Failed to start health server thread")
 
 # ------------------------------------------------------------------------------
-# Streamlit page config - FROM DOCUMENT 2
+# Streamlit page config
 # ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="CocoPan Admin",
@@ -79,7 +98,7 @@ st.set_page_config(
 )
 
 # ------------------------------------------------------------------------------
-# Email Authentication - FROM DOCUMENT 2
+# Email Authentication
 # ------------------------------------------------------------------------------
 def load_authorized_admin_emails():
     try:
@@ -113,8 +132,11 @@ def check_admin_email_authentication():
         """, unsafe_allow_html=True)
 
         with st.form("admin_email_auth_form"):
-            email = st.text_input("Admin Email Address", placeholder="admin@cocopan.com",
-                                  help="Enter your authorized admin email address")
+            email = st.text_input(
+                "Admin Email Address",
+                placeholder="admin@cocopan.com",
+                help="Enter your authorized admin email address",
+            )
             submit = st.form_submit_button("Access Admin Dashboard", use_container_width=True)
             if submit:
                 email = email.strip().lower()
@@ -131,7 +153,7 @@ def check_admin_email_authentication():
     return True
 
 # ------------------------------------------------------------------------------
-# Foodpanda stores - FROM DOCUMENT 2 (UNCHANGED)
+# Foodpanda stores
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def load_foodpanda_stores():
@@ -179,7 +201,7 @@ def extract_store_name_from_url(url: str) -> str:
         return "Cocopan Foodpanda Store"
 
 # ------------------------------------------------------------------------------
-# Load all stores for SKU compliance (ADDITION FROM DOCUMENT 1)
+# Load all stores for SKU compliance
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def load_all_stores():
@@ -204,18 +226,18 @@ def load_all_stores():
                         store_id = db.get_or_create_store(store_name, url)
                         store_platform = platform
                     stores.append({
-                        "id": store_id, 
-                        "name": store_name, 
-                        "url": url, 
-                        "platform": store_platform or platform
+                        "id": store_id,
+                        "name": store_name,
+                        "url": url,
+                        "platform": store_platform or platform,
                     })
             except Exception as e:
                 logger.error(f"Error ensuring store in DB for {url}: {e}")
                 stores.append({
-                    "id": None, 
-                    "name": extract_store_name_from_url_extended(url), 
+                    "id": None,
+                    "name": extract_store_name_from_url_extended(url),
                     "url": url,
-                    "platform": "foodpanda" if "foodpanda" in url else "grabfood"
+                    "platform": "foodpanda" if "foodpanda" in url else "grabfood",
                 })
         logger.info(f"📋 Loaded {len(stores)} total stores")
         return stores
@@ -248,7 +270,7 @@ def extract_store_name_from_url_extended(url: str) -> str:
         return "Cocopan Store"
 
 # ------------------------------------------------------------------------------
-# Existing admin actions (verification tab) - FROM DOCUMENT 2 (UNCHANGED)
+# Existing admin actions (verification tab)
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=60)
 def load_stores_needing_attention() -> pd.DataFrame:
@@ -258,7 +280,7 @@ def load_stores_needing_attention() -> pd.DataFrame:
         logger.error(f"Error loading stores needing attention: {e}")
         return pd.DataFrame()
 
-def mark_store_status(store_id: int, store_name: str, is_online: bool, platform: str) -> bool:
+def mark_store_status(store_id: int, store_name: str, is_online: bool, platform: str, store_url: str = "") -> bool:
     try:
         ok = db.save_status_check(
             store_id=store_id,
@@ -269,6 +291,23 @@ def mark_store_status(store_id: int, store_name: str, is_online: bool, platform:
         if ok:
             logger.info(f"✅ Admin marked {store_name} as {'online' if is_online else 'offline'}")
             load_stores_needing_attention.clear()
+
+            # SMS alert when marking offline, behind the scenes
+            if not is_online and store_url:
+                try:
+                    sms = get_sms_service()
+                    if sms.is_configured:
+                        admin_email = st.session_state.get("admin_email", "admin")
+                        sms.send_offline_alert(
+                            store_name=store_name,
+                            store_url=store_url,
+                            platform=platform,
+                            reported_by=admin_email,
+                            hour_label=datetime.now(pytz.timezone("Asia/Manila")).strftime("%I:%M %p"),
+                        )
+                except Exception as sms_err:
+                    logger.error(f"SMS alert error for {store_name}: {sms_err}")
+
             return True
         logger.error(f"❌ Failed to save status for {store_name}")
         return False
@@ -278,25 +317,31 @@ def mark_store_status(store_id: int, store_name: str, is_online: bool, platform:
 
 def format_platform_emoji(platform: str) -> str:
     p = platform.lower() if platform else ""
-    if "grab" in p: return "🛒"
-    if "panda" in p: return "🍔"
+    if "grab" in p:
+        return "🛒"
+    if "panda" in p:
+        return "🍔"
     return "🏪"
 
 def format_time_ago(checked_at) -> str:
     try:
-        if pd.isna(checked_at): return "Unknown"
+        if pd.isna(checked_at):
+            return "Unknown"
         checked = pd.to_datetime(checked_at)
         now = datetime.now(tz=checked.tz) if getattr(checked, "tzinfo", None) else datetime.now()
         diff = now - checked
-        if diff.days > 0: return f"{diff.days}d ago"
-        if diff.seconds >= 3600: return f"{diff.seconds // 3600}h ago"
-        if diff.seconds >= 60: return f"{diff.seconds // 60}m ago"
+        if diff.days > 0:
+            return f"{diff.days}d ago"
+        if diff.seconds >= 3600:
+            return f"{diff.seconds // 3600}h ago"
+        if diff.seconds >= 60:
+            return f"{diff.seconds // 60}m ago"
         return "Just now"
-    except:
+    except Exception:
         return "Unknown"
 
 # ------------------------------------------------------------------------------
-# VA Check-in helpers and schedule - FROM DOCUMENT 2 (UNCHANGED)
+# VA Check-in helpers and schedule
 # ------------------------------------------------------------------------------
 def get_va_checkin_schedule():
     return {"start_hour": 7, "end_hour": 21, "timezone": "Asia/Manila"}
@@ -329,7 +374,8 @@ def _fmt_hour(h24: int) -> str:
 def get_next_checkin_time():
     sched = get_va_checkin_schedule()
     now = get_current_manila_time()
-    m = now.minute; h = now.hour
+    m = now.minute
+    h = now.hour
     if m >= 50:
         nh = h + 1
         if nh > sched["end_hour"]:
@@ -346,7 +392,7 @@ def _va_hour_tag(hour_slot: datetime) -> str:
     return f"[VA_CHECKIN] {hour_slot.strftime('%Y-%m-%d %H:00')}"
 
 # ------------------------------------------------------------------------------
-# DB reads using the hour tag - FROM DOCUMENT 2 (UNCHANGED)
+# DB reads using the hour tag
 # ------------------------------------------------------------------------------
 def load_submitted_va_state(hour_slot: datetime) -> Set[int]:
     try:
@@ -392,7 +438,7 @@ def get_completed_hours_today() -> List[int]:
         with db.get_connection() as conn:
             cur = conn.cursor()
             cur.execute("""
-                SELECT DISTINCT 
+                SELECT DISTINCT
                        EXTRACT(HOUR FROM checked_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')::int AS h
                   FROM status_checks
                  WHERE error_message LIKE '[VA_CHECKIN]%%'
@@ -421,7 +467,7 @@ def debug_va_timestamps():
         logger.error(f"Debug timestamps error: {e}")
 
 # ------------------------------------------------------------------------------
-# Save using the hour tag as idempotency key - FROM DOCUMENT 2 (UNCHANGED)
+# Save using the hour tag as idempotency key + hidden SMS alerts
 # ------------------------------------------------------------------------------
 def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hour_slot: datetime) -> bool:
     try:
@@ -464,7 +510,7 @@ def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hou
                         response_ms=1000,
                         evidence=msg,
                         probe_time=hour_slot,
-                        run_id=run_id
+                        run_id=run_id,
                     )
                 except Exception as e:
                     logger.warning(f"Hourly upsert warn for {store['name']}: {e}")
@@ -486,10 +532,34 @@ def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hou
                 blocked=0,
                 errors=0,
                 unknown=0,
-                last_probe_at=hour_slot
+                last_probe_at=hour_slot,
             )
         except Exception as e:
             logger.warning(f"Summary upsert warn: {e}")
+
+        # Hidden SMS alerts for offline stores
+        if offline_store_ids:
+            try:
+                sms = get_sms_service()
+                if sms.is_configured:
+                    hour_label = hour_slot.strftime("%I:%M %p")
+                    for store in stores:
+                        if store["id"] not in offline_store_ids or store["id"] is None:
+                            continue
+                        try:
+                            sms.send_offline_alert(
+                                store_name=store["name"],
+                                store_url=store["url"],
+                                platform="foodpanda",
+                                reported_by=admin_email,
+                                hour_label=hour_label,
+                            )
+                        except Exception as per_store_err:
+                            logger.error(f"📱 SMS error for {store['name']}: {per_store_err}")
+                else:
+                    logger.info("📱 SMS not configured – skipping offline alerts")
+            except Exception as sms_err:
+                logger.error(f"📱 SMS alert error (non-fatal): {sms_err}")
 
         logger.info(f"✅ VA Check-in for {tag} saved. Success {success_count}/{len(stores)}, errors {error_count}")
         return error_count == 0
@@ -498,7 +568,7 @@ def save_va_checkin_enhanced(offline_store_ids: List[int], admin_email: str, hou
         return False
 
 # ------------------------------------------------------------------------------
-# SKU Compliance Functions (ADDITION FROM DOCUMENT 1)
+# SKU Compliance Functions
 # ------------------------------------------------------------------------------
 def clean_product_name(name: str) -> str:
     if not name:
@@ -513,10 +583,10 @@ def search_skus(platform: str, search_term: str) -> List[Dict]:
         return db.get_master_skus_by_platform(platform)
 
 # ------------------------------------------------------------------------------
-# SKU Compliance Tab UI (ADDITION FROM DOCUMENT 1)
+# SKU Compliance Tab UI
 # ------------------------------------------------------------------------------
 def sku_compliance_tab():
-    st.markdown(f"""
+    st.markdown("""
     <div class="section-header" style="background:#fff; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem 1.1rem; margin:1.1rem 0 .9rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06);">
         <div style="font-size:1.1rem; font-weight:600; color:#1E293B; margin:0;">📦 SKU Compliance Checker</div>
         <div style="font-size:.85rem; color:#64748B; margin:.25rem 0 0 0;">Check product availability at stores • VA Tool</div>
@@ -525,38 +595,38 @@ def sku_compliance_tab():
 
     st.markdown("### 🔍 Store Product Checker")
     st.markdown("Select a store and platform, then check which products are out of stock.")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         platform = st.selectbox(
             "Select Platform:",
             ["grabfood", "foodpanda"],
             format_func=lambda x: "🛒 GrabFood" if x == "grabfood" else "🍔 Foodpanda",
-            key="sku_platform_select"
+            key="sku_platform_select",
         )
-    
+
     with col2:
         all_stores = load_all_stores()
         platform_stores = [s for s in all_stores if s["platform"] == platform and s["id"]]
-        
+
         if not platform_stores:
             st.error(f"No {platform} stores found in database.")
             return
-            
+
         store_options = {f"{s['name']} (ID: {s['id']})": s for s in platform_stores}
         selected_store_display = st.selectbox(
             "Select Store:",
             options=list(store_options.keys()),
-            key="sku_store_select"
+            key="sku_store_select",
         )
-        
+
     if selected_store_display:
         selected_store = store_options[selected_store_display]
         store_id = selected_store["id"]
         store_name = selected_store["name"]
         store_url = selected_store["url"]
-        
+
         st.markdown(f"""
         <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:1rem; margin:1rem 0;">
             <strong>📍 Selected Store:</strong> {store_name}<br>
@@ -564,27 +634,27 @@ def sku_compliance_tab():
             <strong>🔗 Store URL:</strong> <a href="{store_url}" target="_blank">Open Store</a>
         </div>
         """, unsafe_allow_html=True)
-        
+
         existing_check = db.get_store_sku_status_today(store_id, platform)
-        
+
         session_key = f"sku_check_{store_id}_{platform}"
         if session_key not in st.session_state:
             if existing_check:
                 st.session_state[session_key] = set(existing_check.get('out_of_stock_skus', []))
             else:
                 st.session_state[session_key] = set()
-        
+
         all_skus = db.get_master_skus_by_platform(platform)
         if not all_skus:
             st.warning(f"No products found for {platform}. Please run the SKU population script first.")
             return
-        
+
         search_term = st.text_input(
             "🔍 Search Products:",
             placeholder="Type product name to search...",
-            key=f"sku_search_{store_id}_{platform}"
+            key=f"sku_search_{store_id}_{platform}",
         )
-        
+
         if search_term:
             display_skus = search_skus(platform, search_term)
             st.info(f"Found {len(display_skus)} products matching '{search_term}' (out of {len(all_skus)} total)")
@@ -593,37 +663,37 @@ def sku_compliance_tab():
         else:
             display_skus = all_skus
             st.info(f"Showing all {len(all_skus)} {platform} products")
-        
+
         st.markdown("### 📋 Product Checklist")
         st.markdown("Check the box next to products that are **OUT OF STOCK**:")
-        
+
         skus_by_category = {}
         for sku in display_skus:
             category = sku.get('flow_category', 'Other')
             if category not in skus_by_category:
                 skus_by_category[category] = []
             skus_by_category[category].append(sku)
-        
+
         for category, category_skus in skus_by_category.items():
             with st.expander(f"📁 {category} ({len(category_skus)} products)", expanded=True):
                 for sku in category_skus:
                     sku_code = sku['sku_code']
                     product_name = clean_product_name(sku['product_name'])
-                    
+
                     is_out_of_stock = st.checkbox(
                         f"**{product_name}** ({sku_code})",
                         value=sku_code in st.session_state[session_key],
                         key=f"sku_{sku_code}_{store_id}_{platform}",
-                        help=f"GMV Q3: ₱{sku.get('gmv_q3', 0):,.2f}"
+                        help=f"GMV Q3: ₱{sku.get('gmv_q3', 0):,.2f}",
                     )
-                    
+
                     if is_out_of_stock:
                         if sku_code not in st.session_state[session_key]:
                             st.session_state[session_key].add(sku_code)
                     else:
                         if sku_code in st.session_state[session_key]:
                             st.session_state[session_key].discard(sku_code)
-        
+
         st.markdown("---")
         st.markdown("### ⚡ Bulk Actions")
         col1, col2, col3, col4 = st.columns(4)
@@ -632,25 +702,25 @@ def sku_compliance_tab():
                 st.session_state[session_key] = set()
                 st.success("All products marked as IN STOCK")
                 st.rerun()
-        
+
         with col2:
             if st.button("❌ Mark All Out of Stock", key=f"all_out_stock_{store_id}_{platform}"):
                 st.session_state[session_key] = set(sku['sku_code'] for sku in all_skus)
                 st.success("All products marked as OUT OF STOCK")
                 st.rerun()
-        
+
         with col3:
             if existing_check and st.button("🔄 Reset to Last Saved", key=f"reset_{store_id}_{platform}"):
                 st.session_state[session_key] = set(existing_check.get('out_of_stock_skus', []))
                 st.success("Reset to last saved state")
                 st.rerun()
-        
+
         with col4:
             current_oos_count = len(st.session_state[session_key])
             total_skus = len(all_skus)
             compliance_pct = ((total_skus - current_oos_count) / max(total_skus, 1)) * 100
             st.metric("Current Compliance", f"{compliance_pct:.1f}%", f"{total_skus - current_oos_count}/{total_skus} in stock")
-        
+
         if existing_check:
             st.markdown("---")
             st.markdown(f"""
@@ -662,14 +732,14 @@ def sku_compliance_tab():
                 • Checked at: {existing_check['checked_at']}
             </div>
             """, unsafe_allow_html=True)
-        
+
         st.markdown("---")
         st.markdown("### 💾 Save Compliance Check")
-        
+
         final_oos_count = len(st.session_state[session_key])
         total_catalog_count = len(all_skus)
         final_compliance = ((total_catalog_count - final_oos_count) / max(total_catalog_count, 1)) * 100
-        
+
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Total Products", total_catalog_count)
@@ -677,14 +747,14 @@ def sku_compliance_tab():
             st.metric("In Stock", total_catalog_count - final_oos_count, "✅")
         with col3:
             st.metric("Out of Stock", final_oos_count, "❌")
-        
+
         if search_term:
             st.warning(f"""
-            ⚠️ **Search Filter Active**: You are viewing {len(display_skus)} filtered products, but compliance 
-            calculation includes all {total_catalog_count} products in the catalog. Make sure you've 
+            ⚠️ **Search Filter Active**: You are viewing {len(display_skus)} filtered products, but compliance
+            calculation includes all {total_catalog_count} products in the catalog. Make sure you've
             checked all relevant products before saving.
             """)
-        
+
         st.markdown(f"""
         <div style="background:{'#FEF2F2' if final_compliance < 80 else '#F0FDF4'}; border:1px solid {'#FECACA' if final_compliance < 80 else '#BBF7D0'}; border-radius:8px; padding:1rem; margin:1rem 0;">
             <strong>📊 Final Compliance: {final_compliance:.1f}%</strong><br>
@@ -692,7 +762,7 @@ def sku_compliance_tab():
             <small>Calculated from full catalog of {total_catalog_count} products</small>
         </div>
         """, unsafe_allow_html=True)
-        
+
         if st.button("💾 Save Compliance Check", type="primary", use_container_width=True):
             try:
                 out_of_stock_list = list(st.session_state[session_key])
@@ -700,33 +770,32 @@ def sku_compliance_tab():
                     store_id=store_id,
                     platform=platform,
                     out_of_stock_ids=out_of_stock_list,
-                    checked_by=st.session_state.admin_email
+                    checked_by=st.session_state.admin_email,
                 )
-                
+
                 if success:
                     st.success(f"""
                     ✅ **Compliance check saved successfully!**
-                    
+
                     📊 **Summary:**
                     - Store: {store_name}
                     - Platform: {platform.title()}
                     - Compliance: {final_compliance:.1f}%
                     - Out of Stock: {final_oos_count} items
                     - Checked by: {st.session_state.admin_email}
-                    
+
                     The compliance data has been saved to the database.
                     """)
                     time.sleep(1)
-                    
                 else:
                     st.error("❌ Failed to save compliance check. Please try again.")
-                    
+
             except Exception as e:
                 st.error(f"❌ Error saving compliance check: {e}")
                 logger.error(f"SKU compliance save error: {e}")
 
 # ------------------------------------------------------------------------------
-# NEW: Manual Ratings Tab (BRAND NEW ADDITION)
+# Manual Ratings Tab
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=60)
 def load_stores_without_ratings():
@@ -739,33 +808,31 @@ def load_stores_without_ratings():
 
 def manual_ratings_tab():
     """Manual ratings entry tab for unscraped stores"""
-    st.markdown(f"""
+    st.markdown("""
     <div class="section-header" style="background:#fff; border:1px solid #E2E8F0; border-radius:8px; padding:.9rem 1.1rem; margin:1.1rem 0 .9rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06);">
         <div style="font-size:1.1rem; font-weight:600; color:#1E293B; margin:0;">⭐ Manual Ratings Entry</div>
         <div style="font-size:.85rem; color:#64748B; margin:.25rem 0 0 0;">Enter ratings for stores that weren't scraped successfully</div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Get stores without ratings
+
     unrated_stores = load_stores_without_ratings()
-    
+
     if not unrated_stores:
         st.success("""
         ✅ **All stores have ratings!**
-        
-        Great job! All stores in the system have been assigned ratings. 
+
+        Great job! All stores in the system have been assigned ratings.
         There are no stores requiring manual entry at this time.
         """)
-        
+
         if st.button("🔄 Refresh Data", use_container_width=True):
             load_stores_without_ratings.clear()
             st.rerun()
         return
-    
-    # Show summary
+
     grabfood_count = sum(1 for s in unrated_stores if s['platform'] == 'grabfood')
     foodpanda_count = sum(1 for s in unrated_stores if s['platform'] == 'foodpanda')
-    
+
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Total Unrated", len(unrated_stores))
@@ -773,50 +840,44 @@ def manual_ratings_tab():
         st.metric("🛒 GrabFood", grabfood_count)
     with col3:
         st.metric("🍔 Foodpanda", foodpanda_count)
-    
+
     st.markdown("---")
-    
-    # Platform filter
+
     platform_filter = st.selectbox(
         "Filter by Platform:",
         options=['all', 'grabfood', 'foodpanda'],
         format_func=lambda x: {
             'all': 'All Platforms',
             'grabfood': '🛒 GrabFood',
-            'foodpanda': '🍔 Foodpanda'
+            'foodpanda': '🍔 Foodpanda',
         }[x],
-        key="rating_platform_filter"
+        key="rating_platform_filter",
     )
-    
-    # Filter stores
+
     if platform_filter == 'all':
         filtered_stores = unrated_stores
     else:
         filtered_stores = [s for s in unrated_stores if s['platform'] == platform_filter]
-    
+
     if not filtered_stores:
         st.info(f"No unrated {platform_filter} stores found.")
         return
-    
+
     st.markdown(f"### 🏪 {len(filtered_stores)} Stores Need Ratings")
     st.markdown("Enter ratings for each store below. Visit the store link to check the actual rating.")
-    
-    # Initialize session state for tracking submitted stores
+
     if "submitted_ratings" not in st.session_state:
         st.session_state.submitted_ratings = set()
-    
-    # Store cards
+
     for idx, store in enumerate(filtered_stores):
         store_id = store['store_id']
         store_name = store['name']
         store_url = store['url']
         platform = store['platform']
-        
-        # Skip if already submitted in this session
+
         if store_id in st.session_state.submitted_ratings:
             continue
-        
-        # Store card
+
         st.markdown(f"""
         <div style="background:white; border:1px solid #E2E8F0; border-radius:10px; padding:1.25rem; margin-bottom:1rem; box-shadow:0 2px 4px rgba(0,0,0,0.06);">
             <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
@@ -830,17 +891,16 @@ def manual_ratings_tab():
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Rating input form
+
         col1, col2, col3 = st.columns([2, 2, 1])
-        
+
         with col1:
             st.markdown(f"""
             <a href="{store_url}" target="_blank" style="display:inline-block; padding:.55rem 1rem; background:#3B82F6; color:#fff; text-decoration:none; border-radius:8px; font-size:.9rem; font-weight:600; text-align:center;">
                 🔗 Open Store Page
             </a>
             """, unsafe_allow_html=True)
-        
+
         with col2:
             rating_input = st.number_input(
                 "Enter Rating (0.0 - 5.0):",
@@ -849,27 +909,25 @@ def manual_ratings_tab():
                 value=4.5,
                 step=0.1,
                 key=f"rating_input_{store_id}",
-                help="Enter the rating you see on the store page"
+                help="Enter the rating you see on the store page",
             )
-        
+
         with col3:
-            st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+            st.markdown("<br>", unsafe_allow_html=True)
             submit_rating = st.button(
                 "💾 Save",
                 key=f"submit_rating_{store_id}",
                 use_container_width=True,
-                type="primary"
+                type="primary",
             )
-        
-        # Notes field
+
         notes = st.text_area(
             "Notes (optional):",
             placeholder="E.g., Rating not visible, manual verification needed, etc.",
             key=f"notes_{store_id}",
-            height=60
+            height=60,
         )
-        
-        # Handle submission
+
         if submit_rating:
             try:
                 success = db.manually_set_store_rating(
@@ -877,48 +935,44 @@ def manual_ratings_tab():
                     platform=platform,
                     rating=rating_input,
                     entered_by=st.session_state.admin_email,
-                    notes=notes if notes.strip() else None
+                    notes=notes if notes.strip() else None,
                 )
-                
+
                 if success:
                     st.success(f"""
                     ✅ **Rating saved for {store_name}**
-                    
+
                     📊 Details:
                     - Rating: {rating_input}★
                     - Platform: {platform.title()}
                     - Entered by: {st.session_state.admin_email}
                     {f"- Notes: {notes}" if notes.strip() else ""}
                     """)
-                    
-                    # Mark as submitted
+
                     st.session_state.submitted_ratings.add(store_id)
-                    
-                    # Clear cache and rerun after short delay
                     time.sleep(0.5)
                     load_stores_without_ratings.clear()
                     st.rerun()
                 else:
                     st.error("❌ Failed to save rating. Please try again.")
-                    
+
             except Exception as e:
                 st.error(f"❌ Error saving rating: {e}")
                 logger.error(f"Manual rating save error: {e}")
-        
+
         st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Bulk actions
+
     st.markdown("---")
     st.markdown("### ⚡ Bulk Actions")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         if st.button("🔄 Refresh Store List", use_container_width=True):
             load_stores_without_ratings.clear()
             st.session_state.submitted_ratings.clear()
             st.rerun()
-    
+
     with col2:
         if st.button("✅ Mark Session Complete", use_container_width=True):
             st.session_state.submitted_ratings.clear()
@@ -928,7 +982,7 @@ def manual_ratings_tab():
             st.rerun()
 
 # ------------------------------------------------------------------------------
-# VA Check-in UI Tab - FROM DOCUMENT 2 (UNCHANGED)
+# VA Check-in UI Tab
 # ------------------------------------------------------------------------------
 def enhanced_va_checkin_tab():
     debug_va_timestamps()
@@ -998,9 +1052,12 @@ You can review stores below; submissions are accepted during the window.
     online = total - offline
 
     c1, c2, c3 = st.columns(3)
-    with c1: st.metric("🟢 Online", online, "Will stay online")
-    with c2: st.metric("🔴 Marked Offline", offline, "Marked by VA")
-    with c3: st.metric("📊 Total Foodpanda", total, "All stores")
+    with c1:
+        st.metric("🟢 Online", online, "Will stay online")
+    with c2:
+        st.metric("🔴 Marked Offline", offline, "Marked by VA")
+    with c3:
+        st.metric("📊 Total Foodpanda", total, "All stores")
 
     if hour_completed:
         st.info(f"📋 **Showing submitted state** for {current_hour_slot.strftime('%I:00 %p')} (tag-based).")
@@ -1009,17 +1066,23 @@ You can review stores below; submissions are accepted during the window.
     st.markdown("### 🔍 Search & Mark Stores")
 
     BRAND_PREFIX_RE = re.compile(r'^\s*cocopan[\s\-:]+', re.IGNORECASE)
+
     def norm_name(name: str) -> str:
         n = BRAND_PREFIX_RE.sub("", name or "")
         n = re.sub(r"\s+", " ", n).strip().lower()
         return n
 
     def rank(name: str, q: str) -> int:
-        k = norm_name(name); ql = (q or "").strip().lower()
-        if not ql: return 2
-        if k.startswith(ql): return 0
-        if any(w.startswith(ql) for w in k.split()): return 1
-        if ql in k: return 2
+        k = norm_name(name)
+        ql = (q or "").strip().lower()
+        if not ql:
+            return 2
+        if k.startswith(ql):
+            return 0
+        if any(w.startswith(ql) for w in k.split()):
+            return 1
+        if ql in k:
+            return 2
         return 3
 
     offline_set: Set[int] = st.session_state.va_offline_stores
@@ -1051,7 +1114,8 @@ You can review stores below; submissions are accepted during the window.
 
     for s in filtered:
         sid, sname, surl = s["id"], s["name"], s["url"]
-        if not sid: continue
+        if not sid:
+            continue
         display_name = sname.replace("Cocopan - ", "").replace("Cocopan ", "")
         is_offline = sid in st.session_state.va_offline_stores
 
@@ -1073,11 +1137,15 @@ You can review stores below; submissions are accepted during the window.
             """, unsafe_allow_html=True)
         with c2:
             if is_offline and st.button("✅ Mark ONLINE", key=f"online_{sid}", use_container_width=True):
-                st.session_state.va_offline_stores.discard(sid); st.success(f"✅ {display_name} marked as ONLINE"); st.rerun()
+                st.session_state.va_offline_stores.discard(sid)
+                st.success(f"✅ {display_name} marked as ONLINE")
+                st.rerun()
         with c3:
             if not is_offline:
                 if st.button("🔴 Mark OFFLINE", key=f"offline_{sid}", use_container_width=True, type="primary"):
-                    st.session_state.va_offline_stores.add(sid); st.success(f"🔴 {display_name} marked as OFFLINE"); st.rerun()
+                    st.session_state.va_offline_stores.add(sid)
+                    st.success(f"🔴 {display_name} marked as OFFLINE")
+                    st.rerun()
             else:
                 st.write("OFFLINE ✓")
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1093,11 +1161,16 @@ You can review stores below; submissions are accepted during the window.
             st.write(f"{idx}. 🔴 {s['name'].replace('Cocopan - ', '').replace('Cocopan ', '')}")
             idx += 1
 
-    st.markdown("---"); st.markdown("### 📤 Submit Hourly Check-in")
-    if offline == 0: st.info("ℹ️ No stores marked as offline. All Foodpanda stores will be saved as ONLINE.")
-    else: st.warning(f"⚠️ {offline} stores will be marked as OFFLINE. {online} stores will remain ONLINE.")
-    if hour_completed: st.success("✅ Already submitted for this hour (tag-based).")
-    else: st.info("⏳ Not submitted yet for this hour.")
+    st.markdown("---")
+    st.markdown("### 📤 Submit Hourly Check-in")
+    if offline == 0:
+        st.info("ℹ️ No stores marked as offline. All Foodpanda stores will be saved as ONLINE.")
+    else:
+        st.warning(f"⚠️ {offline} stores will be marked as OFFLINE. {online} stores will remain ONLINE.")
+    if hour_completed:
+        st.success("✅ Already submitted for this hour (tag-based).")
+    else:
+        st.info("⏳ Not submitted yet for this hour.")
 
     if not is_checkin_time():
         st.button("📤 Submit Check-in (Outside Window)", use_container_width=True, disabled=True)
@@ -1119,7 +1192,8 @@ You can review stores below; submissions are accepted during the window.
 💾 Saved to BOTH legacy (status_checks) and hourly snapshot (store_status_hourly) tables
                 """)
                 load_foodpanda_stores.clear()
-                time.sleep(0.5); st.rerun()
+                time.sleep(0.5)
+                st.rerun()
             else:
                 st.error("❌ Failed to save. Please try again.")
 
@@ -1128,11 +1202,11 @@ You can review stores below; submissions are accepted during the window.
     hours_range = list(range(start_h, end_h + 1))
     cols = st.columns(len(hours_range))
     for i, h in enumerate(hours_range):
-        status = "✅ Done" if h in get_completed_hours_today() else "⏳ Pending"
+        status = "✅ Done" if h in completed_hours else "⏳ Pending"
         cols[i].metric(_fmt_hour(h), status)
 
 # ------------------------------------------------------------------------------
-# Styles - FROM DOCUMENT 2 (UNCHANGED)
+# Styles
 # ------------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -1157,7 +1231,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
-# Main - MODIFIED TO ADD MANUAL RATINGS TAB
+# Main
 # ------------------------------------------------------------------------------
 def main():
     if not check_admin_email_authentication():
@@ -1178,12 +1252,11 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # MODIFIED: Added Manual Ratings tab (4th tab)
     tab1, tab2, tab3, tab4 = st.tabs([
-        "🔧 Store Verification", 
-        "🐼 VA Hourly Check-in", 
+        "🔧 Store Verification",
+        "🐼 VA Hourly Check-in",
         "📦 SKU Compliance",
-        "⭐ Manual Ratings"
+        "⭐ Manual Ratings",
     ])
 
     with tab1:
@@ -1202,23 +1275,29 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             if st.button("🔄 Check for New Issues", use_container_width=True):
-                load_stores_needing_attention.clear(); st.rerun()
+                load_stores_needing_attention.clear()
+                st.rerun()
         else:
             if "completed_stores" not in st.session_state:
                 st.session_state.completed_stores = set()
-            total = len(df); done = len(st.session_state.completed_stores)
+            total = len(df)
+            done = len(st.session_state.completed_stores)
             pct = (done / total) * 100 if total else 0.0
             st.markdown(f"""
             <div style="background:#E2E8F0; border-radius:8px; height:8px; overflow:hidden; margin:.5rem 0 1rem 0;">
                 <div style="background:linear-gradient(90deg,#10B981,#059669); height:100%; width:{pct:.1f}%"></div>
             </div>
-            <div style="text-align:center;st.sidebar color:#64748B; margin-bottom:1rem;">Progress: {done}/{total} completed</div>
+            <div style="text-align:center; color:#64748B; margin-bottom:1rem;">Progress: {done}/{total} completed</div>
             """, unsafe_allow_html=True)
 
             for idx, row in df.iterrows():
-                sid = row["id"]; sname = row["name"]; platform = (row.get("platform") or "unknown")
-                url = row["url"]; checked_at = row.get("checked_at")
-                if sid in st.session_state.completed_stores: continue
+                sid = row["id"]
+                sname = row["name"]
+                platform = (row.get("platform") or "unknown")
+                url = row["url"]
+                checked_at = row.get("checked_at")
+                if sid in st.session_state.completed_stores:
+                    continue
 
                 st.markdown(f"""
                 <div class="store-card">
@@ -1239,24 +1318,33 @@ def main():
                     """, unsafe_allow_html=True)
                 with c2:
                     if st.button("✅ Online", key=f"v_online_{sid}", use_container_width=True):
-                        if mark_store_status(sid, sname, True, platform):
-                            st.session_state.completed_stores.add(sid); st.success(f"✅ {sname} marked Online")
-                            time.sleep(0.6); st.rerun()
-                        else: st.error("Update failed. Try again.")
+                        if mark_store_status(sid, sname, True, platform, url):
+                            st.session_state.completed_stores.add(sid)
+                            st.success(f"✅ {sname} marked Online")
+                            time.sleep(0.6)
+                            st.rerun()
+                        else:
+                            st.error("Update failed. Try again.")
                 with c3:
                     if st.button("❌ Offline", key=f"v_offline_{sid}", use_container_width=True):
-                        if mark_store_status(sid, sname, False, platform):
-                            st.session_state.completed_stores.add(sid); st.success(f"❌ {sname} marked Offline")
-                            time.sleep(0.6); st.rerun()
-                        else: st.error("Update failed. Try again.")
+                        if mark_store_status(sid, sname, False, platform, url):
+                            st.session_state.completed_stores.add(sid)
+                            st.success(f"❌ {sname} marked Offline")
+                            time.sleep(0.6)
+                            st.rerun()
+                        else:
+                            st.error("Update failed. Try again.")
                 st.markdown("<br>", unsafe_allow_html=True)
 
             remain = total - done
-            if remain > 0: st.info(f"📋 {remain} stores remaining")
+            if remain > 0:
+                st.info(f"📋 {remain} stores remaining")
             else:
                 st.success("🎉 All stores verified!")
                 if st.button("🔄 Check for New Issues", use_container_width=True, key="refresh_verification"):
-                    st.session_state.completed_stores.clear(); load_stores_needing_attention.clear(); st.rerun()
+                    st.session_state.completed_stores.clear()
+                    load_stores_needing_attention.clear()
+                    st.rerun()
 
     with tab2:
         enhanced_va_checkin_tab()
@@ -1264,7 +1352,6 @@ def main():
     with tab3:
         sku_compliance_tab()
 
-    # NEW: Manual Ratings Tab
     with tab4:
         manual_ratings_tab()
 
