@@ -78,6 +78,25 @@
     "https://food.grab.com/ph/en/restaurant/cocopan-grace-park-delivery/2-C7LDVGEVEPDTGN",
     "https://food.grab.com/ph/en/restaurant/cocopan-dela-paz-delivery/2-C7NVEBVAEJVYEX",
     "https://food.grab.com/ph/en/restaurant/cocopan-san-isidro-delivery/2-C7K2PCAZAXNXEA?sourceID=20251022_150248_40991888FC774198AB3FD8CB0B476FAF_MEXMPS&nameSlug=online-delivery&id=2-C7K2PCAZAXNXEA",
+    "https://food.grab.com/ph/en/restaurant/cocopan-buendia-1-delivery/2-C6TATLDTSFMAAE?sourceID=20260326_111303_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-calderon-delivery/2-C7TAAALCLBVFRT?sourceID=20260326_111412_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-kaybiga-delivery/2-C7VAL3VFLFNEUE?sourceID=20260326_112110_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-malibay-delivery/2-C7VAHGJDLLBHKA?sourceID=20260326_112132_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-mindanao-avenue-delivery/2-C7NWTZNCELATMA?sourceID=20260326_112529_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-pinagsama-afp-ii-delivery/2-C7WZR4LGVEBWVT?sourceID=20260326_112554_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-poblacion-dos-delivery/2-C7WZR4LGUGCVVT?sourceID=20260326_112620_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-general-t-de-leon-delivery/2-C7TBAFWDAEWYUE?sourceID=20260326_112651_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-parola-delivery/2-C7U1DA2ENZDDPE?sourceID=20260326_112747_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-malanday-delivery/2-C7TBAFWBCKWGNX?sourceID=20260326_112807_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-trabajo-delivery/2-C7VBJBMYEJVHE2?sourceID=20260326_112828_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-barangka-delivery/2-C7TBAFWHGUETDE?sourceID=20260326_112907_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-santa-quiteria-caloocan-delivery/2-C66BGTT3C2MJJJ?sourceID=20260326_112933_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-gastambide-delivery/2-C7TDJVJJVNBAJ6?sourceID=20260326_112959_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-tuktukan-delivery/2-C7WZR4LGUF4DG2?sourceID=20260326_113027_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-almeda-santo-rosario-delivery/2-C7TDJ2NVMFJ3LE?sourceID=20260326_113048_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+    "https://food.grab.com/ph/en/restaurant/cocopan-aglipay-delivery/2-C7TAAALDTGAFT2?sourceID=20260326_113119_8ABB3E67832E450295A04B2C25CE1006_MEXMPS",
+
+
     "https://www.foodpanda.ph/restaurant/m90j/cocopan-aglipay",
     "https://www.foodpanda.ph/restaurant/bnn1/cocopan-anonas",
     "https://www.foodpanda.ph/restaurant/i51s/cocopan-altura",
@@ -163,7 +182,6 @@
     "https://www.foodpanda.ph/restaurant/zb3k/cocopan-kalentong",
     "https://www.foodpanda.ph/restaurant/tn2t/cocopan-naga-road",
     "https://www.foodpanda.ph/restaurant/bwpg/cocopan-malibay",
-    "https://www.foodpanda.ph/restaurant/l6ge/cocopan-felix-huertas-street",
     "https://www.foodpanda.ph/restaurant/j84t/cocopan-governor-santiago-malinta",
     "https://www.foodpanda.ph/restaurant/ziri/cocopan-milagrosa",
     "https://www.foodpanda.ph/restaurant/d2p1/cocopan-poblacion-dos",
@@ -174,6 +192,8 @@
     ""
   ],
   "disabled_urls": [
+       "https://www.foodpanda.ph/restaurant/l6ge/cocopan-felix-huertas-street",
+
     "https://food.grab.com/ph/en/restaurant/cocopan-susano-road-novaliches-delivery/2-C6MEHBN2EX51EA"
   ],
   "meta": {
